@@ -1,0 +1,8 @@
+minimumReleaseAgeExclude:
+  - '@next/*'
+  - next
+
+packages:
+  - 'frontend'
+  - 'backend'
+  - 'scraper'
