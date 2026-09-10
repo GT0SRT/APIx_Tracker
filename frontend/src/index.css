@@ -1,1 +1,64 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: 'Inter', 'Inter Fallback';
+  --font-mono: 'IBM Plex Mono', 'IBM Plex Mono Fallback';
+}
+
+:root {
+  color-scheme: light;
+  --background: oklch(0.975 0.008 246);
+  --foreground: oklch(0.22 0.035 247);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.035 247);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.035 247);
+  --primary: oklch(0.52 0.18 238);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0.018 242);
+  --secondary-foreground: oklch(0.3 0.06 247);
+  --muted: oklch(0.95 0.012 246);
+  --muted-foreground: oklch(0.52 0.035 247);
+  --accent: oklch(0.94 0.04 232);
+  --accent-foreground: oklch(0.3 0.08 238);
+  --destructive: oklch(0.6 0.2 25);
+  --border: oklch(0.9 0.025 246);
+  --input: oklch(0.9 0.025 246);
+  --ring: oklch(0.52 0.18 238);
+  --radius: 0.7rem;
+}
+
+@layer base {
+  * { @apply border-border outline-ring/50; }
+  html { background: var(--background); }
+  body { @apply bg-background text-foreground font-sans; }
+  button, select { font: inherit; }
+}
+
+.recharts-tooltip-cursor { fill: oklch(0.96 0.02 246); }
+.recharts-default-tooltip { border-radius: 0.5rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
