@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   TrendingUp,
   Activity,
@@ -7,6 +7,9 @@ import {
   ArrowUpRight,
   ShieldCheck,
   CheckCircle2,
+  Database,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import {
   Line,
@@ -20,6 +23,8 @@ import {
   ComposedChart,
 } from 'recharts'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
+import { Pagination } from '../common/Pagination'
+import { paginateData } from '../../services/api'
 
 const historicalSeries90Days = [
   { date: 'Jun 01', headline: 129.2, coreTrimmed: 129.0, mospiLag: 126.4, baseline: 128.0 },
@@ -41,6 +46,9 @@ export function IndexSeriesView() {
   const [showCoreTrimmed, setShowCoreTrimmed] = useState(true)
   const [showMospiLag, setShowMospiLag] = useState(true)
   const [baseYear, setBaseYear] = useState<'2024' | '2012'>('2024')
+  const [showTable, setShowTable] = useState(true)
+  const [tablePage, setTablePage] = useState(1)
+  const [tablePageSize, setTablePageSize] = useState(5)
 
   const baseMultiplier = baseYear === '2024' ? 1.0 : 1.48 // Base 2012 conversion factor
 
@@ -51,6 +59,10 @@ export function IndexSeriesView() {
     mospiLag: parseFloat((item.mospiLag * baseMultiplier).toFixed(1)),
     baseline: parseFloat((item.baseline * baseMultiplier).toFixed(1)),
   }))
+
+  const paginatedSeries = useMemo(() => {
+    return paginateData(seriesData, tablePage, tablePageSize)
+  }, [seriesData, tablePage, tablePageSize])
 
   return (
     <div className="space-y-6 p-4 md:p-8 flex-1">
@@ -292,6 +304,74 @@ export function IndexSeriesView() {
             </p>
           </div>
         </div>
+      </Card>
+
+      {/* Historical Series Inspection Table with Pagination */}
+      <Card className="overflow-hidden border border-slate-200">
+        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-white">
+          <div className="flex items-center gap-2">
+            <Database className="h-4 w-4 text-blue-600" />
+            <h3 className="font-bold text-slate-900 text-sm">Historical Observation Records</h3>
+            <span className="rounded bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5">
+              Paginated Data Stream
+            </span>
+          </div>
+          <button
+            onClick={() => setShowTable(!showTable)}
+            className="flex items-center gap-1 text-xs text-blue-600 font-semibold hover:underline cursor-pointer"
+          >
+            {showTable ? (
+              <>Hide Table <ChevronUp className="h-3.5 w-3.5" /></>
+            ) : (
+              <>Show Table <ChevronDown className="h-3.5 w-3.5" /></>
+            )}
+          </button>
+        </div>
+
+        {showTable && (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[600px] text-left text-xs">
+                <thead className="bg-[#0B2545] text-white text-[11px] uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">Observation Date</th>
+                    <th className="px-4 py-3 font-bold">Headline APIx</th>
+                    <th className="px-4 py-3 font-bold">Core Trimmed APIx</th>
+                    <th className="px-4 py-3 font-bold">MoSPI Official (Lagged)</th>
+                    <th className="px-4 py-3 font-bold">Nowcast Lead Advantage</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white">
+                  {paginatedSeries.data.map((row) => (
+                    <tr key={row.date} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-900">{row.date}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-extrabold text-blue-700">{row.headline}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{row.coreTrimmed}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-500">{row.mospiLag}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-bold text-emerald-600">
+                        +{(row.headline - row.mospiLag).toFixed(1)} pts
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination
+              currentPage={paginatedSeries.page}
+              totalPages={paginatedSeries.totalPages}
+              totalItems={paginatedSeries.total}
+              pageSize={tablePageSize}
+              pageSizeOptions={[5, 10, 15]}
+              onPageChange={setTablePage}
+              onPageSizeChange={(size) => {
+                setTablePageSize(size)
+                setTablePage(1)
+              }}
+              itemName="daily observations"
+            />
+          </>
+        )}
       </Card>
     </div>
   )
