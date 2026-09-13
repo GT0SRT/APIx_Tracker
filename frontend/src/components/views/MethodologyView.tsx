@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Calculator,
   CheckCircle2,
@@ -14,8 +14,8 @@ import {
 } from 'lucide-react'
 import { Card } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { fetchJevonsCarli, paginateData } from '../../services/api'
-import type { MethodologyComparison } from '../../types/apix'
+import { paginateData } from '../../services/api'
+import { useJevonsCarliQuery } from '../../hooks/useApixQueries'
 
 const stakeholderDividends = [
   {
@@ -100,17 +100,12 @@ const stakeholderDividends = [
 
 export function MethodologyView() {
   const [selectedStakeholder, setSelectedStakeholder] = useState(stakeholderDividends[0])
-  const [methodologyData, setMethodologyData] = useState<MethodologyComparison | null>(null)
-  const [isLiveBackend, setIsLiveBackend] = useState(false)
   const [aggPage, setAggPage] = useState(1)
   const [aggPageSize, setAggPageSize] = useState(3)
 
-  useEffect(() => {
-    fetchJevonsCarli().then((res) => {
-      if (res.data) setMethodologyData(res.data)
-      setIsLiveBackend(res.isLive)
-    })
-  }, [])
+  const { data: jevonsRes } = useJevonsCarliQuery()
+  const methodologyData = jevonsRes?.data || null
+  const isLiveBackend = Boolean(jevonsRes?.isLive)
 
   const paginatedAggregates = useMemo(() => {
     const list = methodologyData?.elementaryAggregates || []

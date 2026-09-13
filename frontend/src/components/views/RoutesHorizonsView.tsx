@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Map,
   Scale,
@@ -20,45 +20,25 @@ import {
 import { elasticityData, dgcaRoutesData, airlineParityData } from '../../data/mockData'
 import { Card, ChartTooltip } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { fetchRouteParity, fetchRoutes, fetchElasticity, paginateData } from '../../services/api'
-import type { AirlineParityItem, RouteTrafficWeight, ElasticityPoint } from '../../types/apix'
+import { paginateData } from '../../services/api'
+import { useElasticityQuery, useRoutesQuery, useRouteParityQuery } from '../../hooks/useApixQueries'
+import type { RouteTrafficWeight, ElasticityPoint } from '../../types/apix'
 
 export function RoutesHorizonsView() {
   const [selectedRoute, setSelectedRoute] = useState('DEL-BOM')
   const [paritySearch, setParitySearch] = useState('')
-  const [parityData, setParityData] = useState<AirlineParityItem[]>(airlineParityData)
-  const [routesList, setRoutesList] = useState<RouteTrafficWeight[]>(dgcaRoutesData)
-  const [elasticity, setElasticity] = useState<ElasticityPoint[]>(elasticityData)
-  const [isLiveBackend, setIsLiveBackend] = useState(false)
   const [parityPage, setParityPage] = useState(1)
   const [parityPageSize, setParityPageSize] = useState(4)
 
-  useEffect(() => {
-    let mounted = true
-    void Promise.all([fetchRouteParity(), fetchRoutes(), fetchElasticity(selectedRoute)]).then(
-      ([parityRes, routesRes, elastRes]) => {
-        if (!mounted) return
-        if (parityRes.data && parityRes.data.length > 0) setParityData(parityRes.data)
-        if (routesRes.data && routesRes.data.length > 0) setRoutesList(routesRes.data)
-        if (elastRes.data && elastRes.data.length > 0) setElasticity(elastRes.data)
-        setIsLiveBackend(parityRes.isLive || routesRes.isLive || elastRes.isLive)
-      }
-    )
-    return () => {
-      mounted = false
-    }
-  }, [])
+  // TanStack React Query v5 with route-specific caching
+  const routesQuery = useRoutesQuery()
+  const elasticityQuery = useElasticityQuery(selectedRoute)
+  const parityQuery = useRouteParityQuery()
 
-  useEffect(() => {
-    let mounted = true
-    void fetchElasticity(selectedRoute).then((elastRes) => {
-      if (!mounted) return
-      if (elastRes.data && elastRes.data.length > 0) setElasticity(elastRes.data)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [selectedRoute])
+  const routesList: RouteTrafficWeight[] = routesQuery.data?.data || dgcaRoutesData
+  const elasticity: ElasticityPoint[] = elasticityQuery.data?.data || elasticityData
+  const parityData = parityQuery.data?.data || airlineParityData
+  const isLiveBackend = routesQuery.data?.isLive || elasticityQuery.data?.isLive || parityQuery.data?.isLive || false
 
   const t1 = elasticity.find((e) => e.window === 'T+1')
   const t45 = elasticity.find((e) => e.window === 'T+45')
