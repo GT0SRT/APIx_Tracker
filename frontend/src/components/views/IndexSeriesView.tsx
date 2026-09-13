@@ -112,9 +112,6 @@ export function IndexSeriesView() {
     return paginateData(seriesData, tablePage, tablePageSize)
   }, [seriesData, tablePage, tablePageSize])
 
-  const paginatedSeries = useMemo(() => {
-    return paginateData(seriesData, tablePage, tablePageSize)
-  }, [seriesData, tablePage, tablePageSize])
 
   return (
     <div className="space-y-6 p-4 md:p-8 flex-1">

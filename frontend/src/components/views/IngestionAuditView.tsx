@@ -175,22 +175,6 @@ export function IngestionAuditView() {
     setIsVerifying(false)
   }
 
-  const paginatedLogs = useMemo(() => {
-    return paginateData(filteredLogs, auditPage, auditPageSize)
-  }, [filteredLogs, auditPage, auditPageSize])
-
-  const handleVerify = async (record: ScrapedFareRecord) => {
-    setIsVerifying(true)
-    const result = await verifyRecordHash(record.id, record.sha256Hash, record)
-    setVerificationResult({
-      recordId: record.id,
-      valid: result.valid,
-      message: result.message,
-      isLive: result.isLive,
-    })
-    setIsVerifying(false)
-  }
-
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text)
     setCopiedHash(true)
