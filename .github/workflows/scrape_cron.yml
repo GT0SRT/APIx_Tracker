@@ -1,0 +1,54 @@
+name: APIx Automated 6-Hour Flight Ingestion
+
+on:
+  schedule:
+    # Run every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
+    - cron: '0 */6 * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  scrape-and-ingest:
+    name: Scrape Domestic Airfares & Ingest
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scraper/requirements.txt
+
+      - name: Install Playwright Chromium with system dependencies
+        run: |
+          playwright install chromium --with-deps
+
+      - name: Run APIx Scraper Engine (Top 15 Core Corridors, 45-Day Basket)
+        env:
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL || 'http://localhost:5000' }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET || 'apix_secret_token_sih2026' }}
+          SCRAPER_PORTAL: 'google_flights'
+          SCRAPER_CONCURRENCY: '3'
+          HEADLESS: 'true'
+          EXPORT_LOCAL_BACKUP: 'true'
+        run: |
+          python scraper/run_scraper.py --routes top15 --horizons 1,7,15,30,45
+
+      - name: Upload Scraped Observation Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apix-scraped-data
+          path: |
+            scraper/data/observations_latest.json
+            scraper/data/observations_latest.csv
+            scraper/data/summary_*.json
+          retention-days: 14
