@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   TrendingUp,
   Activity,
@@ -24,8 +24,8 @@ import {
 } from 'recharts'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { fetchTrendSeries, fetchSummary, paginateData } from '../../services/api'
-import type { TrendPoint, SystemSummary } from '../../types/apix'
+import { paginateData } from '../../services/api'
+import { useTrendSeriesQuery, useSummaryQuery } from '../../hooks/useApixQueries'
 
 const historicalSeries90Days = [
   { date: 'Jun 01', headline: 129.2, coreTrimmed: 129.0, mospiLag: 126.4, baseline: 128.0 },
@@ -50,28 +50,14 @@ export function IndexSeriesView() {
   const [showTable, setShowTable] = useState(true)
   const [tablePage, setTablePage] = useState(1)
   const [tablePageSize, setTablePageSize] = useState(5)
-  const [trendData, setTrendData] = useState<TrendPoint[]>([])
-  const [summary, setSummary] = useState<SystemSummary | null>(null)
-  const [isLive, setIsLive] = useState(false)
 
-  useEffect(() => {
-    let mounted = true
-    const tfParam = selectedTimeframe === '30D' ? '30d' : selectedTimeframe === '90D' ? '90d' : '365d'
-    void fetchTrendSeries(tfParam).then((res) => {
-      if (!mounted) return
-      if (res.data && res.data.length > 0) {
-        setTrendData(res.data)
-      }
-      setIsLive(res.isLive)
-    })
-    void fetchSummary().then((res) => {
-      if (!mounted) return
-      if (res.data) setSummary(res.data)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [selectedTimeframe])
+  const tfParam = selectedTimeframe === '30D' ? '30d' : selectedTimeframe === '90D' ? '90d' : '365d'
+  const { data: trendRes } = useTrendSeriesQuery(tfParam)
+  const { data: summaryRes } = useSummaryQuery()
+
+  const trendData = trendRes?.data && trendRes.data.length > 0 ? trendRes.data : []
+  const summary = summaryRes?.data || null
+  const isLive = Boolean(trendRes?.isLive || summaryRes?.isLive)
 
   const baseMultiplier = baseYear === '2024' ? 1.0 : 1.48 // Base 2012 conversion factor
 

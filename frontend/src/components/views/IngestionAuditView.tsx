@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Database,
   Lock,
@@ -13,11 +13,12 @@ import {
   ShieldCheck,
   RefreshCw,
 } from 'lucide-react'
-import { pipelineTelemetry } from '../../data/mockData'
 import { Card } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { fetchTelemetry, fetchLogs, verifyRecordHash, paginateData } from '../../services/api'
-import type { ScrapedFareRecord, PipelineTelemetry } from '../../types/apix'
+import { verifyRecordHash, paginateData } from '../../services/api'
+import { useLogsQuery, useTelemetryQuery } from '../../hooks/useApixQueries'
+import { pipelineTelemetry } from '../../data/mockData'
+import type { ScrapedFareRecord } from '../../types/apix'
 
 const dpiEndpoints = [
   {
@@ -64,6 +65,28 @@ const dpiEndpoints = [
   },
   {
     method: 'GET',
+    path: '/api/v1/logs?page=1&limit=6',
+    desc: "Real-time feed of SHA-256 cryptographically verified scrape observations directly from database",
+    latency: '18ms',
+    sampleResponse: {
+      status: 'success',
+      total: 198,
+      page: 1,
+      limit: 6,
+      quotes: [
+        {
+          id: 'SCR-207',
+          route: 'MAA-DEL',
+          carrier: 'Air India',
+          baseFare: 9863,
+          sha256: '9c479f4996dec0aacc89b1b5d573f5310c8b6cf1f98e4ec7c9cff8b6441b9627',
+          hampelVerified: true
+        }
+      ]
+    }
+  },
+  {
+    method: 'GET',
     path: '/api/v1/audit/feed?limit=5',
     desc: 'Returns verified fare observations with immutable SHA-256 cryptographic signatures',
     latency: '38ms',
@@ -91,8 +114,6 @@ export function IngestionAuditView() {
   const [copiedHash, setCopiedHash] = useState(false)
   const [selectedEndpoint, setSelectedEndpoint] = useState(dpiEndpoints[0])
   const [copiedApiSnippet, setCopiedApiSnippet] = useState(false)
-  const [telemetry, setTelemetry] = useState<PipelineTelemetry | null>(null)
-  const [isLiveBackend, setIsLiveBackend] = useState(false)
   const [auditPage, setAuditPage] = useState(1)
   const [auditPageSize, setAuditPageSize] = useState(6)
   const [verificationResult, setVerificationResult] = useState<{
@@ -102,42 +123,16 @@ export function IngestionAuditView() {
     isLive: boolean
   } | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
-  const [liveLogs, setLiveLogs] = useState<ScrapedFareRecord[]>([])
-  const [totalRecords, setTotalRecords] = useState(0)
-  const [isLoadingLogs, setIsLoadingLogs] = useState(true)
 
-  useEffect(() => {
-    let mounted = true
-    setIsLoadingLogs(true)
-    void fetchTelemetry().then((res) => {
-      if (!mounted) return
-      if (res.data) setTelemetry(res.data)
-      setIsLiveBackend(res.isLive)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [])
+  // TanStack React Query v5 with keepPreviousData for zero-flash pagination
+  const logsQuery = useLogsQuery(auditPage, auditPageSize)
+  const telemetryQuery = useTelemetryQuery(true)
 
-  useEffect(() => {
-    let mounted = true
-    void fetchTelemetry().then((res) => {
-      if (!mounted) return
-      if (res.data) setTelemetry(res.data)
-      setIsLiveBackend(res.isLive)
-    })
-    void fetchLogs(auditPage, auditPageSize).then((res) => {
-      if (!mounted) return
-      if (res.data) {
-        setLiveLogs(res.data)
-        setTotalRecords(res.total)
-      }
-      setIsLoadingLogs(false)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [auditPage, auditPageSize])
+  const liveLogs: ScrapedFareRecord[] = logsQuery.data?.data || []
+  const totalRecords: number = logsQuery.data?.total || 0
+  const isLoadingLogs = logsQuery.isLoading && liveLogs.length === 0
+  const telemetry = telemetryQuery.data?.data || null
+  const isLiveBackend = logsQuery.data?.isLive || telemetryQuery.data?.isLive || false
 
   const filteredLogs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()

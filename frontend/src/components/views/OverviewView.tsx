@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Activity,
   CircleDollarSign,
@@ -35,15 +35,16 @@ import {
 } from '../../data/mockData'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
+import { paginateData } from '../../services/api'
 import {
-  fetchSummary,
-  fetchFareDecomposition,
-  fetchTrendSeries,
-  fetchRoutes,
-  fetchLogs,
-  paginateData,
-} from '../../services/api'
-import type { SystemSummary, FareComponent, TrendPoint, RouteTrafficWeight, ScrapedFareRecord } from '../../types/apix'
+  useSummaryQuery,
+  useFareDecompositionQuery,
+  useRoutesQuery,
+  useTrendSeriesQuery,
+  useLogsQuery,
+} from '../../hooks/useApixQueries'
+import { useQueryClient } from '@tanstack/react-query'
+import type { FareComponent, TrendPoint, RouteTrafficWeight, ScrapedFareRecord } from '../../types/apix'
 
 interface OverviewViewProps {
   onNavigateToAi: (subTab: 'ml' | 'agent' | 'rag') => void
@@ -51,6 +52,7 @@ interface OverviewViewProps {
 }
 
 export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewProps) {
+  const queryClient = useQueryClient()
   const [origin, setOrigin] = useState('DEL')
   const [destination, setDestination] = useState('BOM')
   const [airline, setAirline] = useState('All airlines')
@@ -59,68 +61,33 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
   const [appliedRoute, setAppliedRoute] = useState('DEL-BOM')
   const [logSearchQuery, setLogSearchQuery] = useState('')
   const [refreshAnimation, setRefreshAnimation] = useState(false)
-  const [summary, setSummary] = useState<SystemSummary | null>(null)
-  const [liveFareDecomp, setLiveFareDecomp] = useState<FareComponent[]>(fareBreakdown)
-  const [routes, setRoutes] = useState<RouteTrafficWeight[]>(dgcaRoutesData)
-  const [trendSeries, setTrendSeries] = useState<TrendPoint[]>(trendData)
-  const [isBackendLive, setIsBackendLive] = useState(false)
-  const [liveLogs, setLiveLogs] = useState<ScrapedFareRecord[]>([])
-  const [totalLogs, setTotalLogs] = useState(0)
-  const [isLogsLoading, setIsLogsLoading] = useState(true)
   const [logPage, setLogPage] = useState(1)
   const [logPageSize, setLogPageSize] = useState(8)
 
-  const loadBackendData = useCallback(async () => {
-    setIsLogsLoading(true)
-    const [summaryRes, decompRes, routesRes, trendRes, logsRes] = await Promise.all([
-      fetchSummary(appliedRoute, airline),
-      fetchFareDecomposition(),
-      fetchRoutes(),
-      fetchTrendSeries('30d'),
-      fetchLogs(logPage, logPageSize),
-    ])
-    if (summaryRes.data) setSummary(summaryRes.data)
-    if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
-    if (routesRes.data && routesRes.data.length > 0) setRoutes(routesRes.data)
-    if (trendRes.data && trendRes.data.length > 0) setTrendSeries(trendRes.data)
-    if (logsRes.data && logsRes.data.length > 0) {
-      setLiveLogs(logsRes.data)
-      setTotalLogs(logsRes.total)
-    }
-    setIsBackendLive(summaryRes.isLive)
-    setIsLogsLoading(false)
-  }, [appliedRoute, airline, logPage, logPageSize])
+  // TanStack React Query v5 declarative queries with caching & background sync
+  const summaryQuery = useSummaryQuery(appliedRoute, airline)
+  const decompQuery = useFareDecompositionQuery()
+  const routesQuery = useRoutesQuery()
+  const trendQuery = useTrendSeriesQuery('30d')
+  const logsQuery = useLogsQuery(logPage, logPageSize)
 
-  useEffect(() => {
-    let mounted = true
-    setIsLogsLoading(true)
-    void Promise.all([
-      fetchSummary(appliedRoute, airline),
-      fetchFareDecomposition(),
-      fetchRoutes(),
-      fetchTrendSeries('30d'),
-      fetchLogs(logPage, logPageSize),
-    ]).then(([summaryRes, decompRes, routesRes, trendRes, logsRes]) => {
-      if (!mounted) return
-      if (summaryRes.data) setSummary(summaryRes.data)
-      if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
-      if (routesRes.data && routesRes.data.length > 0) setRoutes(routesRes.data)
-      if (trendRes.data && trendRes.data.length > 0) setTrendSeries(trendRes.data)
-      if (logsRes.data && logsRes.data.length > 0) {
-        setLiveLogs(logsRes.data)
-        setTotalLogs(logsRes.total)
-      }
-      setIsBackendLive(summaryRes.isLive)
-      setIsLogsLoading(false)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [appliedRoute, airline, logPage, logPageSize])
+  const summary = summaryQuery.data?.data || null
+  const liveFareDecomp: FareComponent[] = decompQuery.data?.data || fareBreakdown
+  const routes: RouteTrafficWeight[] = routesQuery.data?.data || dgcaRoutesData
+  const trendSeries: TrendPoint[] = trendQuery.data?.data || trendData
+  const liveLogs: ScrapedFareRecord[] = logsQuery.data?.data || []
+  const totalLogs = logsQuery.data?.total || 0
+  const isLogsLoading = logsQuery.isLoading || logsQuery.isFetching
+  const isBackendLive = summaryQuery.data?.isLive ?? false
 
   const triggerRefresh = () => {
     setRefreshAnimation(true)
-    loadBackendData().finally(() => {
+    void Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['logs'] }),
+      queryClient.invalidateQueries({ queryKey: ['trendSeries'] }),
+      queryClient.invalidateQueries({ queryKey: ['routes'] }),
+    ]).finally(() => {
       setTimeout(() => setRefreshAnimation(false), 800)
     })
   }
@@ -128,9 +95,6 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
   const applyFilters = () => {
     const newRoute = `${origin}-${destination}`
     setAppliedRoute(newRoute)
-    void fetchSummary(newRoute, airline).then((res) => {
-      if (res.data) setSummary(res.data)
-    })
   }
 
   // Dynamic route base fare calculation from live routes and summary
