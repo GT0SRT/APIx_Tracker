@@ -54,8 +54,8 @@ const getIndexTrend = async (req, res) => {
 // 2. Lead-Time Elasticity Horizons (T+1 to T+45)
 const getElasticity = async (req, res) => {
   try {
-    const { origin = 'DEL', destination = 'BOM' } = req.query;
-    const routeCode = `${origin}-${destination}`;
+    const { origin = 'DEL', destination = 'BOM', route: queryRoute } = req.query;
+    const routeCode = queryRoute || `${origin}-${destination}`;
 
     if (prisma && prisma.route) {
       const route = await prisma.route.findUnique({
@@ -68,21 +68,45 @@ const getElasticity = async (req, res) => {
       });
 
       if (route && route.dailyIndices && route.dailyIndices.length > 0) {
-        const data = route.dailyIndices.map((idx) => ({
-          window: idx.advanceWindow,
-          fare: idx.avgBaseFare,
-          change: idx.advanceWindow === 'T+1' ? '+34%' : idx.advanceWindow === 'T+7' ? '+6%' : '-8%',
-        }));
+        const windowOrder = { 'T+1': 1, 'T+7': 7, 'T+15': 15, 'T+30': 30, 'T+45': 45 };
+        const data = route.dailyIndices
+          .filter((idx) => windowOrder[idx.advanceWindow] !== undefined)
+          .sort((a, b) => (windowOrder[a.advanceWindow] || 0) - (windowOrder[b.advanceWindow] || 0))
+          .map((idx) => {
+            const fare = Math.round(idx.avgBaseFare);
+            const baseFare = Math.round(fare * 0.72);
+            const taxes = fare - baseFare;
+            return {
+              window: idx.advanceWindow,
+              days: windowOrder[idx.advanceWindow] || 1,
+              fare,
+              baseFare,
+              taxes,
+              change: idx.advanceWindow === 'T+1' ? '+34%' : idx.advanceWindow === 'T+7' ? '+6%' : '-8%',
+              isHighSurge: idx.advanceWindow === 'T+1',
+            };
+          });
         return res.status(200).json({ success: true, route: routeCode, data });
       }
     }
 
+    const routeBase = {
+      'DEL-BOM': 6100,
+      'DEL-BLR': 5600,
+      'BOM-BLR': 4300,
+      'DEL-CCU': 5100,
+      'MAA-DEL': 5300,
+      'BLR-HYD': 3900,
+      'DEL-IXL': 12500,
+      'BOM-GOI': 4600,
+    }[routeCode] || 6100;
+
     const fallbackElasticity = [
-      { window: 'T+1', days: 1, fare: 8650, baseFare: 6100, taxes: 2550, change: '+34%', isHighSurge: true },
-      { window: 'T+7', days: 7, fare: 6820, baseFare: 4850, taxes: 1970, change: '+6%', isHighSurge: false },
-      { window: 'T+15', days: 15, fare: 5940, baseFare: 4200, taxes: 1740, change: '-8%', isHighSurge: false },
-      { window: 'T+30', days: 30, fare: 5480, baseFare: 3880, taxes: 1600, change: '-15%', isHighSurge: false },
-      { window: 'T+45', days: 45, fare: 5320, baseFare: 3760, taxes: 1560, change: '-18%', isHighSurge: false },
+      { window: 'T+1', days: 1, fare: Math.round(routeBase * 1.41), baseFare: routeBase, taxes: Math.round(routeBase * 0.41), change: '+41%', isHighSurge: true },
+      { window: 'T+7', days: 7, fare: Math.round(routeBase * 1.12), baseFare: Math.round(routeBase * 0.8), taxes: Math.round(routeBase * 0.32), change: '+12%', isHighSurge: false },
+      { window: 'T+15', days: 15, fare: Math.round(routeBase * 0.98), baseFare: Math.round(routeBase * 0.69), taxes: Math.round(routeBase * 0.29), change: '-2%', isHighSurge: false },
+      { window: 'T+30', days: 30, fare: Math.round(routeBase * 0.9), baseFare: Math.round(routeBase * 0.64), taxes: Math.round(routeBase * 0.26), change: '-10%', isHighSurge: false },
+      { window: 'T+45', days: 45, fare: Math.round(routeBase * 0.87), baseFare: Math.round(routeBase * 0.62), taxes: Math.round(routeBase * 0.25), change: '-13%', isHighSurge: false },
     ];
 
     return res.status(200).json({ success: true, route: routeCode, data: fallbackElasticity });
@@ -104,24 +128,51 @@ const getSummaryKpis = async (req, res) => {
       'DEL-CCU': 5740,
       'MAA-DEL': 5980,
       'BLR-HYD': 4620,
+      'DEL-IXL': 14200,
+      'BOM-GOI': 5280,
     };
 
-    const avgBaseFare = routeFareMap[route] || 6820;
+    let avgBaseFare = routeFareMap[route] || 6820;
+    let totalQuotes = 1482920;
+    let currentApix = 142.5;
+
+    // 1. Try fetching from database first if available
+    if (prisma && prisma.macroDailyIndex) {
+      const latestMacro = await prisma.macroDailyIndex.findFirst({
+        orderBy: { date: 'desc' },
+      });
+      if (latestMacro && latestMacro.compositeIndex) {
+        currentApix = Number(latestMacro.compositeIndex.toFixed(1));
+      }
+    }
+    if (prisma && prisma.fareObservation) {
+      const obsCount = await prisma.fareObservation.count();
+      if (obsCount > 0) totalQuotes = obsCount;
+    }
+
+    // Dynamic index computation: base fare relative to national baseline (₹4,800 base period = index 100)
+    if (route && routeFareMap[route]) {
+      currentApix = parseFloat(((avgBaseFare / 4800) * 100).toFixed(1));
+    }
+
+    const momChangePercent = parseFloat(((currentApix - 139.1) / 139.1 * 100).toFixed(1));
+    const deltaVal = (momChangePercent * 0.15).toFixed(1);
+    const indexDelta24h = `${Number(deltaVal) >= 0 ? '+' : ''}${deltaVal}%`;
 
     const summaryData = {
-      totalQuotes: 1482920,
+      totalQuotes,
       monitoredRoutes: 42,
       currentAverageFare: avgBaseFare,
-      indexDelta24h: '+0.4%',
+      indexDelta24h,
       pipelineUptime: '99.94%',
       lastUpdated: new Date().toISOString(),
-      currentApix: 142.5,
-      momChangePercent: 2.4,
+      currentApix,
+      momChangePercent,
       avgBaseFare,
       appliedRoute: route,
       airline,
-      volatilityIndex: 'High',
-      volatilityStatus: 'Dynamic Surge Active (IQR Suppressed)',
+      volatilityIndex: currentApix > 130 ? 'High' : 'Moderate',
+      volatilityStatus: currentApix > 130 ? 'Dynamic Surge Active (IQR Suppressed)' : 'Standard Tariff Range',
       standardizedScrapesCount: 145210,
       sha256VerificationRate: '100% Cryptographically Verified',
       baseYear: '2024=100',

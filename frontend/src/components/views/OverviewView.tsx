@@ -32,7 +32,6 @@ import {
   elasticityData,
   dgcaRoutesData,
   fareBreakdown,
-  rawScrapeFeed,
 } from '../../data/mockData'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
@@ -41,9 +40,10 @@ import {
   fetchFareDecomposition,
   fetchTrendSeries,
   fetchRoutes,
+  fetchLogs,
   paginateData,
 } from '../../services/api'
-import type { SystemSummary, FareComponent, TrendPoint, RouteTrafficWeight } from '../../types/apix'
+import type { SystemSummary, FareComponent, TrendPoint, RouteTrafficWeight, ScrapedFareRecord } from '../../types/apix'
 
 interface OverviewViewProps {
   onNavigateToAi: (subTab: 'ml' | 'agent' | 'rag') => void
@@ -64,42 +64,59 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
   const [routes, setRoutes] = useState<RouteTrafficWeight[]>(dgcaRoutesData)
   const [trendSeries, setTrendSeries] = useState<TrendPoint[]>(trendData)
   const [isBackendLive, setIsBackendLive] = useState(false)
+  const [liveLogs, setLiveLogs] = useState<ScrapedFareRecord[]>([])
+  const [totalLogs, setTotalLogs] = useState(0)
+  const [isLogsLoading, setIsLogsLoading] = useState(true)
   const [logPage, setLogPage] = useState(1)
   const [logPageSize, setLogPageSize] = useState(8)
 
   const loadBackendData = useCallback(async () => {
-    const [summaryRes, decompRes, routesRes, trendRes] = await Promise.all([
-      fetchSummary(),
+    setIsLogsLoading(true)
+    const [summaryRes, decompRes, routesRes, trendRes, logsRes] = await Promise.all([
+      fetchSummary(appliedRoute, airline),
       fetchFareDecomposition(),
       fetchRoutes(),
       fetchTrendSeries('30d'),
+      fetchLogs(logPage, logPageSize),
     ])
     if (summaryRes.data) setSummary(summaryRes.data)
     if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
     if (routesRes.data && routesRes.data.length > 0) setRoutes(routesRes.data)
     if (trendRes.data && trendRes.data.length > 0) setTrendSeries(trendRes.data)
+    if (logsRes.data && logsRes.data.length > 0) {
+      setLiveLogs(logsRes.data)
+      setTotalLogs(logsRes.total)
+    }
     setIsBackendLive(summaryRes.isLive)
-  }, [])
+    setIsLogsLoading(false)
+  }, [appliedRoute, airline, logPage, logPageSize])
 
   useEffect(() => {
     let mounted = true
+    setIsLogsLoading(true)
     void Promise.all([
-      fetchSummary(),
+      fetchSummary(appliedRoute, airline),
       fetchFareDecomposition(),
       fetchRoutes(),
       fetchTrendSeries('30d'),
-    ]).then(([summaryRes, decompRes, routesRes, trendRes]) => {
+      fetchLogs(logPage, logPageSize),
+    ]).then(([summaryRes, decompRes, routesRes, trendRes, logsRes]) => {
       if (!mounted) return
       if (summaryRes.data) setSummary(summaryRes.data)
       if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
       if (routesRes.data && routesRes.data.length > 0) setRoutes(routesRes.data)
       if (trendRes.data && trendRes.data.length > 0) setTrendSeries(trendRes.data)
+      if (logsRes.data && logsRes.data.length > 0) {
+        setLiveLogs(logsRes.data)
+        setTotalLogs(logsRes.total)
+      }
       setIsBackendLive(summaryRes.isLive)
+      setIsLogsLoading(false)
     })
     return () => {
       mounted = false
     }
-  }, [])
+  }, [appliedRoute, airline, logPage, logPageSize])
 
   const triggerRefresh = () => {
     setRefreshAnimation(true)
@@ -109,7 +126,11 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
   }
 
   const applyFilters = () => {
-    setAppliedRoute(`${origin}-${destination}`)
+    const newRoute = `${origin}-${destination}`
+    setAppliedRoute(newRoute)
+    void fetchSummary(newRoute, airline).then((res) => {
+      if (res.data) setSummary(res.data)
+    })
   }
 
   // Dynamic route base fare calculation from live routes and summary
@@ -139,22 +160,30 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
 
   // Filtered live audit feed
   const filteredLogs = useMemo(() => {
-    return rawScrapeFeed.filter((item) => {
-      const q = logSearchQuery.toLowerCase()
-      return (
-        item.id.toLowerCase().includes(q) ||
-        item.carrier.toLowerCase().includes(q) ||
-        `${item.origin}-${item.destination}`.toLowerCase().includes(q) ||
-        item.horizon.toLowerCase().includes(q) ||
-        item.sha256Hash.toLowerCase().includes(q)
-      )
-    })
-  }, [logSearchQuery])
+    const q = logSearchQuery.toLowerCase().trim()
+    if (!q) return liveLogs
+    return liveLogs.filter((item) =>
+      item.id.toLowerCase().includes(q) ||
+      item.carrier.toLowerCase().includes(q) ||
+      `${item.origin}-${item.destination}`.toLowerCase().includes(q) ||
+      item.horizon.toLowerCase().includes(q) ||
+      item.sha256Hash.toLowerCase().includes(q)
+    )
+  }, [liveLogs, logSearchQuery])
 
   // Paginated records for table view
   const paginatedLogs = useMemo(() => {
+    if (!logSearchQuery.trim() && totalLogs > 0 && liveLogs.length > 0) {
+      return {
+        data: liveLogs,
+        total: totalLogs,
+        page: logPage,
+        limit: logPageSize,
+        totalPages: Math.max(1, Math.ceil(totalLogs / logPageSize)),
+      }
+    }
     return paginateData(filteredLogs, logPage, logPageSize)
-  }, [filteredLogs, logPage, logPageSize])
+  }, [liveLogs, totalLogs, logPage, logPageSize, filteredLogs, logSearchQuery])
 
   // Real CSV export
   const exportCsv = () => {
@@ -366,7 +395,11 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                   />
                 </div>
                 <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-                  {summary?.currentApix ? summary.currentApix.toFixed(1) : '142.5'}
+                  {summary?.currentApix !== undefined ? (
+                    summary.currentApix.toFixed(1)
+                  ) : (
+                    <span className="text-slate-400 animate-pulse text-xl font-medium">Loading...</span>
+                  )}
                 </p>
               </div>
               <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600 border border-blue-100">
@@ -755,41 +788,43 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {paginatedLogs.data.map((row) => (
-                  <tr key={row.id} className="hover:bg-blue-50/40 transition-colors">
-                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">{row.id}</td>
-                    <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-900">
-                      {row.origin}-{row.destination}
+                {isLogsLoading && liveLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} className="px-4 py-8 text-center text-slate-500 font-medium animate-pulse">
+                      Loading verified audit observations from live backend...
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-700">{row.carrier}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">{row.departureDate}</td>
-                    <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-800">{row.horizon}</td>
-                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
-                      ₹{row.baseFare.toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">
-                      ₹{(row.fuelSurcharge + row.airportTax).toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-extrabold text-blue-700">
-                      ₹{row.totalFare.toLocaleString()}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 font-mono text-[10px] text-slate-500">
-                      {row.sha256Hash.substring(0, 12)}...
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3">
-                      {row.status === 'Cleaned' ? (
+                  </tr>
+                ) : (
+                  paginatedLogs.data.map((row) => (
+                    <tr key={row.id} className="hover:bg-blue-50/40 transition-colors">
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">{row.id}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-900">
+                        {row.origin}-{row.destination}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-700">{row.carrier}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">{row.departureDate}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-800">{row.horizon}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
+                        ₹{Number(row.baseFare || 0).toLocaleString()}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                        ₹{((Number(row.fuelSurcharge) || 0) + (Number(row.airportTax) || 0)).toLocaleString()}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-extrabold text-blue-700">
+                        ₹{Number(row.totalFare || 0).toLocaleString()}
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 font-mono text-[10px] text-slate-500">
+                        {(row.sha256Hash || '').substring(0, 12)}...
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3">
                         <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
                           <ShieldCheck className="h-3 w-3 text-emerald-600" />
                           Cleaned
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-0.5 text-[11px] font-bold text-red-700 border border-red-200">
-                          Suppressed
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

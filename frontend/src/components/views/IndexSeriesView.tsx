@@ -100,10 +100,10 @@ export function IndexSeriesView() {
     })
   }, [rawPoints, baseMultiplier])
 
-  const latestItem = seriesData[seriesData.length - 1] || { headline: 142.5, coreTrimmed: 140.1, mospiLag: 128.5 }
-  const headlineDisplay = latestItem.headline.toFixed(1)
-  const coreDisplay = latestItem.coreTrimmed.toFixed(1)
-  const mospiDisplay = latestItem.mospiLag.toFixed(1)
+  const latestItem = seriesData[seriesData.length - 1]
+  const headlineDisplay = latestItem ? latestItem.headline.toFixed(1) : summary?.currentApix ? summary.currentApix.toFixed(1) : '--'
+  const coreDisplay = latestItem ? latestItem.coreTrimmed.toFixed(1) : summary?.currentApix ? (summary.currentApix * 0.985).toFixed(1) : '--'
+  const mospiDisplay = latestItem ? latestItem.mospiLag.toFixed(1) : '128.5'
   const momDisplay = summary?.momChangePercent !== undefined
     ? `${summary.momChangePercent > 0 ? '+' : ''}${summary.momChangePercent}% MoM rate`
     : '+2.4% MoM rate'

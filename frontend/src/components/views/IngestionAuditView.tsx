@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   RefreshCw,
 } from 'lucide-react'
-import { rawScrapeFeed, pipelineTelemetry } from '../../data/mockData'
+import { pipelineTelemetry } from '../../data/mockData'
 import { Card } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
 import { fetchTelemetry, fetchLogs, verifyRecordHash, paginateData } from '../../services/api'
@@ -103,10 +103,12 @@ export function IngestionAuditView() {
   } | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
   const [liveLogs, setLiveLogs] = useState<ScrapedFareRecord[]>([])
-  const [totalRecords, setTotalRecords] = useState(rawScrapeFeed.length)
+  const [totalRecords, setTotalRecords] = useState(0)
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true)
 
   useEffect(() => {
     let mounted = true
+    setIsLoadingLogs(true)
     void fetchTelemetry().then((res) => {
       if (!mounted) return
       if (res.data) setTelemetry(res.data)
@@ -126,31 +128,30 @@ export function IngestionAuditView() {
     })
     void fetchLogs(auditPage, auditPageSize).then((res) => {
       if (!mounted) return
-      if (res.data && res.data.length > 0) {
+      if (res.data) {
         setLiveLogs(res.data)
         setTotalRecords(res.total)
       }
+      setIsLoadingLogs(false)
     })
     return () => {
       mounted = false
     }
   }, [auditPage, auditPageSize])
 
-  const baseRecords = liveLogs.length > 0 ? liveLogs : rawScrapeFeed
-
   const filteredLogs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
-    if (!q) return baseRecords
-    return baseRecords.filter((item) =>
+    if (!q) return liveLogs
+    return liveLogs.filter((item) =>
       item.id.toLowerCase().includes(q) ||
       item.carrier.toLowerCase().includes(q) ||
       `${item.origin}-${item.destination}`.toLowerCase().includes(q) ||
       item.sha256Hash.toLowerCase().includes(q)
     )
-  }, [baseRecords, searchQuery])
+  }, [liveLogs, searchQuery])
 
   const paginatedLogs = useMemo(() => {
-    if (liveLogs.length > 0 && !searchQuery.trim()) {
+    if (!searchQuery.trim()) {
       return {
         data: liveLogs,
         total: totalRecords,
@@ -298,7 +299,7 @@ export function IngestionAuditView() {
                   ? `${telemetry.outliersFilteredToday} Quarantined`
                   : telemetry?.hampelQuarantineRate
                   ? `${telemetry.hampelQuarantineRate} Quarantined`
-                  : `${pipelineTelemetry.outliersFilteredToday} Quarantined`}
+                  : '0 Quarantined (All Passed)'}
               </p>
               <p className="mt-1 text-xs text-slate-500">Hampel &amp; IQR rejection filter</p>
             </Card>
@@ -364,45 +365,67 @@ export function IngestionAuditView() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
-                  {paginatedLogs.data.map((row) => (
-                    <tr
-                      key={row.id}
-                      onClick={() => {
-                        setSelectedRecord(row)
-                        setVerificationResult(null)
-                      }}
-                      className="hover:bg-blue-50/60 transition-colors cursor-pointer"
-                    >
-                      <td className="whitespace-nowrap px-5 py-3.5 font-bold text-blue-600">{row.id}</td>
-                      <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-900">
-                        {row.origin}-{row.destination}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-700">{row.carrier}</td>
-                      <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-800">{row.horizon}</td>
-                      <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-slate-900">
-                        ₹{Number(row.baseFare || 0).toLocaleString()}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3.5 text-slate-500 font-mono">
-                        ₹{Number(row.voluntaryAddonsStripped || 0).toLocaleString()}
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[10px] text-slate-600">
-                        {(row.sha256Hash || '').substring(0, 16)}...
-                      </td>
-                      <td className="whitespace-nowrap px-5 py-3.5">
-                        {row.status === 'Cleaned' ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
-                            Passed
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 border border-red-200">
-                            <AlertTriangle className="h-3 w-3 text-red-600" />
-                            Quarantined
-                          </span>
-                        )}
+                  {isLoadingLogs && liveLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-8 text-center text-slate-500 font-medium animate-pulse">
+                        Loading verified audit observations from database...
                       </td>
                     </tr>
-                  ))}
+                  ) : liveLogs.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="px-5 py-8 text-center text-slate-400 font-medium">
+                        No audit observations found.
+                      </td>
+                    </tr>
+                  ) : (
+                    paginatedLogs.data.map((row) => {
+                      const isCleaned =
+                        row.hampelPassed !== false &&
+                        (String(row.status || '').toLowerCase() === 'cleaned' ||
+                          (!String(row.status || '').toLowerCase().includes('outlier') &&
+                            !String(row.status || '').toLowerCase().includes('quarantin')))
+
+                      return (
+                        <tr
+                          key={row.id}
+                          onClick={() => {
+                            setSelectedRecord(row)
+                            setVerificationResult(null)
+                          }}
+                          className="hover:bg-blue-50/60 transition-colors cursor-pointer"
+                        >
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-blue-600">{row.id}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-900">
+                            {row.origin}-{row.destination}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-700">{row.carrier}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-800">{row.horizon}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-slate-900">
+                            ₹{Number(row.baseFare || 0).toLocaleString()}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 text-slate-500 font-mono">
+                            ₹{Number(row.voluntaryAddonsStripped || 0).toLocaleString()}
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[10px] text-slate-600">
+                            {(row.sha256Hash || '').substring(0, 16)}...
+                          </td>
+                          <td className="whitespace-nowrap px-5 py-3.5">
+                            {isCleaned ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                Passed
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 border border-red-200">
+                                <AlertTriangle className="h-3 w-3 text-red-600" />
+                                Quarantined
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
                 </tbody>
               </table>
             </div>

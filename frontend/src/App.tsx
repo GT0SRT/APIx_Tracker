@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { TabType } from './types/apix'
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
@@ -12,16 +13,36 @@ import { OneClickReportModal } from './components/reports/OneClickReportModal'
 import { agenticAnomalyAlerts } from './data/agenticData'
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>('overview')
+  const location = useLocation()
+  const navigate = useNavigate()
+
   const [aiSubTab, setAiSubTab] = useState<'ml' | 'agent' | 'rag'>('ml')
   const [range, setRange] = useState('Daily')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
 
+  // Derive active tab from current URL pathname
+  const activeTab = useMemo<TabType>(() => {
+    const raw = location.pathname.replace(/^\//, '').split('/')[0]
+    if (!raw || raw === 'overview') return 'overview'
+    if (raw === 'index-series') return 'index-series'
+    if (raw === 'routes-horizons' || raw === 'routes') return 'routes-horizons'
+    if (raw === 'ai-intelligence' || raw === 'ai' || raw === 'ml-forecasting' || raw === 'agentic-ai') return 'ai-intelligence'
+    if (raw === 'audit-logs' || raw === 'audit' || raw === 'ingestion') return 'audit-logs'
+    if (raw === 'methodology') return 'methodology'
+    return 'overview'
+  }, [location.pathname])
+
+  const handleTabChange = (tab: TabType) => {
+    const path = tab === 'overview' ? '/' : `/${tab}`
+    navigate(path)
+    if (tab === 'ai-intelligence') setAiSubTab('ml')
+  }
+
   const navigateToAi = (subTab: 'ml' | 'agent' | 'rag') => {
     setAiSubTab(subTab)
-    setActiveTab('ai-intelligence')
+    navigate(`/ai-intelligence?tab=${subTab}`)
   }
 
   return (
@@ -29,10 +50,7 @@ export default function App() {
       {/* Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
-        setActiveTab={(tab) => {
-          setActiveTab(tab)
-          if (tab === 'ai-intelligence') setAiSubTab('ml')
-        }}
+        setActiveTab={handleTabChange}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         sidebarCollapsed={sidebarCollapsed}
@@ -58,25 +76,30 @@ export default function App() {
           anomalyCount={agenticAnomalyAlerts.length}
         />
 
-        {/* Dynamic Tab Views */}
-        {activeTab === 'overview' && (
-          <OverviewView
-            onNavigateToAi={navigateToAi}
-            onNavigateToTab={(tab) => setActiveTab(tab)}
+        {/* Dynamic Routed Views */}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <OverviewView
+                onNavigateToAi={navigateToAi}
+                onNavigateToTab={handleTabChange}
+              />
+            }
           />
-        )}
-
-        {activeTab === 'index-series' && <IndexSeriesView />}
-
-        {activeTab === 'routes-horizons' && <RoutesHorizonsView />}
-
-        {(activeTab === 'ai-intelligence' || activeTab === 'ml-forecasting' || activeTab === 'agentic-ai') && (
-          <AiHubView key={aiSubTab} initialSubTab={aiSubTab} />
-        )}
-
-        {activeTab === 'audit-logs' && <IngestionAuditView />}
-
-        {activeTab === 'methodology' && <MethodologyView />}
+          <Route path="/overview" element={<Navigate to="/" replace />} />
+          <Route path="/index-series" element={<IndexSeriesView />} />
+          <Route path="/routes-horizons" element={<RoutesHorizonsView />} />
+          <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
+          <Route
+            path="/ai-intelligence"
+            element={<AiHubView key={location.search + aiSubTab} initialSubTab={aiSubTab} />}
+          />
+          <Route path="/audit-logs" element={<IngestionAuditView />} />
+          <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
+          <Route path="/methodology" element={<MethodologyView />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
 
       {/* One-Click Executive Report Modal */}
