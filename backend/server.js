@@ -4,6 +4,8 @@ const cors = require('cors');
 
 const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const logsRoutes = require('./src/routes/logsRoutes');
+const routesRoutes = require('./src/routes/routesRoutes');
+const methodologyRoutes = require('./src/routes/methodologyRoutes');
 
 const app = express();
 
@@ -30,6 +32,8 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // API Routes
 app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/routes', routesRoutes);
+app.use('/api/v1/methodology', methodologyRoutes);
 app.use('/api/v1/logs', logsRoutes);
 
 // Health check endpoint
