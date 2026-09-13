@@ -112,6 +112,18 @@ export function IngestionAuditView() {
       if (res.data) setTelemetry(res.data)
       setIsLiveBackend(res.isLive)
     })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    void fetchTelemetry().then((res) => {
+      if (!mounted) return
+      if (res.data) setTelemetry(res.data)
+      setIsLiveBackend(res.isLive)
+    })
     void fetchLogs(auditPage, auditPageSize).then((res) => {
       if (!mounted) return
       if (res.data && res.data.length > 0) {
@@ -149,6 +161,22 @@ export function IngestionAuditView() {
     }
     return paginateData(filteredLogs, auditPage, auditPageSize)
   }, [filteredLogs, liveLogs, totalRecords, auditPage, auditPageSize, searchQuery])
+
+  const handleVerify = async (record: ScrapedFareRecord) => {
+    setIsVerifying(true)
+    const result = await verifyRecordHash(record.id, record.sha256Hash, record)
+    setVerificationResult({
+      recordId: record.id,
+      valid: result.valid,
+      message: result.message,
+      isLive: result.isLive,
+    })
+    setIsVerifying(false)
+  }
+
+  const paginatedLogs = useMemo(() => {
+    return paginateData(filteredLogs, auditPage, auditPageSize)
+  }, [filteredLogs, auditPage, auditPageSize])
 
   const handleVerify = async (record: ScrapedFareRecord) => {
     setIsVerifying(true)
