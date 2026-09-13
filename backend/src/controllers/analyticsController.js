@@ -16,9 +16,12 @@ const getIndexTrend = async (req, res) => {
       if (dbIndices && dbIndices.length > 0) {
         const formatted = dbIndices.map((item) => ({
           day: new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+          date: new Date(item.date).toISOString().split('T')[0],
           apix: item.compositeIndex,
           headline: item.compositeIndex,
+          headlineApix: item.compositeIndex,
           coreTrimmed: parseFloat((item.compositeIndex * 0.985).toFixed(1)),
+          coreTrimmedApix: parseFloat((item.compositeIndex * 0.985).toFixed(1)),
           baseline: item.baselineIndex,
         }));
         return res.status(200).json({ success: true, route: routeCode, data: formatted });
@@ -27,18 +30,18 @@ const getIndexTrend = async (req, res) => {
 
     // Default historical trend fallback
     const fallbackTrend = [
-      { day: '01 Aug', headline: 134.8, coreTrimmed: 134.2, apix: 134.8, baseline: 131.8 },
-      { day: '03 Aug', headline: 135.2, coreTrimmed: 134.5, apix: 135.2, baseline: 132.0 },
-      { day: '05 Aug', headline: 136.5, coreTrimmed: 135.1, apix: 136.5, baseline: 132.3 },
-      { day: '07 Aug', headline: 137.4, coreTrimmed: 135.8, apix: 137.4, baseline: 132.6 },
-      { day: '09 Aug', headline: 138.9, coreTrimmed: 136.4, apix: 138.9, baseline: 132.9 },
-      { day: '11 Aug', headline: 141.2, coreTrimmed: 137.2, apix: 141.2, baseline: 133.2 },
-      { day: '13 Aug', headline: 139.8, coreTrimmed: 137.6, apix: 139.8, baseline: 133.5 },
-      { day: '15 Aug', headline: 144.6, coreTrimmed: 138.3, apix: 144.6, baseline: 133.8 },
-      { day: '17 Aug', headline: 142.1, coreTrimmed: 138.9, apix: 142.1, baseline: 134.1 },
-      { day: '19 Aug', headline: 141.7, coreTrimmed: 139.2, apix: 141.7, baseline: 134.4 },
-      { day: '21 Aug', headline: 143.0, coreTrimmed: 139.8, apix: 143.0, baseline: 134.7 },
-      { day: '23 Aug', headline: 142.5, coreTrimmed: 140.1, apix: 142.5, baseline: 134.8 },
+      { day: '01 Aug', date: '2024-08-01', headline: 134.8, headlineApix: 134.8, coreTrimmed: 134.2, coreTrimmedApix: 134.2, apix: 134.8, baseline: 131.8 },
+      { day: '03 Aug', date: '2024-08-03', headline: 135.2, headlineApix: 135.2, coreTrimmed: 134.5, coreTrimmedApix: 134.5, apix: 135.2, baseline: 132.0 },
+      { day: '05 Aug', date: '2024-08-05', headline: 136.5, headlineApix: 136.5, coreTrimmed: 135.1, coreTrimmedApix: 135.1, apix: 136.5, baseline: 132.3 },
+      { day: '07 Aug', date: '2024-08-07', headline: 137.4, headlineApix: 137.4, coreTrimmed: 135.8, coreTrimmedApix: 135.8, apix: 137.4, baseline: 132.6 },
+      { day: '09 Aug', date: '2024-08-09', headline: 138.9, headlineApix: 138.9, coreTrimmed: 136.4, coreTrimmedApix: 136.4, apix: 138.9, baseline: 132.9 },
+      { day: '11 Aug', date: '2024-08-11', headline: 141.2, headlineApix: 141.2, coreTrimmed: 137.2, coreTrimmedApix: 137.2, apix: 141.2, baseline: 133.2 },
+      { day: '13 Aug', date: '2024-08-13', headline: 139.8, headlineApix: 139.8, coreTrimmed: 137.6, coreTrimmedApix: 137.6, apix: 139.8, baseline: 133.5 },
+      { day: '15 Aug', date: '2024-08-15', headline: 144.6, headlineApix: 144.6, coreTrimmed: 138.3, coreTrimmedApix: 138.3, apix: 144.6, baseline: 133.8 },
+      { day: '17 Aug', date: '2024-08-17', headline: 142.1, headlineApix: 142.1, coreTrimmed: 138.9, coreTrimmedApix: 138.9, apix: 142.1, baseline: 134.1 },
+      { day: '19 Aug', date: '2024-08-19', headline: 141.7, headlineApix: 141.7, coreTrimmed: 139.2, coreTrimmedApix: 139.2, apix: 141.7, baseline: 134.4 },
+      { day: '21 Aug', date: '2024-08-21', headline: 143.0, headlineApix: 143.0, coreTrimmed: 139.8, coreTrimmedApix: 139.8, apix: 143.0, baseline: 134.7 },
+      { day: '23 Aug', date: '2024-08-23', headline: 142.5, headlineApix: 142.5, coreTrimmed: 140.1, coreTrimmedApix: 140.1, apix: 142.5, baseline: 134.8 },
     ];
 
     return res.status(200).json({ success: true, route: routeCode, data: fallbackTrend });
@@ -105,9 +108,13 @@ const getSummaryKpis = async (req, res) => {
 
     const avgBaseFare = routeFareMap[route] || 6820;
 
-    return res.status(200).json({
-      success: true,
-      timestamp: new Date().toISOString(),
+    const summaryData = {
+      totalQuotes: 1482920,
+      monitoredRoutes: 42,
+      currentAverageFare: avgBaseFare,
+      indexDelta24h: '+0.4%',
+      pipelineUptime: '99.94%',
+      lastUpdated: new Date().toISOString(),
       currentApix: 142.5,
       momChangePercent: 2.4,
       avgBaseFare,
@@ -118,6 +125,13 @@ const getSummaryKpis = async (req, res) => {
       standardizedScrapesCount: 145210,
       sha256VerificationRate: '100% Cryptographically Verified',
       baseYear: '2024=100',
+    };
+
+    return res.status(200).json({
+      success: true,
+      timestamp: summaryData.lastUpdated,
+      data: summaryData,
+      ...summaryData,
     });
   } catch (error) {
     console.error('Error in getSummaryKpis:', error.message);

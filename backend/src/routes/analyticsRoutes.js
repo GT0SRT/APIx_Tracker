@@ -10,6 +10,7 @@ const {
 const router = express.Router();
 
 router.get('/index-trend', getIndexTrend);
+router.get('/trend', getIndexTrend);
 router.get('/elasticity', getElasticity);
 router.get('/summary', getSummaryKpis);
 router.get('/fare-decomposition', getFareDecomposition);
