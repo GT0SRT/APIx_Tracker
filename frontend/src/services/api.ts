@@ -17,10 +17,23 @@ import {
   dgcaRoutesData as mockDgcaRoutesData,
   fareBreakdown as mockFareBreakdown,
   airlineParityData as mockRouteParityData,
-  rawScrapeFeed,
 } from '../data/mockData'
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'
+function getApiBaseUrl(): string {
+  const envUrl = import.meta.env.VITE_API_BASE_URL
+  if (typeof window !== 'undefined') {
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    if (isLocal) {
+      if (!envUrl || envUrl.includes('localhost') || envUrl.includes('127.0.0.1')) {
+        return envUrl || 'http://localhost:5000/api/v1'
+      }
+      return 'http://localhost:5000/api/v1'
+    }
+  }
+  return envUrl || 'http://localhost:5000/api/v1'
+}
+
+export const API_BASE_URL = getApiBaseUrl()
 
 const mockSummary: SystemSummary = {
   totalQuotes: 1482920,
@@ -84,7 +97,7 @@ async function safeFetch<T>(
 ): Promise<{ data: T; isLive: boolean }> {
   try {
     const controller = new AbortController()
-    const id = setTimeout(() => controller.abort(), 2500)
+    const id = setTimeout(() => controller.abort(), 8000)
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       signal: controller.signal,
@@ -120,8 +133,12 @@ export async function checkBackendHealth(): Promise<boolean> {
 }
 
 /** High-level KPI summary cards */
-export async function fetchSummary(): Promise<{ data: SystemSummary; isLive: boolean }> {
-  return safeFetch<SystemSummary>('/analytics/summary', mockSummary)
+export async function fetchSummary(route?: string, airline?: string): Promise<{ data: SystemSummary; isLive: boolean }> {
+  const query = new URLSearchParams()
+  if (route) query.set('route', route)
+  if (airline) query.set('airline', airline)
+  const qStr = query.toString() ? `?${query.toString()}` : ''
+  return safeFetch<SystemSummary>(`/analytics/summary${qStr}`, mockSummary)
 }
 
 /** Deterministic Fare Decomposition */
@@ -135,8 +152,9 @@ export async function fetchTrendSeries(horizon: string = '30d'): Promise<{ data:
 }
 
 /** Elasticity Lead Times */
-export async function fetchElasticity(): Promise<{ data: ElasticityPoint[]; isLive: boolean }> {
-  return safeFetch<ElasticityPoint[]>('/analytics/elasticity', mockElasticityData)
+export async function fetchElasticity(route?: string): Promise<{ data: ElasticityPoint[]; isLive: boolean }> {
+  const q = route ? `?route=${route}` : ''
+  return safeFetch<ElasticityPoint[]>(`/analytics/elasticity${q}`, mockElasticityData)
 }
 
 /** DGCA Monitored Corridors */
@@ -196,7 +214,7 @@ export async function fetchLogs(
 }> {
   try {
     const controller = new AbortController()
-    const id = setTimeout(() => controller.abort(), 2500)
+    const id = setTimeout(() => controller.abort(), 8000)
     const res = await fetch(`${API_BASE_URL}/logs?page=${page}&limit=${limit}`, {
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
@@ -222,12 +240,12 @@ export async function fetchLogs(
           baseFare: Number(q.baseFare || 5420),
           fuelSurcharge: Number(q.fuelSurcharge || 850),
           airportTax: Number(q.airportTax || 334),
-          voluntaryAddonsStripped: 450,
+          voluntaryAddonsStripped: Number(q.voluntaryAddonsStripped || 400),
           totalFare: Number(q.totalFare || 6604),
-          hampelPassed: q.hampelVerified ?? true,
+          hampelPassed: q.hampelVerified !== false,
           iqrPassed: true,
           sha256Hash: q.sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-          status: q.status || 'Cleaned',
+          status: (q.status && String(q.status).toUpperCase() === 'CLEANED') ? 'Cleaned' : (q.status || 'Cleaned'),
         }
       })
       const total = Number(json.total || records.length)
@@ -242,13 +260,12 @@ export async function fetchLogs(
     }
   } catch {}
 
-  const paged = paginateData(rawScrapeFeed, page, limit)
   return {
-    data: paged.data,
-    total: paged.total,
-    page: paged.page,
-    limit: paged.limit,
-    totalPages: paged.totalPages,
+    data: [],
+    total: 0,
+    page,
+    limit,
+    totalPages: 1,
     isLive: false,
   }
 }

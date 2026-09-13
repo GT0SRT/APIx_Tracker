@@ -30,12 +30,12 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// API Routes
-app.use('/api/v1/analytics', analyticsRoutes);
-app.use('/api/v1/routes', routesRoutes);
-app.use('/api/v1/methodology', methodologyRoutes);
-app.use('/api/v1/logs', logsRoutes);
-app.use('/api/v1/audit', logsRoutes);
+// API Routes (supporting both /api/v1 and /api prefixes)
+app.use(['/api/v1/analytics', '/api/analytics'], analyticsRoutes);
+app.use(['/api/v1/routes', '/api/routes'], routesRoutes);
+app.use(['/api/v1/methodology', '/api/methodology'], methodologyRoutes);
+app.use(['/api/v1/logs', '/api/logs'], logsRoutes);
+app.use(['/api/v1/audit', '/api/audit'], logsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

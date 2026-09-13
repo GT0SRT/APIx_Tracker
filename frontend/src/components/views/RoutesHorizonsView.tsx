@@ -35,7 +35,7 @@ export function RoutesHorizonsView() {
 
   useEffect(() => {
     let mounted = true
-    void Promise.all([fetchRouteParity(), fetchRoutes(), fetchElasticity()]).then(
+    void Promise.all([fetchRouteParity(), fetchRoutes(), fetchElasticity(selectedRoute)]).then(
       ([parityRes, routesRes, elastRes]) => {
         if (!mounted) return
         if (parityRes.data && parityRes.data.length > 0) setParityData(parityRes.data)
@@ -49,12 +49,21 @@ export function RoutesHorizonsView() {
     }
   }, [])
 
+  useEffect(() => {
+    let mounted = true
+    void fetchElasticity(selectedRoute).then((elastRes) => {
+      if (!mounted) return
+      if (elastRes.data && elastRes.data.length > 0) setElasticity(elastRes.data)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [selectedRoute])
+
   const t1 = elasticity.find((e) => e.window === 'T+1')
   const t45 = elasticity.find((e) => e.window === 'T+45')
-  const dynamicSurgePercent =
-    t1 && t45 && t45.fare > 0
-      ? `+${Math.round(((t1.fare - t45.fare) / t45.fare) * 100)}%`
-      : '+63%'
+  const surgeVal = t1 && t45 && t45.fare > 0 ? Math.round(((t1.fare - t45.fare) / t45.fare) * 100) : 63
+  const dynamicSurgePercent = `${surgeVal >= 0 ? '+' : ''}${surgeVal}%`
   const dynamicSurgeDesc =
     t1 && t45
       ? `Average price ₹${t1.fare.toLocaleString('en-IN')} vs ₹${t45.fare.toLocaleString('en-IN')} at T+45`
@@ -181,7 +190,7 @@ export function RoutesHorizonsView() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <h3 className="font-bold text-slate-900 text-base">
-              Constant-Horizon Price Curve ($T+1$ to $T+45$)
+              Constant-Horizon Price Curve (T+1 to T+45)
             </h3>
             <p className="mt-1 text-xs text-slate-500">
               Synthetic basket tracking strictly defined fixed lead times to prevent sampling bias (ILO &amp; Eurostat standard)
