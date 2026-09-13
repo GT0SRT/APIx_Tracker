@@ -115,3 +115,65 @@ export interface AirlineParityItem {
   priceSpreadPercent: number
   monopolyRisk: 'Competitive' | 'Moderate Variance' | 'Monopolistic Warning'
 }
+
+export interface SystemSummary {
+  totalQuotes: number
+  monitoredRoutes: number
+  currentAverageFare: number
+  indexDelta24h: string
+  pipelineUptime: string
+  lastUpdated: string
+}
+
+export interface MethodologyComparison {
+  jevonsIndex: number
+  carliIndex: number
+  carliBias: number
+  sampleSize: number
+  imfCompliant: boolean
+  elementaryAggregates: Array<{
+    route: string
+    basePeriodAverage: number
+    currentPeriodAverage: number
+    jevonsRatio: number
+    carliRatio: number
+    bias: number
+  }>
+}
+
+export interface LaspeyresMacroData {
+  laspeyresIndex: number
+  basePeriod: string
+  currentPeriod: string
+  totalRoutesWeighted: number
+  timeSeries: Array<{
+    date: string
+    laspeyres: number
+    jevonsWeighted: number
+    carliWeighted: number
+  }>
+}
+
+export interface PipelineTelemetry {
+  pipeline: string
+  throughputQuotesPerSec: number
+  activeWorkers: number
+  p95LatencyMs: number
+  errorRatePercent: number
+  hampelQuarantineRate: string
+  nodeStatus: Array<{
+    id: string
+    region: string
+    ip: string
+    status: string
+    pingsPerMin: number
+  }>
+}
+
+export interface PaginatedResult<T> {
+  data: T[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}

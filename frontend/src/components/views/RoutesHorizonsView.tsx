@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Map,
   Scale,
@@ -19,26 +19,63 @@ import {
 } from 'recharts'
 import { elasticityData, dgcaRoutesData, airlineParityData } from '../../data/mockData'
 import { Card, ChartTooltip } from '../common/CommonUI'
+import { Pagination } from '../common/Pagination'
+import { fetchRouteParity, fetchRoutes, paginateData } from '../../services/api'
+import type { AirlineParityItem, RouteTrafficWeight } from '../../types/apix'
 
 export function RoutesHorizonsView() {
   const [selectedRoute, setSelectedRoute] = useState('DEL-BOM')
   const [paritySearch, setParitySearch] = useState('')
+  const [parityData, setParityData] = useState<AirlineParityItem[]>(airlineParityData)
+  const [routesList, setRoutesList] = useState<RouteTrafficWeight[]>(dgcaRoutesData)
+  const [isLiveBackend, setIsLiveBackend] = useState(false)
+  const [parityPage, setParityPage] = useState(1)
+  const [parityPageSize, setParityPageSize] = useState(4)
 
-  const filteredParityData = airlineParityData.filter((item) =>
-    item.route.toLowerCase().includes(paritySearch.toLowerCase())
-  )
+  useEffect(() => {
+    let mounted = true
+    void Promise.all([fetchRouteParity(), fetchRoutes()]).then(([parityRes, routesRes]) => {
+      if (!mounted) return
+      if (parityRes.data && parityRes.data.length > 0) setParityData(parityRes.data)
+      if (routesRes.data && routesRes.data.length > 0) setRoutesList(routesRes.data)
+      setIsLiveBackend(parityRes.isLive || routesRes.isLive)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const filteredParityData = useMemo(() => {
+    return parityData.filter((item) =>
+      item.route.toLowerCase().includes(paritySearch.toLowerCase())
+    )
+  }, [parityData, paritySearch])
+
+  const paginatedParity = useMemo(() => {
+    return paginateData(filteredParityData, parityPage, parityPageSize)
+  }, [filteredParityData, parityPage, parityPageSize])
 
   return (
     <div className="space-y-6 p-4 md:p-8 flex-1">
       {/* View Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
               Routes, Horizons &amp; Competition Parity
             </h2>
             <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-800 border border-orange-200">
               T+1 to T+45 Horizons
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
+                isLiveBackend
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+              {isLiveBackend ? 'Parity API: Live Connected' : 'Parity API: Standalone Mode'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -197,7 +234,10 @@ export function RoutesHorizonsView() {
               type="text"
               placeholder="Search route parity..."
               value={paritySearch}
-              onChange={(e) => setParitySearch(e.target.value)}
+              onChange={(e) => {
+                setParitySearch(e.target.value)
+                setParityPage(1)
+              }}
               className="rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-600 w-48"
             />
           </div>
@@ -216,7 +256,7 @@ export function RoutesHorizonsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
-              {filteredParityData.map((row) => (
+              {paginatedParity.data.map((row) => (
                 <tr key={row.route} className="hover:bg-blue-50/40 transition-colors">
                   <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-900">{row.route}</td>
                   <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-800">
@@ -255,6 +295,20 @@ export function RoutesHorizonsView() {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={paginatedParity.page}
+          totalPages={paginatedParity.totalPages}
+          totalItems={paginatedParity.total}
+          pageSize={parityPageSize}
+          pageSizeOptions={[3, 4, 6, 8]}
+          onPageChange={setParityPage}
+          onPageSizeChange={(size) => {
+            setParityPageSize(size)
+            setParityPage(1)
+          }}
+          itemName="corridors"
+        />
       </Card>
 
       {/* DGCA Quarterly Route Weight Table */}
@@ -270,7 +324,7 @@ export function RoutesHorizonsView() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {dgcaRoutesData.map((route) => (
+          {routesList.map((route) => (
             <div key={route.route} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <span className="font-extrabold text-slate-900 text-sm">{route.route}</span>

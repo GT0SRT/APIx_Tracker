@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import {
   Activity,
   CircleDollarSign,
@@ -35,6 +35,9 @@ import {
   rawScrapeFeed,
 } from '../../data/mockData'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
+import { Pagination } from '../common/Pagination'
+import { fetchSummary, fetchFareDecomposition, paginateData } from '../../services/api'
+import type { SystemSummary, FareComponent } from '../../types/apix'
 
 interface OverviewViewProps {
   onNavigateToAi: (subTab: 'ml' | 'agent' | 'rag') => void
@@ -50,14 +53,44 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
   const [appliedRoute, setAppliedRoute] = useState('DEL-BOM')
   const [logSearchQuery, setLogSearchQuery] = useState('')
   const [refreshAnimation, setRefreshAnimation] = useState(false)
+  const [summary, setSummary] = useState<SystemSummary | null>(null)
+  const [liveFareDecomp, setLiveFareDecomp] = useState<FareComponent[]>(fareBreakdown)
+  const [isBackendLive, setIsBackendLive] = useState(false)
+  const [logPage, setLogPage] = useState(1)
+  const [logPageSize, setLogPageSize] = useState(8)
 
-  const applyFilters = () => {
-    setAppliedRoute(`${origin}-${destination}`)
-  }
+  const loadBackendData = useCallback(async () => {
+    const [summaryRes, decompRes] = await Promise.all([
+      fetchSummary(),
+      fetchFareDecomposition(),
+    ])
+    if (summaryRes.data) setSummary(summaryRes.data)
+    if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
+    setIsBackendLive(summaryRes.isLive)
+  }, [])
+
+  useEffect(() => {
+    let mounted = true
+    void Promise.all([fetchSummary(), fetchFareDecomposition()]).then(([summaryRes, decompRes]) => {
+      if (!mounted) return
+      if (summaryRes.data) setSummary(summaryRes.data)
+      if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
+      setIsBackendLive(summaryRes.isLive)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const triggerRefresh = () => {
     setRefreshAnimation(true)
-    setTimeout(() => setRefreshAnimation(false), 800)
+    loadBackendData().finally(() => {
+      setTimeout(() => setRefreshAnimation(false), 800)
+    })
+  }
+
+  const applyFilters = () => {
+    setAppliedRoute(`${origin}-${destination}`)
   }
 
   // Dynamic route base fare calculation
@@ -94,6 +127,11 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
       )
     })
   }, [logSearchQuery])
+
+  // Paginated records for table view
+  const paginatedLogs = useMemo(() => {
+    return paginateData(filteredLogs, logPage, logPageSize)
+  }, [filteredLogs, logPage, logPageSize])
 
   // Real CSV export
   const exportCsv = () => {
@@ -265,13 +303,26 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
               Market Overview &amp; CPI Analytics
             </h2>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Pipeline: Operational (Scraped 42s ago)
+          <div className="flex flex-wrap items-center gap-2.5 text-xs font-medium text-slate-500">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
+                isBackendLive
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${isBackendLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+              {isBackendLive ? 'API: Live Connected' : 'API: Standalone Mode'}
+            </span>
+            <span className="hidden sm:inline text-slate-300">|</span>
+            <div className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span>Pipeline: {summary?.pipelineUptime || '99.9%'} Uptime</span>
+            </div>
             <button
               onClick={triggerRefresh}
               className="p-1 text-slate-400 hover:text-slate-700 transition cursor-pointer"
-              title="Trigger pipeline sync"
+              title="Trigger live sync"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshAnimation ? 'animate-spin text-blue-600' : ''}`} />
             </button>
@@ -299,7 +350,7 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-emerald-600">+2.4%</span>
+                <span className="font-bold text-emerald-600">{summary?.indexDelta24h || '+2.4%'}</span>
                 <span>vs baseline (30d MA)</span>
               </div>
               <button
@@ -378,7 +429,9 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                     text="Total validated flight price quotes ingested across top DGCA routes with SHA-256 cryptographic provenance."
                   />
                 </div>
-                <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">145.2K</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {summary ? `${(summary.totalQuotes / 1000).toFixed(1)}K` : '145.2K'}
+                </p>
               </div>
               <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600 border border-emerald-100">
                 <Database className="h-5 w-5" />
@@ -572,7 +625,7 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={fareBreakdown}
+                      data={liveFareDecomp}
                       dataKey="value"
                       nameKey="name"
                       innerRadius={52}
@@ -580,7 +633,7 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                       paddingAngle={3}
                       stroke="none"
                     >
-                      {fareBreakdown.map((entry) => (
+                      {liveFareDecomp.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />
                       ))}
                     </Pie>
@@ -589,7 +642,7 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                 </ResponsiveContainer>
               </div>
               <div className="space-y-2.5 w-full sm:w-auto">
-                {fareBreakdown.map((entry) => (
+                {liveFareDecomp.map((entry) => (
                   <div key={entry.name} className="flex items-center justify-between gap-6 text-xs">
                     <span className="flex items-center gap-2 text-slate-600 font-medium">
                       <i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
@@ -624,7 +677,10 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                   type="text"
                   placeholder="Filter logs or hash..."
                   value={logSearchQuery}
-                  onChange={(e) => setLogSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setLogSearchQuery(e.target.value)
+                    setLogPage(1)
+                  }}
                   className="rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-600 w-48"
                 />
               </div>
@@ -668,7 +724,7 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
-                {filteredLogs.map((row) => (
+                {paginatedLogs.data.map((row) => (
                   <tr key={row.id} className="hover:bg-blue-50/40 transition-colors">
                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-blue-600">{row.id}</td>
                     <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-900">
@@ -707,15 +763,19 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
             </table>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-3 text-xs text-slate-500 font-medium">
-            <span>
-              Showing {filteredLogs.length} verified records · 100% SHA-256 integrity check passed
-            </span>
-            <span className="flex items-center gap-1.5 text-emerald-700 font-semibold">
-              <Activity className="h-3.5 w-3.5 text-emerald-600" />
-              NeonDB PostgreSQL Timescale Synchronized
-            </span>
-          </div>
+          <Pagination
+            currentPage={paginatedLogs.page}
+            totalPages={paginatedLogs.totalPages}
+            totalItems={paginatedLogs.total}
+            pageSize={logPageSize}
+            pageSizeOptions={[5, 8, 12, 20]}
+            onPageChange={setLogPage}
+            onPageSizeChange={(size) => {
+              setLogPageSize(size)
+              setLogPage(1)
+            }}
+            itemName="scraped records"
+          />
         </Card>
 
         {/* Footer */}

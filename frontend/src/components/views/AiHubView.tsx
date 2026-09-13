@@ -143,6 +143,19 @@ export function AiHubView({ initialSubTab = 'ml' }: AiHubViewProps) {
       {/* SUB-TAB 1: HORIZON TREND ML FORECASTING */}
       {subTab === 'ml' && (
         <div className="space-y-6">
+          {/* Status banner for in-development ML backend */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="rounded bg-amber-200 text-amber-900 font-bold px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                Backend ML Model: Coming Soon (Q3/Q4)
+              </span>
+              <span className="text-slate-700 font-medium">
+                Deep temporal transformer training pipeline in development · Displaying interactive calibrated validation benchmark
+              </span>
+            </div>
+            <span className="text-slate-500 font-semibold">TFT Architecture · PyTorch</span>
+          </div>
+
           {/* Accuracy KPI Grid */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 border-l-4 border-l-blue-600">
@@ -293,6 +306,19 @@ export function AiHubView({ initialSubTab = 'ml' }: AiHubViewProps) {
       {/* SUB-TAB 2: 24/7 AGENTIC ANOMALY MONITOR */}
       {subTab === 'agent' && (
         <div className="space-y-6">
+          {/* Status banner for autonomous agent daemon */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="rounded bg-blue-200 text-blue-900 font-bold px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                Autonomous Daemon: Coming Soon (Q3/Q4)
+              </span>
+              <span className="text-slate-700 font-medium">
+                Autonomous self-healing worker daemon in staging · Displaying active anomaly detection diagnostics & Hampel simulation
+              </span>
+            </div>
+            <span className="text-slate-500 font-semibold">Supervisor Daemon · LangChain</span>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900 text-white p-4 rounded-xl">
             <div className="flex items-center gap-3">
               <div className="h-3 w-3 rounded-full bg-emerald-400 animate-ping" />
@@ -403,6 +429,19 @@ export function AiHubView({ initialSubTab = 'ml' }: AiHubViewProps) {
       {/* SUB-TAB 3: POLICY & COMPLIANCE RAG Q&A */}
       {subTab === 'rag' && (
         <div className="space-y-6">
+          {/* Status banner for Vector DB RAG */}
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <span className="rounded bg-indigo-200 text-indigo-900 font-bold px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                Vector DB Live Embeddings: Coming Soon (Q3/Q4)
+              </span>
+              <span className="text-slate-700 font-medium">
+                ChromaDB/Pinecone semantic search cluster indexing in progress · Displaying verified statutory knowledge base preview
+              </span>
+            </div>
+            <span className="text-slate-500 font-semibold">MoSPI · DGCA · IMF Corpus</span>
+          </div>
+
           {/* Suggested Chips */}
           <div className="space-y-2">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
