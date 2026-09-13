@@ -21,3 +21,12 @@ pnpm-debug.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Python & Scraper artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+scraper/.env
+scraper/data/*.json
+scraper/data/*.csv
