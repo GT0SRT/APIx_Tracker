@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   TrendingUp,
   Activity,
@@ -24,7 +24,8 @@ import {
 } from 'recharts'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { paginateData } from '../../services/api'
+import { fetchTrendSeries, fetchSummary, paginateData } from '../../services/api'
+import type { TrendPoint, SystemSummary } from '../../types/apix'
 
 const historicalSeries90Days = [
   { date: 'Jun 01', headline: 129.2, coreTrimmed: 129.0, mospiLag: 126.4, baseline: 128.0 },
@@ -49,16 +50,67 @@ export function IndexSeriesView() {
   const [showTable, setShowTable] = useState(true)
   const [tablePage, setTablePage] = useState(1)
   const [tablePageSize, setTablePageSize] = useState(5)
+  const [trendData, setTrendData] = useState<TrendPoint[]>([])
+  const [summary, setSummary] = useState<SystemSummary | null>(null)
+  const [isLive, setIsLive] = useState(false)
+
+  useEffect(() => {
+    let mounted = true
+    const tfParam = selectedTimeframe === '30D' ? '30d' : selectedTimeframe === '90D' ? '90d' : '365d'
+    void fetchTrendSeries(tfParam).then((res) => {
+      if (!mounted) return
+      if (res.data && res.data.length > 0) {
+        setTrendData(res.data)
+      }
+      setIsLive(res.isLive)
+    })
+    void fetchSummary().then((res) => {
+      if (!mounted) return
+      if (res.data) setSummary(res.data)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [selectedTimeframe])
 
   const baseMultiplier = baseYear === '2024' ? 1.0 : 1.48 // Base 2012 conversion factor
 
-  const seriesData = historicalSeries90Days.map((item) => ({
-    ...item,
-    headline: parseFloat((item.headline * baseMultiplier).toFixed(1)),
-    coreTrimmed: parseFloat((item.coreTrimmed * baseMultiplier).toFixed(1)),
-    mospiLag: parseFloat((item.mospiLag * baseMultiplier).toFixed(1)),
-    baseline: parseFloat((item.baseline * baseMultiplier).toFixed(1)),
-  }))
+  const rawPoints = trendData.length > 0 ? trendData : historicalSeries90Days
+
+  const seriesData = useMemo(() => {
+    return rawPoints.map((item: any, idx) => {
+      const dateStr = item.date || item.timestamp || `Day ${idx + 1}`
+      const hRaw = Number(item.headline ?? item.headlineApix ?? (130 + idx * 1.2))
+      const cRaw = Number(item.coreTrimmed ?? item.coreTrimmedApix ?? (hRaw * 0.985))
+      const mRaw = Number(item.mospiLag ?? 128.5)
+      const bRaw = Number(item.baseline ?? 128.0)
+
+      const headline = isNaN(hRaw) ? 140.0 : parseFloat((hRaw * baseMultiplier).toFixed(1))
+      const coreTrimmed = isNaN(cRaw) ? 138.0 : parseFloat((cRaw * baseMultiplier).toFixed(1))
+      const mospiLag = isNaN(mRaw) ? 128.5 : parseFloat((mRaw * baseMultiplier).toFixed(1))
+      const baseline = isNaN(bRaw) ? 128.0 : parseFloat((bRaw * baseMultiplier).toFixed(1))
+
+      return {
+        date: typeof dateStr === 'string' && dateStr.length > 10 ? dateStr.substring(5, 10) : dateStr,
+        headline,
+        coreTrimmed,
+        mospiLag,
+        baseline,
+      }
+    })
+  }, [rawPoints, baseMultiplier])
+
+  const latestItem = seriesData[seriesData.length - 1] || { headline: 142.5, coreTrimmed: 140.1, mospiLag: 128.5 }
+  const headlineDisplay = latestItem.headline.toFixed(1)
+  const coreDisplay = latestItem.coreTrimmed.toFixed(1)
+  const mospiDisplay = latestItem.mospiLag.toFixed(1)
+  const momDisplay = summary?.momChangePercent !== undefined
+    ? `${summary.momChangePercent > 0 ? '+' : ''}${summary.momChangePercent}% MoM rate`
+    : '+2.4% MoM rate'
+
+  const paginatedSeries = useMemo(() => {
+    return paginateData(seriesData, tablePage, tablePageSize)
+  }, [seriesData, tablePage, tablePageSize])
 
   const paginatedSeries = useMemo(() => {
     return paginateData(seriesData, tablePage, tablePageSize)
@@ -75,6 +127,14 @@ export function IndexSeriesView() {
             </h2>
             <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
               Base {baseYear}=100
+            </span>
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
+                isLive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
+              }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+              {isLive ? 'Live API Connected' : 'Calibrated Series'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -129,7 +189,7 @@ export function IndexSeriesView() {
                 <MetricInfo text="Reflects the unfiltered Jevons index across all high-frequency quotes including dynamic holiday spikes." />
               </div>
               <p className="mt-2 text-2xl font-black text-slate-900">
-                {(142.5 * baseMultiplier).toFixed(1)}
+                {headlineDisplay}
               </p>
             </div>
             <span className="rounded-lg bg-blue-50 p-2 text-blue-600">
@@ -138,7 +198,7 @@ export function IndexSeriesView() {
           </div>
           <div className="mt-3 flex items-center gap-1 text-xs text-emerald-600 font-bold">
             <ArrowUpRight className="h-3.5 w-3.5" />
-            <span>+2.4% MoM rate</span>
+            <span>{momDisplay}</span>
           </div>
         </Card>
 
@@ -150,7 +210,7 @@ export function IndexSeriesView() {
                 <MetricInfo text="24-hour trimmed geometric mean per horizon. Strips flash-sale and holiday distortion to track underlying core inflation." />
               </div>
               <p className="mt-2 text-2xl font-black text-slate-900">
-                {(140.1 * baseMultiplier).toFixed(1)}
+                {coreDisplay}
               </p>
             </div>
             <span className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
@@ -170,7 +230,7 @@ export function IndexSeriesView() {
                 <MetricInfo text="Official traditional field-survey CPI transport index. Suffers from a 45-day reporting lag." />
               </div>
               <p className="mt-2 text-2xl font-black text-slate-600">
-                {(128.5 * baseMultiplier).toFixed(1)}
+                {mospiDisplay}
               </p>
             </div>
             <span className="rounded-lg bg-slate-100 p-2 text-slate-500">
@@ -349,7 +409,7 @@ export function IndexSeriesView() {
                       <td className="whitespace-nowrap px-4 py-3 font-semibold text-indigo-700">{row.coreTrimmed}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-500">{row.mospiLag}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-bold text-emerald-600">
-                        +{(row.headline - row.mospiLag).toFixed(1)} pts
+                        +{Math.max(0, (Number(row.headline || 0) - Number(row.mospiLag || 0))).toFixed(1)} pts
                       </td>
                     </tr>
                   ))}

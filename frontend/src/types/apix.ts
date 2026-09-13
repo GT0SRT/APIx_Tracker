@@ -123,6 +123,13 @@ export interface SystemSummary {
   indexDelta24h: string
   pipelineUptime: string
   lastUpdated: string
+  currentApix?: number
+  momChangePercent?: number
+  volatilityIndex?: string
+  volatilityStatus?: string
+  standardizedScrapesCount?: number
+  avgBaseFare?: number
+  appliedRoute?: string
 }
 
 export interface MethodologyComparison {
@@ -155,13 +162,18 @@ export interface LaspeyresMacroData {
 }
 
 export interface PipelineTelemetry {
-  pipeline: string
-  throughputQuotesPerSec: number
-  activeWorkers: number
-  p95LatencyMs: number
-  errorRatePercent: number
-  hampelQuarantineRate: string
-  nodeStatus: Array<{
+  pipeline?: string
+  throughputQuotesPerSec?: number
+  activeWorkers?: number
+  p95LatencyMs?: number
+  errorRatePercent?: number
+  hampelQuarantineRate?: string
+  residentialProxyPool?: string
+  domSchemaStatus?: string
+  outliersFilteredToday?: number
+  averageLatencyMs?: number
+  database?: string
+  nodeStatus?: Array<{
     id: string
     region: string
     ip: string

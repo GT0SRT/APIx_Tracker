@@ -36,8 +36,14 @@ import {
 } from '../../data/mockData'
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { fetchSummary, fetchFareDecomposition, paginateData } from '../../services/api'
-import type { SystemSummary, FareComponent } from '../../types/apix'
+import {
+  fetchSummary,
+  fetchFareDecomposition,
+  fetchTrendSeries,
+  fetchRoutes,
+  paginateData,
+} from '../../services/api'
+import type { SystemSummary, FareComponent, TrendPoint, RouteTrafficWeight } from '../../types/apix'
 
 interface OverviewViewProps {
   onNavigateToAi: (subTab: 'ml' | 'agent' | 'rag') => void
@@ -55,26 +61,39 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
   const [refreshAnimation, setRefreshAnimation] = useState(false)
   const [summary, setSummary] = useState<SystemSummary | null>(null)
   const [liveFareDecomp, setLiveFareDecomp] = useState<FareComponent[]>(fareBreakdown)
+  const [routes, setRoutes] = useState<RouteTrafficWeight[]>(dgcaRoutesData)
+  const [trendSeries, setTrendSeries] = useState<TrendPoint[]>(trendData)
   const [isBackendLive, setIsBackendLive] = useState(false)
   const [logPage, setLogPage] = useState(1)
   const [logPageSize, setLogPageSize] = useState(8)
 
   const loadBackendData = useCallback(async () => {
-    const [summaryRes, decompRes] = await Promise.all([
+    const [summaryRes, decompRes, routesRes, trendRes] = await Promise.all([
       fetchSummary(),
       fetchFareDecomposition(),
+      fetchRoutes(),
+      fetchTrendSeries('30d'),
     ])
     if (summaryRes.data) setSummary(summaryRes.data)
     if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
+    if (routesRes.data && routesRes.data.length > 0) setRoutes(routesRes.data)
+    if (trendRes.data && trendRes.data.length > 0) setTrendSeries(trendRes.data)
     setIsBackendLive(summaryRes.isLive)
   }, [])
 
   useEffect(() => {
     let mounted = true
-    void Promise.all([fetchSummary(), fetchFareDecomposition()]).then(([summaryRes, decompRes]) => {
+    void Promise.all([
+      fetchSummary(),
+      fetchFareDecomposition(),
+      fetchRoutes(),
+      fetchTrendSeries('30d'),
+    ]).then(([summaryRes, decompRes, routesRes, trendRes]) => {
       if (!mounted) return
       if (summaryRes.data) setSummary(summaryRes.data)
       if (decompRes.data && decompRes.data.length > 0) setLiveFareDecomp(decompRes.data)
+      if (routesRes.data && routesRes.data.length > 0) setRoutes(routesRes.data)
+      if (trendRes.data && trendRes.data.length > 0) setTrendSeries(trendRes.data)
       setIsBackendLive(summaryRes.isLive)
     })
     return () => {
@@ -93,26 +112,30 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
     setAppliedRoute(`${origin}-${destination}`)
   }
 
-  // Dynamic route base fare calculation
+  // Dynamic route base fare calculation from live routes and summary
   const routeFare = useMemo(() => {
-    const matched = dgcaRoutesData.find((r) => r.route === appliedRoute)
-    if (matched) return `₹${matched.fare.toLocaleString()}`
-    if (appliedRoute === 'DEL-BOM') return '₹6,820'
-    if (appliedRoute === 'DEL-BLR') return '₹6,410'
-    if (appliedRoute === 'BLR-HYD') return '₹4,620'
-    return '₹5,980'
-  }, [appliedRoute])
+    const matched = routes.find((r) => r.route === appliedRoute)
+    if (matched && matched.fare) return `₹${Number(matched.fare).toLocaleString('en-IN')}`
+    if (summary?.currentAverageFare) return `₹${Number(summary.currentAverageFare).toLocaleString('en-IN')}`
+    return '₹6,820'
+  }, [appliedRoute, routes, summary])
 
   const filteredTrendData = useMemo(() => {
-    return trendData.map((point, index) => {
+    const list = trendSeries.length > 0 ? trendSeries : trendData
+    return list.map((point, index) => {
       const modifier = appliedRoute === 'DEL-BOM' ? 0 : (index % 3) * 0.9 - 0.4
+      const headline = Number(point.headlineApix ?? (point as any).headline ?? 142.5)
+      const core = Number(point.coreTrimmedApix ?? (point as any).coreTrimmed ?? 140.1)
+      const base = Number(point.baseline ?? 134.8)
       return {
         ...point,
-        headlineApix: parseFloat((point.headlineApix + modifier).toFixed(1)),
-        coreTrimmedApix: parseFloat((point.coreTrimmedApix + modifier * 0.6).toFixed(1)),
+        day: point.day || `Day ${index + 1}`,
+        headlineApix: parseFloat((headline + modifier).toFixed(1)),
+        coreTrimmedApix: parseFloat((core + modifier * 0.6).toFixed(1)),
+        baseline: base,
       }
     })
-  }, [appliedRoute])
+  }, [appliedRoute, trendSeries])
 
   // Filtered live audit feed
   const filteredLogs = useMemo(() => {
@@ -342,7 +365,9 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                     text="Calculated using the Jevons Geometric Mean across sampled routes to prevent dynamic surge substitution bias (IMF CPI standard Chapter 10)."
                   />
                 </div>
-                <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">142.5</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {summary?.currentApix ? summary.currentApix.toFixed(1) : '142.5'}
+                </p>
               </div>
               <div className="rounded-xl bg-blue-50 p-2.5 text-blue-600 border border-blue-100">
                 <Gauge className="h-5 w-5" />
@@ -350,7 +375,7 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
               <div className="flex items-center gap-1.5">
-                <span className="font-bold text-emerald-600">{summary?.indexDelta24h || '+2.4%'}</span>
+                <span className="font-bold text-emerald-600">{summary?.indexDelta24h || '+0.4%'}</span>
                 <span>vs baseline (30d MA)</span>
               </div>
               <button
@@ -397,7 +422,9 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                     text="30-day dynamic price dispersion and surge frequency, filtered via Hampel & Interquartile Range (IQR) outlier suppression."
                   />
                 </div>
-                <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">High</p>
+                <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                  {summary?.volatilityIndex || 'High'}
+                </p>
               </div>
               <div className="rounded-xl bg-amber-50 p-2.5 text-amber-600 border border-amber-100">
                 <Activity className="h-5 w-5" />
@@ -405,9 +432,9 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-amber-700">Dynamic Surge Active</span>
-                <span>·</span>
-                <span>IQR Suppressed</span>
+                <span className="font-semibold text-amber-700">
+                  {summary?.volatilityStatus || 'Dynamic Surge Active (IQR Suppressed)'}
+                </span>
               </div>
               <button
                 onClick={() => onNavigateToAi('agent')}
@@ -430,7 +457,11 @@ export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewPr
                   />
                 </div>
                 <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
-                  {summary ? `${(summary.totalQuotes / 1000).toFixed(1)}K` : '145.2K'}
+                  {(() => {
+                    const quotes = Number(summary?.totalQuotes || summary?.standardizedScrapesCount || 1482920)
+                    if (isNaN(quotes) || quotes <= 0) return '148.3K'
+                    return `${(quotes / 1000).toFixed(1)}K`
+                  })()}
                 </p>
               </div>
               <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600 border border-emerald-100">

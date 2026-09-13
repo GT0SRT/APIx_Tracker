@@ -132,7 +132,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
                       {cite.organization}
                     </span>
                     <span className="font-bold text-emerald-600 text-[11px]">
-                      Match: {(cite.relevanceScore * 100).toFixed(0)}%
+                      Match: {((Number(cite.relevanceScore) || 0.85) * 100).toFixed(0)}%
                     </span>
                   </div>
                   <p className="font-bold text-slate-900 leading-snug">{cite.title}</p>

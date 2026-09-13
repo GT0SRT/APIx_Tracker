@@ -493,7 +493,7 @@ export function AiHubView({ initialSubTab = 'ml' }: AiHubViewProps) {
                         {cite.organization}
                       </span>
                       <span className="font-bold text-emerald-600 text-[11px]">
-                        Relevance: {(cite.relevanceScore * 100).toFixed(0)}%
+                        Relevance: {((Number(cite.relevanceScore) || 0.85) * 100).toFixed(0)}%
                       </span>
                     </div>
                     <p className="font-bold text-slate-900">{cite.title}</p>

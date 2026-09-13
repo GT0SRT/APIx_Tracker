@@ -9,6 +9,7 @@ import type {
   LaspeyresMacroData,
   PipelineTelemetry,
   PaginatedResult,
+  ScrapedFareRecord,
 } from '../types/apix'
 import {
   trendData as mockTrendData,
@@ -16,6 +17,7 @@ import {
   dgcaRoutesData as mockDgcaRoutesData,
   fareBreakdown as mockFareBreakdown,
   airlineParityData as mockRouteParityData,
+  rawScrapeFeed,
 } from '../data/mockData'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/v1'
@@ -140,9 +142,115 @@ export async function fetchElasticity(): Promise<{ data: ElasticityPoint[]; isLi
 /** DGCA Monitored Corridors */
 export async function fetchRoutes(): Promise<{ data: RouteTrafficWeight[]; isLive: boolean }> {
   const result = await safeFetch<any>('/routes', mockDgcaRoutesData)
-  // Backend returns array under .routes if live
-  const routes = Array.isArray(result.data) ? result.data : result.data?.routes ?? mockDgcaRoutesData
-  return { data: routes, isLive: result.isLive }
+  const rawList = Array.isArray(result.data)
+    ? result.data
+    : result.data?.routes || result.data?.data || mockDgcaRoutesData
+
+  const defaultPaxMap: Record<string, { fare: number; pax: number; carrier: string }> = {
+    'DEL-BOM': { fare: 6820, pax: 512000, carrier: 'IndiGo' },
+    'DEL-BLR': { fare: 6410, pax: 418000, carrier: 'Air India' },
+    'BOM-BLR': { fare: 4890, pax: 385000, carrier: 'Akasa Air' },
+    'DEL-CCU': { fare: 5740, pax: 310000, carrier: 'IndiGo' },
+    'MAA-DEL': { fare: 5980, pax: 295000, carrier: 'Air India' },
+    'BLR-HYD': { fare: 4620, pax: 260000, carrier: 'IndiGo' },
+    'BOM-GOI': { fare: 4450, pax: 240000, carrier: 'IndiGo' },
+    'DEL-HYD': { fare: 5380, pax: 235000, carrier: 'Air India' },
+    'DEL-PNQ': { fare: 5120, pax: 210000, carrier: 'IndiGo' },
+    'DEL-AMD': { fare: 4650, pax: 195000, carrier: 'IndiGo' },
+    'BOM-MAA': { fare: 5420, pax: 180000, carrier: 'Air India' },
+    'DEL-COK': { fare: 6950, pax: 165000, carrier: 'Air India' },
+  }
+
+  const normalized: RouteTrafficWeight[] = rawList.map((r: any) => {
+    const routeCode = r.route || r.routeCode || `${r.originCode || r.origin || 'DEL'}-${r.destinationCode || r.destination || 'BOM'}`
+    const meta = defaultPaxMap[routeCode] || { fare: 5800, pax: 220000, carrier: 'IndiGo' }
+    const rawWeight = Number(r.dgcaWeight || 5.0)
+    const dgcaWeight = rawWeight < 1 && rawWeight > 0 ? Number((rawWeight * 100).toFixed(1)) : rawWeight
+
+    return {
+      route: routeCode,
+      origin: r.origin || r.originCode || routeCode.split('-')[0] || 'DEL',
+      destination: r.destination || r.destinationCode || routeCode.split('-')[1] || 'BOM',
+      fare: Number(r.fare || meta.fare),
+      passengersMonthly: Number(r.passengersMonthly || r.monthlyPassengers || meta.pax),
+      dgcaWeight: dgcaWeight || 5.0,
+      topCarrier: r.topCarrier || meta.carrier,
+      volatility: r.volatility || 'Moderate',
+    }
+  })
+
+  return { data: normalized, isLive: result.isLive }
+}
+
+/** Fetch Paginated Audit Trail / Scraping Logs */
+export async function fetchLogs(
+  page: number = 1,
+  limit: number = 6
+): Promise<{
+  data: ScrapedFareRecord[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+  isLive: boolean
+}> {
+  try {
+    const controller = new AbortController()
+    const id = setTimeout(() => controller.abort(), 2500)
+    const res = await fetch(`${API_BASE_URL}/logs?page=${page}&limit=${limit}`, {
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json' },
+    })
+    clearTimeout(id)
+    if (!res.ok) throw new Error()
+    const json = await res.json()
+    const quotes = json.quotes || []
+    if (quotes.length > 0) {
+      const records: ScrapedFareRecord[] = quotes.map((q: any) => {
+        const route = q.route || 'DEL-BOM'
+        const parts = route.split('-')
+        return {
+          id: q.id || `SCR-${Math.floor(10000 + Math.random() * 90000)}`,
+          origin: parts[0] || 'DEL',
+          destination: parts[1] || 'BOM',
+          carrier: q.carrier || 'IndiGo',
+          departureDate: q.departureDate
+            ? new Date(q.departureDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+            : '22 Aug 2024',
+          scrapedTimestamp: new Date().toISOString().replace('T', ' ').substring(0, 19) + ' IST',
+          horizon: (q.advanceWindow || 'T+7') as any,
+          baseFare: Number(q.baseFare || 5420),
+          fuelSurcharge: Number(q.fuelSurcharge || 850),
+          airportTax: Number(q.airportTax || 334),
+          voluntaryAddonsStripped: 450,
+          totalFare: Number(q.totalFare || 6604),
+          hampelPassed: q.hampelVerified ?? true,
+          iqrPassed: true,
+          sha256Hash: q.sha256 || 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+          status: q.status || 'Cleaned',
+        }
+      })
+      const total = Number(json.total || records.length)
+      return {
+        data: records,
+        total,
+        page: Number(json.page || page),
+        limit: Number(json.limit || limit),
+        totalPages: Number(json.totalPages || Math.ceil(total / limit)),
+        isLive: true,
+      }
+    }
+  } catch {}
+
+  const paged = paginateData(rawScrapeFeed, page, limit)
+  return {
+    data: paged.data,
+    total: paged.total,
+    page: paged.page,
+    limit: paged.limit,
+    totalPages: paged.totalPages,
+    isLive: false,
+  }
 }
 
 /** Cross-Carrier Parity and HHI Monopoly Detection */

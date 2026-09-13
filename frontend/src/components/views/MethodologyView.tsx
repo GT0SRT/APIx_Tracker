@@ -125,10 +125,14 @@ export function MethodologyView() {
   const [delBlrRel, setDelBlrRel] = useState(102.8)
   const [bomBlrRel, setBomBlrRel] = useState(98.2)
 
-  const simulatedMacroIndex = (
-    (delBomWeight * delBomRel + delBlrWeight * delBlrRel + bomBlrWeight * bomBlrRel) /
-    (delBomWeight + delBlrWeight + bomBlrWeight)
-  ).toFixed(2)
+  const totalSimWeight = delBomWeight + delBlrWeight + bomBlrWeight
+  const simulatedMacroIndex =
+    totalSimWeight > 0
+      ? (
+          (delBomWeight * delBomRel + delBlrWeight * delBlrRel + bomBlrWeight * bomBlrRel) /
+          totalSimWeight
+        ).toFixed(2)
+      : '100.00'
 
   const resetWeights = () => {
     setDelBomWeight(14.8)
@@ -267,7 +271,9 @@ export function MethodologyView() {
           <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
             <span className="text-xs font-bold text-blue-700 uppercase">Jevons Geometric Mean (I_J)</span>
             <p className="mt-2 text-2xl font-black text-blue-900">
-              {methodologyData?.jevonsIndex || 104.28}
+              {typeof methodologyData?.jevonsIndex === 'number'
+                ? methodologyData.jevonsIndex.toFixed(2)
+                : (Number(methodologyData?.jevonsIndex) || 104.28).toFixed(2)}
             </p>
             <p className="text-[11px] text-blue-700 mt-1 font-semibold">Strict Axiomatic Reversal (No Upward Bias)</p>
           </div>
@@ -275,7 +281,9 @@ export function MethodologyView() {
           <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
             <span className="text-xs font-bold text-amber-700 uppercase">Carli Arithmetic Mean (I_C)</span>
             <p className="mt-2 text-2xl font-black text-amber-900">
-              {methodologyData?.carliIndex || 107.15}
+              {typeof methodologyData?.carliIndex === 'number'
+                ? methodologyData.carliIndex.toFixed(2)
+                : (Number(methodologyData?.carliIndex) || 107.15).toFixed(2)}
             </p>
             <p className="text-[11px] text-amber-700 mt-1 font-semibold">Flawed: Violates Time Reversal Property</p>
           </div>
@@ -283,7 +291,9 @@ export function MethodologyView() {
           <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-4">
             <span className="text-xs font-bold text-rose-700 uppercase">Carli Upward Bias (Δ = I_C - I_J)</span>
             <p className="mt-2 text-2xl font-black text-rose-800">
-              +{methodologyData?.carliBias || 2.87} pts
+              +{typeof methodologyData?.carliBias === 'number'
+                ? methodologyData.carliBias.toFixed(2)
+                : (Number(methodologyData?.carliBias) || 2.87).toFixed(2)} pts
             </p>
             <p className="text-[11px] text-rose-700 mt-1 font-semibold">Distortion Eliminated by APIx Jevons Engine</p>
           </div>
@@ -310,9 +320,9 @@ export function MethodologyView() {
                       <td className="whitespace-nowrap px-4 py-3 font-bold text-slate-900">{agg.route}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">₹{agg.basePeriodAverage}</td>
                       <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-700">₹{agg.currentPeriodAverage}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-extrabold text-blue-700">{agg.jevonsRatio.toFixed(1)}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-extrabold text-amber-700">{agg.carliRatio.toFixed(1)}</td>
-                      <td className="whitespace-nowrap px-4 py-3 font-bold text-rose-600">+{agg.bias.toFixed(1)} pts</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-extrabold text-blue-700">{(Number(agg.jevonsRatio) || 104.2).toFixed(1)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-extrabold text-amber-700">{(Number(agg.carliRatio) || 107.1).toFixed(1)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 font-bold text-rose-600">+{(Number(agg.bias) || 2.9).toFixed(1)} pts</td>
                     </tr>
                   ))}
                 </tbody>

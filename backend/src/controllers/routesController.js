@@ -2,21 +2,21 @@ const prisma = require('../lib/prisma');
 
 // Top 15 DGCA Domestic Trunk Routes with Quarterly Passenger Volume Shares (w_r)
 const defaultRoutes = [
-  { routeCode: 'DEL-BOM', origin: 'DEL', destination: 'BOM', dgcaWeight: 0.148, monthlyPassengers: 512000, distanceKm: 1148, topCarrier: 'IndiGo', volatility: 'High' },
-  { routeCode: 'DEL-BLR', origin: 'DEL', destination: 'BLR', dgcaWeight: 0.121, monthlyPassengers: 418000, distanceKm: 1740, topCarrier: 'Air India', volatility: 'Moderate' },
-  { routeCode: 'BOM-BLR', origin: 'BOM', destination: 'BLR', dgcaWeight: 0.112, monthlyPassengers: 385000, distanceKm: 842, topCarrier: 'Akasa Air', volatility: 'Low' },
-  { routeCode: 'DEL-CCU', origin: 'DEL', destination: 'CCU', dgcaWeight: 0.090, monthlyPassengers: 310000, distanceKm: 1305, topCarrier: 'IndiGo', volatility: 'Moderate' },
-  { routeCode: 'MAA-DEL', origin: 'MAA', destination: 'DEL', dgcaWeight: 0.085, monthlyPassengers: 295000, distanceKm: 1760, topCarrier: 'Air India', volatility: 'Moderate' },
-  { routeCode: 'BLR-HYD', origin: 'BLR', destination: 'HYD', dgcaWeight: 0.075, monthlyPassengers: 260000, distanceKm: 500, topCarrier: 'IndiGo', volatility: 'Low' },
-  { routeCode: 'BOM-GOI', origin: 'BOM', destination: 'GOI', dgcaWeight: 0.069, monthlyPassengers: 240000, distanceKm: 435, topCarrier: 'IndiGo', volatility: 'High' },
-  { routeCode: 'DEL-HYD', origin: 'DEL', destination: 'HYD', dgcaWeight: 0.068, monthlyPassengers: 235000, distanceKm: 1253, topCarrier: 'Air India', volatility: 'Moderate' },
-  { routeCode: 'DEL-PNQ', origin: 'DEL', destination: 'PNQ', dgcaWeight: 0.058, monthlyPassengers: 210000, distanceKm: 1173, topCarrier: 'IndiGo', volatility: 'Moderate' },
-  { routeCode: 'DEL-AMD', origin: 'DEL', destination: 'AMD', dgcaWeight: 0.052, monthlyPassengers: 195000, distanceKm: 775, topCarrier: 'IndiGo', volatility: 'Low' },
-  { routeCode: 'BOM-MAA', origin: 'BOM', destination: 'MAA', dgcaWeight: 0.048, monthlyPassengers: 180000, distanceKm: 1033, topCarrier: 'Air India', volatility: 'Moderate' },
-  { routeCode: 'DEL-COK', origin: 'DEL', destination: 'COK', dgcaWeight: 0.045, monthlyPassengers: 165000, distanceKm: 2046, topCarrier: 'Air India', volatility: 'High' },
-  { routeCode: 'DEL-GAU', origin: 'DEL', destination: 'GAU', dgcaWeight: 0.041, monthlyPassengers: 155000, distanceKm: 1460, topCarrier: 'IndiGo', volatility: 'Moderate' },
-  { routeCode: 'BOM-HYD', origin: 'BOM', destination: 'HYD', dgcaWeight: 0.038, monthlyPassengers: 145000, distanceKm: 620, topCarrier: 'Akasa Air', volatility: 'Low' },
-  { routeCode: 'CCU-BLR', origin: 'CCU', destination: 'BLR', dgcaWeight: 0.035, monthlyPassengers: 135000, distanceKm: 1560, topCarrier: 'IndiGo', volatility: 'Moderate' },
+  { route: 'DEL-BOM', routeCode: 'DEL-BOM', origin: 'DEL', destination: 'BOM', fare: 6820, dgcaWeight: 14.8, passengersMonthly: 512000, monthlyPassengers: 512000, distanceKm: 1148, topCarrier: 'IndiGo', volatility: 'High' },
+  { route: 'DEL-BLR', routeCode: 'DEL-BLR', origin: 'DEL', destination: 'BLR', fare: 6410, dgcaWeight: 12.1, passengersMonthly: 418000, monthlyPassengers: 418000, distanceKm: 1740, topCarrier: 'Air India', volatility: 'Moderate' },
+  { route: 'BOM-BLR', routeCode: 'BOM-BLR', origin: 'BOM', destination: 'BLR', fare: 4890, dgcaWeight: 11.2, passengersMonthly: 385000, monthlyPassengers: 385000, distanceKm: 842, topCarrier: 'Akasa Air', volatility: 'Low' },
+  { route: 'DEL-CCU', routeCode: 'DEL-CCU', origin: 'DEL', destination: 'CCU', fare: 5740, dgcaWeight: 9.0, passengersMonthly: 310000, monthlyPassengers: 310000, distanceKm: 1305, topCarrier: 'IndiGo', volatility: 'Moderate' },
+  { route: 'MAA-DEL', routeCode: 'MAA-DEL', origin: 'MAA', destination: 'DEL', fare: 5980, dgcaWeight: 8.5, passengersMonthly: 295000, monthlyPassengers: 295000, distanceKm: 1760, topCarrier: 'Air India', volatility: 'Moderate' },
+  { route: 'BLR-HYD', routeCode: 'BLR-HYD', origin: 'BLR', destination: 'HYD', fare: 4620, dgcaWeight: 7.5, passengersMonthly: 260000, monthlyPassengers: 260000, distanceKm: 500, topCarrier: 'IndiGo', volatility: 'Low' },
+  { route: 'BOM-GOI', routeCode: 'BOM-GOI', origin: 'BOM', destination: 'GOI', fare: 4450, dgcaWeight: 6.9, passengersMonthly: 240000, monthlyPassengers: 240000, distanceKm: 435, topCarrier: 'IndiGo', volatility: 'High' },
+  { route: 'DEL-HYD', routeCode: 'DEL-HYD', origin: 'DEL', destination: 'HYD', fare: 5380, dgcaWeight: 6.8, passengersMonthly: 235000, monthlyPassengers: 235000, distanceKm: 1253, topCarrier: 'Air India', volatility: 'Moderate' },
+  { route: 'DEL-PNQ', routeCode: 'DEL-PNQ', origin: 'DEL', destination: 'PNQ', fare: 5120, dgcaWeight: 5.8, passengersMonthly: 210000, monthlyPassengers: 210000, distanceKm: 1173, topCarrier: 'IndiGo', volatility: 'Moderate' },
+  { route: 'DEL-AMD', routeCode: 'DEL-AMD', origin: 'DEL', destination: 'AMD', fare: 4650, dgcaWeight: 5.2, passengersMonthly: 195000, monthlyPassengers: 195000, distanceKm: 775, topCarrier: 'IndiGo', volatility: 'Low' },
+  { route: 'BOM-MAA', routeCode: 'BOM-MAA', origin: 'BOM', destination: 'MAA', fare: 5420, dgcaWeight: 4.8, passengersMonthly: 180000, monthlyPassengers: 180000, distanceKm: 1033, topCarrier: 'Air India', volatility: 'Moderate' },
+  { route: 'DEL-COK', routeCode: 'DEL-COK', origin: 'DEL', destination: 'COK', fare: 6950, dgcaWeight: 4.5, passengersMonthly: 165000, monthlyPassengers: 165000, distanceKm: 2046, topCarrier: 'Air India', volatility: 'High' },
+  { route: 'DEL-GAU', routeCode: 'DEL-GAU', origin: 'DEL', destination: 'GAU', fare: 6300, dgcaWeight: 4.1, passengersMonthly: 155000, monthlyPassengers: 155000, distanceKm: 1460, topCarrier: 'IndiGo', volatility: 'Moderate' },
+  { route: 'BOM-HYD', routeCode: 'BOM-HYD', origin: 'BOM', destination: 'HYD', fare: 4350, dgcaWeight: 3.8, passengersMonthly: 145000, monthlyPassengers: 145000, distanceKm: 620, topCarrier: 'Akasa Air', volatility: 'Low' },
+  { route: 'CCU-BLR', routeCode: 'CCU-BLR', origin: 'CCU', destination: 'BLR', fare: 5880, dgcaWeight: 3.5, passengersMonthly: 135000, monthlyPassengers: 135000, distanceKm: 1560, topCarrier: 'IndiGo', volatility: 'Moderate' },
 ];
 
 // Cross-Airline Pricing Observations for Market Competition Surveillance
@@ -53,6 +53,31 @@ const getRoutes = async (req, res) => {
         queryOptions.take = limit;
       }
       routes = await prisma.route.findMany(queryOptions);
+      if (routes && routes.length > 0) {
+        routes = routes.map((r) => {
+          const fallback = defaultRoutes.find((d) => d.routeCode === r.routeCode) || {};
+          const rawWeight = Number(r.dgcaWeight || 0.05);
+          const weightPct = rawWeight < 1 && rawWeight > 0 ? parseFloat((rawWeight * 100).toFixed(1)) : rawWeight;
+          return {
+            id: r.id,
+            route: r.routeCode,
+            routeCode: r.routeCode,
+            origin: r.originCode,
+            originCode: r.originCode,
+            destination: r.destinationCode,
+            destinationCode: r.destinationCode,
+            fare: fallback.fare || 6200,
+            passengersMonthly: fallback.passengersMonthly || fallback.monthlyPassengers || 250000,
+            monthlyPassengers: fallback.passengersMonthly || fallback.monthlyPassengers || 250000,
+            dgcaWeight: weightPct,
+            topCarrier: fallback.topCarrier || 'IndiGo',
+            volatility: fallback.volatility || 'Moderate',
+            distanceKm: r.distanceKm || 1100,
+            isTrunkRoute: r.isTrunkRoute ?? true,
+            isActive: r.isActive ?? true,
+          };
+        });
+      }
     }
 
     if (!routes || routes.length === 0) {
