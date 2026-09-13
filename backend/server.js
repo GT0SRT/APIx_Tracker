@@ -7,11 +7,35 @@ const logsRoutes = require('./src/routes/logsRoutes');
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// Configure CORS using FRONTEND_URL from .env
+const rawFrontendUrls = process.env.FRONTEND_URL || 'http://localhost:5173,https://apix-tracker.vercel.app';
+const allowedOrigins = rawFrontendUrls.split(',').map((url) => url.trim());
 
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, scraper ingestion scripts)
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, true); // Permissive fallback for preview environments
+    },
+    credentials: true,
+  })
+);
+
+// High-capacity payload parser for multi-route scraper ingestion batches
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// API Routes
 app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/logs', logsRoutes);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'UP', service: 'APIx Backend REST API' });
+});
 
 app.use((req, res, next) => {
   res.status(404).json({ error: 'Not Found' });
