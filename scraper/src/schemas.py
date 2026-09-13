@@ -18,7 +18,7 @@ class RawFlightQuote(BaseModel):
     departure_date: str = Field(..., description="ISO Departure Date (YYYY-MM-DD)")
     departure_time: Optional[str] = Field(None, description="Time of flight departure (e.g. 11:00 AM)")
     arrival_time: Optional[str] = Field(None, description="Time of flight arrival (e.g. 1:25 PM)")
-    total_fare: float = Field(..., gt=500.0, lt=250000.0, description="Raw total consumer fare in INR")
+    total_fare: float = Field(..., gt=1500.0, lt=250000.0, description="Raw total consumer fare in INR")
     source_portal: str = Field(default="GOOGLE_FLIGHTS", description="Scraped portal identifier")
 
     @field_validator("origin", "destination")

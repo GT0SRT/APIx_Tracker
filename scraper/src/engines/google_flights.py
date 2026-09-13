@@ -99,7 +99,7 @@ class GoogleFlightsEngine(BaseEngine):
         try:
             search_url = (
                 f"https://www.google.com/travel/flights?"
-                f"q=Flights%20to%20{destination}%20from%20{origin}%20on%20{departure_date}%20oneway&hl=en"
+                f"q=Flights%20to%20{destination}%20from%20{origin}%20on%20{departure_date}%20oneway&hl=en&curr=INR"
             )
 
             # Block unnecessary image/font downloads to maximize scraping speed
@@ -143,14 +143,14 @@ class GoogleFlightsEngine(BaseEngine):
                 if not text:
                     continue
 
-                # Parse price (e.g. ₹6,425 or Rs. 6,425)
-                price_match = re.search(r"[₹Rs\.]\s*([0-9,]+)", text)
+                # Parse price strictly in INR (e.g. ₹6,425 or INR 6,425, minimum 3 digits)
+                price_match = re.search(r"(?:₹|INR|Rs\.?)\s*([0-9,]{3,})", text)
                 if not price_match:
                     continue
                 price_str = price_match.group(1).replace(",", "")
                 try:
                     fare_val = float(price_str)
-                    if fare_val < 500 or fare_val > 150000:
+                    if fare_val < 1500 or fare_val > 150000:
                         continue
                 except ValueError:
                     continue
