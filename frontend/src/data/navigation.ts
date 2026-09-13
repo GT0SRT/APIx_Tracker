@@ -2,10 +2,9 @@ import {
   LayoutDashboard,
   TrendingUp,
   Map,
-  Table2,
+  Database,
   Sliders,
-  BrainCircuit,
-  Bot,
+  Sparkles,
 } from 'lucide-react'
 import type { TabType } from '../types/apix'
 
@@ -38,30 +37,23 @@ export const navItems: NavItemConfig[] = [
     desc: 'Advance elasticity (T+1 to T+45) and CCI/DGCA regulator price parity',
   },
   {
+    id: 'ai-intelligence',
+    label: 'AI Intelligence Hub',
+    icon: Sparkles,
+    desc: 'Horizon Trend ML (92%+ Acc), 24/7 Anomaly Agent & Policy Compliance RAG',
+    badge: '3 AI Models',
+  },
+  {
     id: 'audit-logs',
     label: 'Ingestion & Audit',
-    icon: Table2,
-    desc: 'Playwright telemetry, Hampel/IQR outlier rejection, and SHA-256 hashes',
+    icon: Database,
+    desc: 'Playwright telemetry, Hampel/IQR outlier rejection & MoSPI DPI Gateway',
     badge: 'SHA-256',
   },
   {
     id: 'methodology',
-    label: 'Methodology & Weights',
+    label: 'Methodology & Impact',
     icon: Sliders,
-    desc: 'IMF Jevons geometric formula, Modified Laspeyres, and weight sensitivity',
-  },
-  {
-    id: 'ml-forecasting',
-    label: 'ML Forecasting',
-    icon: BrainCircuit,
-    desc: 'Time-series model predicting future fare movements & surges (92%+ accuracy)',
-    badge: '92%+ Acc',
-  },
-  {
-    id: 'agentic-ai',
-    label: 'Agentic AI Monitor',
-    icon: Bot,
-    desc: '24/7 Autonomous monitoring agents for spike detection & root-cause analysis',
-    badge: '24/7 Live',
+    desc: 'Two-tier IMF Jevons & Laspeyres formulas and multi-stakeholder dividends',
   },
 ]

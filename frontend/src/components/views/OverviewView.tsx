@@ -37,11 +37,11 @@ import {
 import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
 
 interface OverviewViewProps {
-  openAiModal: (type: 'forecasting' | 'agentic' | 'rag' | 'report') => void
+  onNavigateToAi: (subTab: 'ml' | 'agent' | 'rag') => void
   onNavigateToTab: (tab: any) => void
 }
 
-export function OverviewView({ openAiModal, onNavigateToTab }: OverviewViewProps) {
+export function OverviewView({ onNavigateToAi, onNavigateToTab }: OverviewViewProps) {
   const [origin, setOrigin] = useState('DEL')
   const [destination, setDestination] = useState('BOM')
   const [airline, setAirline] = useState('All airlines')
@@ -240,14 +240,14 @@ export function OverviewView({ openAiModal, onNavigateToTab }: OverviewViewProps
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => openAiModal('forecasting')}
+            onClick={() => onNavigateToAi('ml')}
             className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 text-xs font-semibold text-white transition cursor-pointer"
           >
             <BrainCircuit className="h-3.5 w-3.5 text-amber-300" />
             <span>ML Horizon Curves</span>
           </button>
           <button
-            onClick={() => openAiModal('agentic')}
+            onClick={() => onNavigateToAi('agent')}
             className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 px-3 py-1.5 text-xs font-bold text-white transition cursor-pointer shadow-xs"
           >
             <Bot className="h-3.5 w-3.5 text-emerald-300" />
@@ -359,7 +359,7 @@ export function OverviewView({ openAiModal, onNavigateToTab }: OverviewViewProps
                 <span>IQR Suppressed</span>
               </div>
               <button
-                onClick={() => openAiModal('agentic')}
+                onClick={() => onNavigateToAi('agent')}
                 className="text-amber-700 hover:underline font-semibold flex items-center gap-0.5 text-[11px] cursor-pointer"
               >
                 Alerts <ExternalLink className="h-3 w-3" />

@@ -17,7 +17,8 @@ interface HeaderProps {
   setSidebarOpen: (open: boolean) => void
   range: string
   setRange: (range: string) => void
-  openAiModal: (type: 'forecasting' | 'agentic' | 'rag' | 'report') => void
+  onOpenReportModal: () => void
+  onNavigateToAi: (subTab: 'ml' | 'agent' | 'rag') => void
   anomalyCount: number
 }
 
@@ -28,7 +29,8 @@ export function Header({
   setSidebarOpen,
   range,
   setRange,
-  openAiModal,
+  onOpenReportModal,
+  onNavigateToAi,
   anomalyCount,
 }: HeaderProps) {
   const currentTabMeta = navItems.find((item) => item.id === activeTab) || navItems[0]
@@ -74,9 +76,9 @@ export function Header({
           Pipeline: Active (6h Ingestion)
         </div>
 
-        {/* Policy & Compliance RAG button */}
+        {/* Policy & Compliance RAG quick jump */}
         <button
-          onClick={() => openAiModal('rag')}
+          onClick={() => onNavigateToAi('rag')}
           title="Open MoSPI / DGCA Policy Q&A Assistant"
           className="hidden md:flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition cursor-pointer"
         >
@@ -86,7 +88,7 @@ export function Header({
 
         {/* One-Click Executive Report Button */}
         <button
-          onClick={() => openAiModal('report')}
+          onClick={onOpenReportModal}
           className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-blue-700 active:scale-[0.98] transition cursor-pointer"
         >
           <FileText className="h-3.5 w-3.5" />
@@ -96,7 +98,7 @@ export function Header({
 
         {/* Notifications & Agentic Alert Counter */}
         <button
-          onClick={() => openAiModal('agentic')}
+          onClick={() => onNavigateToAi('agent')}
           className="relative rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 transition cursor-pointer"
           aria-label="Agentic Anomaly Alerts"
           title="24/7 Agentic Anomaly Alerts"

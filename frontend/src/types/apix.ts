@@ -2,6 +2,7 @@ export type TabType =
   | 'overview'
   | 'index-series'
   | 'routes-horizons'
+  | 'ai-intelligence'
   | 'audit-logs'
   | 'methodology'
   | 'ml-forecasting'
