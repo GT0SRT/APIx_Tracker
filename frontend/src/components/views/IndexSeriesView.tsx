@@ -1,0 +1,298 @@
+import { useState } from 'react'
+import {
+  TrendingUp,
+  Activity,
+  Calendar,
+  Sparkles,
+  ArrowUpRight,
+  ShieldCheck,
+  CheckCircle2,
+} from 'lucide-react'
+import {
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  Area,
+  ComposedChart,
+} from 'recharts'
+import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
+
+const historicalSeries90Days = [
+  { date: 'Jun 01', headline: 129.2, coreTrimmed: 129.0, mospiLag: 126.4, baseline: 128.0 },
+  { date: 'Jun 10', headline: 130.5, coreTrimmed: 130.1, mospiLag: 126.4, baseline: 128.5 },
+  { date: 'Jun 20', headline: 132.8, coreTrimmed: 131.2, mospiLag: 126.4, baseline: 129.0 },
+  { date: 'Jun 30', headline: 131.4, coreTrimmed: 131.0, mospiLag: 126.4, baseline: 129.5 },
+  { date: 'Jul 10', headline: 133.6, coreTrimmed: 132.4, mospiLag: 127.8, baseline: 130.0 },
+  { date: 'Jul 20', headline: 134.9, coreTrimmed: 133.5, mospiLag: 127.8, baseline: 130.5 },
+  { date: 'Jul 30', headline: 133.8, coreTrimmed: 133.2, mospiLag: 127.8, baseline: 131.0 },
+  { date: 'Aug 05', headline: 136.5, coreTrimmed: 135.1, mospiLag: 128.5, baseline: 132.3 },
+  { date: 'Aug 10', headline: 139.5, coreTrimmed: 136.8, mospiLag: 128.5, baseline: 133.1 },
+  { date: 'Aug 15', headline: 144.6, coreTrimmed: 138.3, mospiLag: 128.5, baseline: 133.8 }, // Surge spike
+  { date: 'Aug 20', headline: 142.5, coreTrimmed: 140.1, mospiLag: 128.5, baseline: 134.8 },
+]
+
+export function IndexSeriesView() {
+  const [selectedTimeframe, setSelectedTimeframe] = useState<'30D' | '90D' | '1Y'>('90D')
+  const [showHeadline, setShowHeadline] = useState(true)
+  const [showCoreTrimmed, setShowCoreTrimmed] = useState(true)
+  const [showMospiLag, setShowMospiLag] = useState(true)
+  const [baseYear, setBaseYear] = useState<'2024' | '2012'>('2024')
+
+  const baseMultiplier = baseYear === '2024' ? 1.0 : 1.48 // Base 2012 conversion factor
+
+  const seriesData = historicalSeries90Days.map((item) => ({
+    ...item,
+    headline: parseFloat((item.headline * baseMultiplier).toFixed(1)),
+    coreTrimmed: parseFloat((item.coreTrimmed * baseMultiplier).toFixed(1)),
+    mospiLag: parseFloat((item.mospiLag * baseMultiplier).toFixed(1)),
+    baseline: parseFloat((item.baseline * baseMultiplier).toFixed(1)),
+  }))
+
+  return (
+    <div className="space-y-6 p-4 md:p-8 flex-1">
+      {/* Title & Subtitle */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
+              APIx Time-Series &amp; Inflation Analysis
+            </h2>
+            <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
+              Base {baseYear}=100
+            </span>
+          </div>
+          <p className="text-xs text-slate-500 mt-1">
+            Comparing high-frequency real-time web scraped index vs. MoSPI traditional 45-day lag methodology
+          </p>
+        </div>
+
+        {/* Base year & Timeframe Toggles */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold shadow-xs">
+            <button
+              onClick={() => setBaseYear('2024')}
+              className={`rounded-md px-3 py-1 transition cursor-pointer ${
+                baseYear === '2024' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Base 2024=100
+            </button>
+            <button
+              onClick={() => setBaseYear('2012')}
+              className={`rounded-md px-3 py-1 transition cursor-pointer ${
+                baseYear === '2012' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Base 2012=100
+            </button>
+          </div>
+
+          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold shadow-xs">
+            {(['30D', '90D', '1Y'] as const).map((tf) => (
+              <button
+                key={tf}
+                onClick={() => setSelectedTimeframe(tf)}
+                className={`rounded-md px-3 py-1 transition cursor-pointer ${
+                  selectedTimeframe === tf ? 'bg-[#0B2545] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <Card className="p-5 border-l-4 border-l-blue-600">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Headline APIx</p>
+                <MetricInfo text="Reflects the unfiltered Jevons index across all high-frequency quotes including dynamic holiday spikes." />
+              </div>
+              <p className="mt-2 text-2xl font-black text-slate-900">
+                {(142.5 * baseMultiplier).toFixed(1)}
+              </p>
+            </div>
+            <span className="rounded-lg bg-blue-50 p-2 text-blue-600">
+              <TrendingUp className="h-5 w-5" />
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-1 text-xs text-emerald-600 font-bold">
+            <ArrowUpRight className="h-3.5 w-3.5" />
+            <span>+2.4% MoM rate</span>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-l-4 border-l-indigo-600">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Core Trimmed APIx</p>
+                <MetricInfo text="24-hour trimmed geometric mean per horizon. Strips flash-sale and holiday distortion to track underlying core inflation." />
+              </div>
+              <p className="mt-2 text-2xl font-black text-slate-900">
+                {(140.1 * baseMultiplier).toFixed(1)}
+              </p>
+            </div>
+            <span className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
+              <ShieldCheck className="h-5 w-5" />
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-1 text-xs text-indigo-700 font-bold">
+            <span>Smoothed underlying trend</span>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-l-4 border-l-slate-400">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">MoSPI Manual CPI</p>
+                <MetricInfo text="Official traditional field-survey CPI transport index. Suffers from a 45-day reporting lag." />
+              </div>
+              <p className="mt-2 text-2xl font-black text-slate-600">
+                {(128.5 * baseMultiplier).toFixed(1)}
+              </p>
+            </div>
+            <span className="rounded-lg bg-slate-100 p-2 text-slate-500">
+              <Calendar className="h-5 w-5" />
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-1 text-xs text-amber-700 font-medium">
+            <span>Lagging by 45 Days</span>
+          </div>
+        </Card>
+
+        <Card className="p-5 border-l-4 border-l-emerald-600">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Nowcasting Lead Advantage</p>
+                <MetricInfo text="Days ahead of official government data release that APIx delivers actionable inflation signals." />
+              </div>
+              <p className="mt-2 text-2xl font-black text-emerald-700">+45 Days</p>
+            </div>
+            <span className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
+              <Activity className="h-5 w-5" />
+            </span>
+          </div>
+          <div className="mt-3 flex items-center gap-1 text-xs text-emerald-700 font-bold">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            <span>Zero-lag real-time signal</span>
+          </div>
+        </Card>
+      </div>
+
+      {/* Main Comparative Chart */}
+      <Card className="p-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">
+              Headline APIx vs. Core Trimmed APIx vs. MoSPI Official (45-Day Lag)
+            </h3>
+            <p className="mt-1 text-xs text-slate-500">
+              Highlighting how traditional manual collection completely misses dynamic pricing surge volatility
+            </p>
+          </div>
+
+          {/* Series Visibility Toggles */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowHeadline(!showHeadline)}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold border transition cursor-pointer ${
+                showHeadline ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-200'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-blue-600" />
+              Headline APIx
+            </button>
+            <button
+              onClick={() => setShowCoreTrimmed(!showCoreTrimmed)}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold border transition cursor-pointer ${
+                showCoreTrimmed
+                  ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                  : 'bg-slate-50 text-slate-400 border-slate-200'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-indigo-600" />
+              Core Trimmed
+            </button>
+            <button
+              onClick={() => setShowMospiLag(!showMospiLag)}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold border transition cursor-pointer ${
+                showMospiLag
+                  ? 'bg-slate-100 text-slate-800 border-slate-300'
+                  : 'bg-slate-50 text-slate-400 border-slate-200'
+              }`}
+            >
+              <span className="h-2 w-2 rounded-full bg-slate-400" />
+              MoSPI Official (Lagged)
+            </button>
+          </div>
+        </div>
+
+        <div className="h-80 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={seriesData} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
+              <CartesianGrid stroke="#F1F5F9" vertical={false} />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
+              <YAxis domain={['auto', 'auto']} tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
+              <Tooltip content={<ChartTooltip />} />
+              <Legend verticalAlign="top" height={36} iconSize={8} wrapperStyle={{ fontSize: '11px' }} />
+              {showHeadline && (
+                <Line
+                  type="monotone"
+                  dataKey="headline"
+                  name="Headline APIx (High-Frequency)"
+                  stroke="#2563EB"
+                  strokeWidth={2.8}
+                  dot={{ r: 4, fill: '#2563EB' }}
+                  activeDot={{ r: 6 }}
+                />
+              )}
+              {showCoreTrimmed && (
+                <Line
+                  type="monotone"
+                  dataKey="coreTrimmed"
+                  name="Core Trimmed APIx (Trimmed Geometric Mean)"
+                  stroke="#6366F1"
+                  strokeWidth={2.2}
+                  strokeDasharray="4 4"
+                  dot={{ r: 3, fill: '#6366F1' }}
+                />
+              )}
+              {showMospiLag && (
+                <Area
+                  type="stepAfter"
+                  dataKey="mospiLag"
+                  name="MoSPI Official CPI (45-Day Manual Lag)"
+                  stroke="#94A3B8"
+                  fill="#F1F5F9"
+                  fillOpacity={0.6}
+                  strokeWidth={2}
+                />
+              )}
+            </ComposedChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-xs text-slate-700 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-bold text-slate-900">Statistical Analysis &amp; Production Countermeasure (Slide 4)</p>
+            <p className="leading-relaxed">
+              Notice the spike on August 15 (Independence Day holiday surge). The unfiltered <strong>Headline APIx</strong> captured the true +8.1% surge experienced by consumers, while the <strong>Core Trimmed APIx</strong> mathematically suppressed the ephemeral spike to track underlying cost-push inflation. Both indexes deliver actionable forward intelligence weeks ahead of traditional MoSPI manual reporting.
+            </p>
+          </div>
+        </div>
+      </Card>
+    </div>
+  )
+}
