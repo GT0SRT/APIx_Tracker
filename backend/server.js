@@ -35,6 +35,7 @@ app.use('/api/v1/analytics', analyticsRoutes);
 app.use('/api/v1/routes', routesRoutes);
 app.use('/api/v1/methodology', methodologyRoutes);
 app.use('/api/v1/logs', logsRoutes);
+app.use('/api/v1/audit', logsRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

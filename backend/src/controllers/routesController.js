@@ -10,6 +10,13 @@ const defaultRoutes = [
   { routeCode: 'BLR-HYD', origin: 'BLR', destination: 'HYD', dgcaWeight: 0.075, monthlyPassengers: 260000, distanceKm: 500, topCarrier: 'IndiGo', volatility: 'Low' },
   { routeCode: 'BOM-GOI', origin: 'BOM', destination: 'GOI', dgcaWeight: 0.069, monthlyPassengers: 240000, distanceKm: 435, topCarrier: 'IndiGo', volatility: 'High' },
   { routeCode: 'DEL-HYD', origin: 'DEL', destination: 'HYD', dgcaWeight: 0.068, monthlyPassengers: 235000, distanceKm: 1253, topCarrier: 'Air India', volatility: 'Moderate' },
+  { routeCode: 'DEL-PNQ', origin: 'DEL', destination: 'PNQ', dgcaWeight: 0.058, monthlyPassengers: 210000, distanceKm: 1173, topCarrier: 'IndiGo', volatility: 'Moderate' },
+  { routeCode: 'DEL-AMD', origin: 'DEL', destination: 'AMD', dgcaWeight: 0.052, monthlyPassengers: 195000, distanceKm: 775, topCarrier: 'IndiGo', volatility: 'Low' },
+  { routeCode: 'BOM-MAA', origin: 'BOM', destination: 'MAA', dgcaWeight: 0.048, monthlyPassengers: 180000, distanceKm: 1033, topCarrier: 'Air India', volatility: 'Moderate' },
+  { routeCode: 'DEL-COK', origin: 'DEL', destination: 'COK', dgcaWeight: 0.045, monthlyPassengers: 165000, distanceKm: 2046, topCarrier: 'Air India', volatility: 'High' },
+  { routeCode: 'DEL-GAU', origin: 'DEL', destination: 'GAU', dgcaWeight: 0.041, monthlyPassengers: 155000, distanceKm: 1460, topCarrier: 'IndiGo', volatility: 'Moderate' },
+  { routeCode: 'BOM-HYD', origin: 'BOM', destination: 'HYD', dgcaWeight: 0.038, monthlyPassengers: 145000, distanceKm: 620, topCarrier: 'Akasa Air', volatility: 'Low' },
+  { routeCode: 'CCU-BLR', origin: 'CCU', destination: 'BLR', dgcaWeight: 0.035, monthlyPassengers: 135000, distanceKm: 1560, topCarrier: 'IndiGo', volatility: 'Moderate' },
 ];
 
 // Cross-Airline Pricing Observations for Market Competition Surveillance
@@ -25,23 +32,63 @@ const parityObservations = [
 
 /**
  * GET /api/v1/routes
- * List all active DGCA city-pair routes and weights
+ * List all active DGCA city-pair routes and weights (with optional pagination)
  */
 const getRoutes = async (req, res) => {
   try {
+    const page = req.query.page ? Math.max(1, parseInt(req.query.page, 10)) : null;
+    const limit = req.query.limit ? Math.min(100, Math.max(1, parseInt(req.query.limit, 10))) : null;
+
+    let routes = [];
+    let total = 0;
+
     if (prisma && prisma.route) {
-      const routes = await prisma.route.findMany({
+      total = await prisma.route.count({ where: { isActive: true } });
+      const queryOptions = {
         where: { isActive: true },
         orderBy: { dgcaWeight: 'desc' },
-      });
-      if (routes && routes.length > 0) {
-        return res.status(200).json({ success: true, count: routes.length, data: routes });
+      };
+      if (page && limit) {
+        queryOptions.skip = (page - 1) * limit;
+        queryOptions.take = limit;
+      }
+      routes = await prisma.route.findMany(queryOptions);
+    }
+
+    if (!routes || routes.length === 0) {
+      total = defaultRoutes.length;
+      if (page && limit) {
+        const skip = (page - 1) * limit;
+        routes = defaultRoutes.slice(skip, skip + limit);
+      } else {
+        routes = defaultRoutes;
       }
     }
-    return res.status(200).json({ success: true, count: defaultRoutes.length, data: defaultRoutes });
+
+    const response = {
+      success: true,
+      total,
+      count: routes.length,
+      data: routes,
+      routes,
+    };
+
+    if (page && limit) {
+      response.page = page;
+      response.limit = limit;
+      response.totalPages = Math.max(1, Math.ceil(total / limit));
+    }
+
+    return res.status(200).json(response);
   } catch (error) {
     console.warn('Fallback to default routes:', error.message);
-    return res.status(200).json({ success: true, count: defaultRoutes.length, data: defaultRoutes });
+    return res.status(200).json({
+      success: true,
+      total: defaultRoutes.length,
+      count: defaultRoutes.length,
+      data: defaultRoutes,
+      routes: defaultRoutes,
+    });
   }
 };
 
