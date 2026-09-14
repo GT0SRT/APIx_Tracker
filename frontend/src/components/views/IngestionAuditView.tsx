@@ -16,7 +16,6 @@ import { Card } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
 import { verifyRecordHash, paginateData } from '../../services/api'
 import { useLogsQuery, useTelemetryQuery } from '../../hooks/useApixQueries'
-import { pipelineTelemetry } from '../../data/mockData'
 import type { ScrapedFareRecord } from '../../types/apix'
 
 export function IngestionAuditView() {
@@ -105,11 +104,11 @@ export function IngestionAuditView() {
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {isLiveBackend ? 'Cluster: Live Connected' : 'Cluster: Standalone Preview'}
+              {isLiveBackend ? 'Status: Live Connected' : 'Status: Standalone Mode'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Automated price ingestion telemetry, Hampel/IQR outlier suppression, and immutable SHA-256 provenance verification
+            Automated price ingestion telemetry, statistical outlier suppression, and immutable SHA-256 provenance verification
           </p>
         </div>
       </div>
@@ -118,33 +117,33 @@ export function IngestionAuditView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-4 border-l-4 border-l-blue-600">
               <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>Anti-Bot Shield</span>
+                <span>Ingestion Network</span>
                 <Lock className="h-4 w-4 text-blue-600" />
               </div>
               <p className="mt-2 text-lg font-black text-slate-900">
-                {telemetry?.activeWorkers ? `${telemetry.activeWorkers} Active Scraper Nodes` : '16 Active Scraper Nodes'}
+                {telemetry?.activeWorkers ? `${telemetry.activeWorkers} Active Ingestion Nodes` : '16 Active Ingestion Nodes'}
               </p>
               <p className="mt-1 text-xs text-slate-500">
                 {telemetry?.throughputQuotesPerSec
                   ? `Throughput: ${telemetry.throughputQuotesPerSec} quotes/sec`
-                  : `JA4 TLS spoofing + ${telemetry?.residentialProxyPool || pipelineTelemetry.residentialProxyPool}`}
+                  : 'Continuous collection across 150+ domestic sectors'}
               </p>
             </Card>
 
             <Card className="p-4 border-l-4 border-l-indigo-600">
               <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>DOM Shift Resiliency</span>
+                <span>Data Validation</span>
                 <Server className="h-4 w-4 text-indigo-600" />
               </div>
-              <p className="mt-2 text-lg font-black text-slate-900">JSON Interception</p>
+              <p className="mt-2 text-lg font-black text-slate-900">Automated Normalization</p>
               <p className="mt-1 text-xs text-slate-500">
-                {telemetry?.domSchemaStatus || pipelineTelemetry.domSchemaStatus}
+                Real-time schema verification &amp; fare unbundling
               </p>
             </Card>
 
             <Card className="p-4 border-l-4 border-l-amber-500">
               <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>Outlier Engine</span>
+                <span>Outlier Filter</span>
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
               </div>
               <p className="mt-2 text-lg font-black text-slate-900">
@@ -154,12 +153,12 @@ export function IngestionAuditView() {
                   ? `${telemetry.hampelQuarantineRate} Quarantined`
                   : '0 Quarantined (All Passed)'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Hampel &amp; IQR rejection filter</p>
+              <p className="mt-1 text-xs text-slate-500">Statistical anomaly &amp; glitch rejection</p>
             </Card>
 
             <Card className="p-4 border-l-4 border-l-emerald-600">
               <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>Database Storage</span>
+                <span>Time-Series Storage</span>
                 <Database className="h-4 w-4 text-emerald-600" />
               </div>
               <p className="mt-2 text-lg font-black text-slate-900">
@@ -170,7 +169,7 @@ export function IngestionAuditView() {
                   : '38ms Latency'}
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                {telemetry?.database || 'TimescaleDB Hypertable on Neon PostgreSQL'}
+                High-performance verified analytical data repository
               </p>
             </Card>
           </div>

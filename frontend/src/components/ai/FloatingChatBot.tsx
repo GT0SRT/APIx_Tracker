@@ -26,7 +26,7 @@ interface Message {
   actionLabel?: string
   actionRoute?: string
   toolsUsed?: ToolExecution[]
-  isLiveGroq?: boolean
+  isLive?: boolean
   confidence?: number
 }
 
@@ -34,7 +34,7 @@ const presetQueries = [
   'What is the current Macro APIx index?',
   'Scan for active price surge anomalies',
   'Analyze DEL-BOM lead-time elasticity',
-  'Audit latest scraper pipeline & SHA-256 seal',
+  'Audit latest ingestion logs & verification seals',
   'Explain Jevons vs Carli index bias',
   'How does APIx eliminate MoSPI’s 45-day lag?',
   'How are seat add-ons stripped?',
@@ -181,7 +181,7 @@ export function FloatingChatBot() {
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: 'Namaste! I am your **APIx Autonomous Copilot**. Connected to live MoSPI database & Groq inference. Ask me to query current price indices, scan for surge anomalies, diagnose route elasticity, or audit scraper cryptographic seals.',
+      text: 'Namaste! I am your **APIx Assistant**. Connected to real-time official aviation data. Ask me to query current price indices, check surge anomalies, explore route trends, or review data verification logs.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])
@@ -210,7 +210,7 @@ export function FloatingChatBot() {
     setIsTyping(true)
 
     try {
-      // Call backend Agentic AI endpoint
+      // Call backend AI endpoint
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -231,7 +231,7 @@ export function FloatingChatBot() {
             actionLabel: json.data.actionLabel,
             actionRoute: json.data.actionRoute,
             toolsUsed: json.data.toolsUsed,
-            isLiveGroq: json.data.isLiveGroq,
+            isLive: Boolean(json.data.isLive || json.data.isLiveGroq),
             confidence: json.data.confidence,
           }
           setMessages((prev) => [...prev, botMsg])
@@ -287,13 +287,13 @@ export function FloatingChatBot() {
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold tracking-tight">APIx Copilot</p>
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-400/20 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-300 border border-emerald-400/30">
+                  <p className="text-sm font-bold tracking-tight">APIx Assistant</p>
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300 border border-emerald-400/30">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Groq Llama 3.3
+                    Active
                   </span>
                 </div>
-                <p className="text-[10px] text-blue-200/80">MoSPI CPI Intelligence &amp; Autonomous Diagnostics</p>
+                <p className="text-[10px] text-blue-200/80">Aviation Price Intelligence &amp; Live Insights</p>
               </div>
             </div>
 
@@ -304,7 +304,7 @@ export function FloatingChatBot() {
                     {
                       id: 'welcome-reset',
                       sender: 'bot',
-                      text: 'Agent context cleared. Ready to assist with live MoSPI index calculations, route diagnostics, or anomaly reviews.',
+                      text: 'Conversation cleared. Ready to assist with price indices, route analytics, or anomaly reviews.',
                       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     },
                   ])
@@ -327,7 +327,7 @@ export function FloatingChatBot() {
           {/* Quick Preset Queries Pill Bar */}
           <div className="border-b border-slate-100 bg-slate-50/90 px-3 py-2 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 text-amber-500" /> Agent Tools:
+              <Sparkles className="h-2.5 w-2.5 text-amber-500" /> Quick Inquiries:
             </span>
             {presetQueries.map((preset, idx) => (
               <button
@@ -361,19 +361,28 @@ export function FloatingChatBot() {
                         : 'bg-white text-slate-800 border border-slate-200/80 shadow-xs self-start'
                     }`}
                   >
-                    {/* Agent Tool Calling Badges */}
+                    {/* Activity Badges */}
                     {m.toolsUsed && m.toolsUsed.length > 0 && (
                       <div className="mb-2 flex flex-wrap gap-1 border-b border-slate-100 pb-1.5">
-                        {m.toolsUsed.map((t, idx) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 shadow-2xs"
-                            title={t.summary}
-                          >
-                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
-                            <span>Tool: {t.tool.replace(/_/g, ' ')}</span>
-                          </span>
-                        ))}
+                        {m.toolsUsed.map((t, idx) => {
+                          const actionLabels: Record<string, string> = {
+                            get_live_macro_index: 'Live Index Verified',
+                            get_route_fare_stats: 'Route Data Retrieved',
+                            scan_anomalies_and_diagnose: 'Anomaly Scan Completed',
+                            audit_pipeline_provenance: 'Audit Provenance Verified',
+                          }
+                          const label = actionLabels[t.tool] || t.tool.replace(/_/g, ' ')
+                          return (
+                            <span
+                              key={idx}
+                              className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 shadow-2xs"
+                              title={t.summary}
+                            >
+                              <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
+                              <span>{label}</span>
+                            </span>
+                          )
+                        })}
                       </div>
                     )}
 
@@ -411,7 +420,7 @@ export function FloatingChatBot() {
                 </div>
                 <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-3 py-2 text-xs text-slate-500 w-fit shadow-xs">
                   <span className="text-[11px] font-medium text-blue-600 flex items-center gap-1">
-                    <Bot className="h-3 w-3 animate-spin text-blue-600" /> Thinking &amp; querying...
+                    <Bot className="h-3 w-3 animate-spin text-blue-600" /> Analyzing &amp; querying...
                   </span>
                   <div className="flex gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce"></span>
@@ -432,7 +441,7 @@ export function FloatingChatBot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask query or tell agent to check routes, spikes, logs..."
+                placeholder="Ask about airfares, route trends, index values, or anomalies..."
                 className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none"
               />
               <button

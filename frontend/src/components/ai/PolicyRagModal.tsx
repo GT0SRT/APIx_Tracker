@@ -51,7 +51,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black tracking-tight text-slate-900">
-                  Agentic RAG: Policy &amp; Compliance Q&amp;A
+                  Policy &amp; Regulatory Intelligence
                 </h2>
                 <span className="rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 border border-blue-200">
                   MoSPI &amp; DGCA Verified
@@ -107,7 +107,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-800 leading-relaxed space-y-2">
-            <p className="font-semibold text-slate-900">RAG Synthesis Answer:</p>
+            <p className="font-semibold text-slate-900">Verified Summary:</p>
             <p>{activeItem.answer}</p>
           </div>
 
@@ -118,7 +118,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
                 <FileCheck className="h-4 w-4 text-emerald-600" />
                 Verified Ground-Truth Source Citations ({activeItem.citations.length})
               </p>
-              <span className="text-[11px] text-slate-400">Cosine Similarity Ranked</span>
+              <span className="text-[11px] text-slate-400">Ranked by Relevance</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

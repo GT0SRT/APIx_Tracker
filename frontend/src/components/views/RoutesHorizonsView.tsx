@@ -46,7 +46,7 @@ export function RoutesHorizonsView() {
   const dynamicSurgeDesc =
     t1 && t45
       ? `Average price ₹${t1.fare.toLocaleString('en-IN')} vs ₹${t45.fare.toLocaleString('en-IN')} at T+45`
-      : 'Average price ₹8,650 vs ₹5,320 at T+45 (Slide 2: 200%–400% surge gap)'
+      : 'Average price ₹8,650 vs ₹5,320 at T+45 (200%–400% surge gap)'
 
   const topParitySpread = useMemo(() => {
     if (!parityData || parityData.length === 0) return '10.8%'
@@ -230,7 +230,7 @@ export function RoutesHorizonsView() {
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Detects cross-airline price variances up to 35% and potential route monopolies (Slide 5)
+              Detects cross-airline price variances up to 35% and potential route monopolies across scheduled carriers
             </p>
           </div>
 

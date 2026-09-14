@@ -76,13 +76,13 @@ export const agentWorkflowSteps = [
   {
     step: '04',
     name: 'Autonomous Root-Cause Diagnostic',
-    status: 'Agentic LLM',
+    status: 'AI Analysis',
     description: 'Correlates price anomalies with DGCA airport slot notices, airline fleet groundings, and calendar holidays.',
   },
   {
     step: '05',
     name: 'Immutable SHA-256 Seal',
     status: 'Verified',
-    description: 'Calculates cryptographic hash for every validated record before writing to TimescaleDB audit log.',
+    description: 'Calculates cryptographic hash for every validated record before writing to secure audit log.',
   },
 ]

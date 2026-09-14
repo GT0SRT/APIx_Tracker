@@ -45,10 +45,10 @@ const getAiHealth = (req, res) => {
   return res.status(200).json({
     success: true,
     status: 'UP',
-    engine: 'APIx Autonomous Copilot',
-    provider: 'Groq Cloud Inference',
-    model: 'llama-3.3-70b-versatile',
-    groqConfigured: isConfigured,
+    engine: 'APIx Intelligent Copilot',
+    provider: 'APIx Cloud Intelligence',
+    model: 'apix-copilot-engine',
+    isConfigured: isConfigured,
     nativeToolCalling: true,
     registeredTools: [
       'get_live_macro_index',

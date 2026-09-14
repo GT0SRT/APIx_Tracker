@@ -40,10 +40,10 @@ export const navItems: NavItemConfig[] = [
   },
   {
     id: 'ai-intelligence',
-    label: 'ML Forecasting',
+    label: 'Price Forecasting',
     icon: Sparkles,
-    desc: '45-Day lead-time predictive modeling across constant purchase horizons (T+1 to T+45)',
-    badge: 'Predictive ML',
+    desc: '45-Day lead-time predictive forecasting across constant purchase horizons (T+1 to T+45)',
+    badge: 'Predictive',
   },
   {
     id: 'audit-logs',

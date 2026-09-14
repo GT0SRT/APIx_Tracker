@@ -109,7 +109,7 @@ export function IndexSeriesView() {
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Comparing high-frequency real-time web scraped index vs. MoSPI traditional 45-day lag methodology
+            Comparing high-frequency real-time index series vs. traditional 45-day survey reporting
           </p>
         </div>
 

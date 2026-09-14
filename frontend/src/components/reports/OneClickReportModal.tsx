@@ -231,7 +231,7 @@ During the 30-day reporting window, domestic air travel recorded moderate upward
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
               Cryptographic SHA-256 Audit Passed · 100% Tamper-Evident Records
             </span>
-            <span>Generated via AndroMatrix Automated Ingestion Engine</span>
+            <span>Generated via APIx Automated Ingestion Engine</span>
           </div>
         </div>
       </div>

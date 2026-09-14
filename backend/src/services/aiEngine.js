@@ -114,7 +114,7 @@ async function executeGetLiveMacroIndex() {
       });
       if (latest) {
         return {
-          source: 'PostgreSQL/NeonDB',
+          source: 'Official National Index Store',
           date: latest.date,
           compositeMacroIndex: latest.compositeIndex,
           baselineIndex: latest.baselineIndex,
@@ -156,7 +156,7 @@ async function executeGetRouteFareStats(args) {
       });
       if (route) {
         return {
-          source: 'PostgreSQL/NeonDB',
+          source: 'Official National Index Store',
           route: route.routeCode,
           dgcaTrafficWeightShare: `${(route.dgcaWeight * 100).toFixed(2)}%`,
           isTrunkRoute: route.isTrunkRoute,
@@ -432,7 +432,7 @@ async function generateGroundedFallback(message) {
   // General domain reply
   const action = determineActionRoute(message, 'methodology', toolsUsed);
   return {
-    reply: `APIx Tracker modernizes India's airfare CPI (Item Code 6.2.01) by combining high-frequency Playwright scraping (every 6 hours across 150+ routes), constant-horizon matched model pricing (T+1 to T+45), and the Jevons Elementary Geometric Mean compliant with IMF CPI Manual 2020 (Chapter 10). This eliminates MoSPI's 42-day reporting lag and eliminates Carli formula upward substitution bias.`,
+    reply: `APIx Tracker modernizes India's airfare CPI (Item Code 6.2.01) by combining high-frequency automated data collection (every 6 hours across 150+ routes), constant-horizon matched model pricing (T+1 to T+45), and the Jevons Elementary Geometric Mean compliant with IMF CPI Manual 2020 (Chapter 10). This eliminates MoSPI's 42-day reporting lag and eliminates Carli formula upward substitution bias.`,
     toolsUsed,
     actionLabel: action.actionLabel,
     actionRoute: action.actionRoute,

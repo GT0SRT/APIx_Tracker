@@ -44,14 +44,14 @@ export function AiHubView() {
               <BrainCircuit className="h-5 w-5" />
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-              ML Price Forecasting &amp; Predictive Horizons
+              Price Forecasting &amp; Predictive Horizons
             </h2>
             <span className="rounded-full bg-blue-50 text-blue-800 text-xs font-bold px-2.5 py-0.5 border border-blue-200">
               Predictive Horizons
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            45-day lead-time predictive modeling across constant purchase horizons (T+1 to T+45) and real-time inflation nowcasting
+            45-day lead-time predictive forecasting across constant purchase horizons (T+1 to T+45) and real-time inflation nowcasting
           </p>
         </div>
 
@@ -59,8 +59,8 @@ export function AiHubView() {
         <div className="flex items-center gap-2 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2">
           <CheckCircle2 className="h-4 w-4 text-emerald-600" />
           <div>
-            <p className="font-bold text-slate-900">Calibrated Multi-Horizon Model</p>
-            <p className="text-[10px] text-slate-500">Validation Benchmark (94.2% Out-of-Sample Accuracy)</p>
+            <p className="font-bold text-slate-900">Active Forecasting Horizon</p>
+            <p className="text-[10px] text-slate-500">High Forecast Reliability (94.2% Benchmark Accuracy)</p>
           </div>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function AiHubView() {
             Predictive Horizon Engine
           </span>
           <span className="text-slate-700 font-medium">
-            Multi-horizon predictive model calibrated against 1.2M historical domestic quotes across 150+ corridors.
+            Multi-horizon predictive forecasting calibrated against 1.2M historical domestic quotes across 150+ corridors.
           </span>
         </div>
         <span className="text-blue-800 font-semibold flex items-center gap-1">
@@ -83,9 +83,9 @@ export function AiHubView() {
       {/* Model Performance KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="p-4 border-l-4 border-l-blue-600">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Model Accuracy</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Forecast Accuracy</p>
           <p className="text-2xl font-black text-slate-900 mt-1">{modelEvaluationMetrics.overallAccuracy}</p>
-          <p className="text-[11px] text-blue-700 font-medium mt-1">Multi-Horizon Predictive Model</p>
+          <p className="text-[11px] text-blue-700 font-medium mt-1">Multi-Horizon Time-Series</p>
         </Card>
 
         <Card className="p-4 border-l-4 border-l-emerald-600">
@@ -95,15 +95,15 @@ export function AiHubView() {
         </Card>
 
         <Card className="p-4 border-l-4 border-l-purple-600">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mean Abs % Error (MAPE)</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Average Margin of Error</p>
           <p className="text-2xl font-black text-slate-900 mt-1">{modelEvaluationMetrics.meanAbsolutePercentageError}</p>
-          <p className="text-[11px] text-purple-700 font-medium mt-1">Supervised 30d backtest</p>
+          <p className="text-[11px] text-purple-700 font-medium mt-1">30-Day Historical Backtest</p>
         </Card>
 
         <Card className="p-4 border-l-4 border-l-amber-500">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Training Corpus</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Data Coverage</p>
           <p className="text-2xl font-black text-slate-900 mt-1">1.2M+ Quotes</p>
-          <p className="text-[11px] text-amber-700 font-medium mt-1">150+ corridors time-series</p>
+          <p className="text-[11px] text-amber-700 font-medium mt-1">150+ monitored flight corridors</p>
         </Card>
       </div>
 
@@ -234,9 +234,9 @@ export function AiHubView() {
               <div className="mb-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Layers className="h-4 w-4 text-blue-600" />
-                  <h3 className="font-bold text-slate-900 text-sm">Key Predictor Feature Weights</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Key Price Determinants</h3>
                 </div>
-                <span className="text-[11px] font-semibold text-slate-400">SHAP Attributions</span>
+                <span className="text-[11px] font-semibold text-slate-400">Factor Contribution</span>
               </div>
               <div className="space-y-3">
                 {featureImportance.map((feat) => (
@@ -257,7 +257,7 @@ export function AiHubView() {
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-blue-600" />
-                  <h3 className="font-bold text-slate-900 text-sm">Dynamic Micro-Trend Signal Briefs</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">Dynamic Price Trend Insights</h3>
                 </div>
                 <Sparkles className="h-4 w-4 text-amber-500" />
               </div>

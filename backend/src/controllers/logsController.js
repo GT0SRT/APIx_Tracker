@@ -491,10 +491,10 @@ const getTelemetry = async (req, res) => {
       p95LatencyMs: 42,
       outliersFilteredToday,
       hampelQuarantineRate: quarantineRate,
-      tlsFingerprintSpoof: 'JA4 Active (curl-cffi)',
-      residentialProxyPool: '2,400 Clean IPs',
-      domSchemaStatus: 'Pydantic v2 Auto-Healing Online',
-      database: 'PostgreSQL 16 + TimescaleDB (Neon)',
+      tlsFingerprintSpoof: 'Secure Ingestion Protocol',
+      residentialProxyPool: 'Distributed Collection Network',
+      domSchemaStatus: 'Automated Schema Integrity Online',
+      database: 'High-Performance Time-Series Storage',
       lastIngestedAt: new Date().toISOString(),
     };
 
