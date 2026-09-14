@@ -9,5 +9,33 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+      (function() {
+        const favicon = document.querySelector('link[rel="icon"]');
+        if (!favicon) return;
+
+        const img = new Image();
+        img.crossOrigin = "anonymous"; 
+        img.src = favicon.href;
+
+        img.onload = function () {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          const size = 64;
+          canvas.width = size;
+          canvas.height = size;
+
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+
+          ctx.drawImage(img, 0, 0, size, size);
+
+          favicon.href = canvas.toDataURL('image/png');
+        };
+      })();
+    </script>
   </body>
 </html>
