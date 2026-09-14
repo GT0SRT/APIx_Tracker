@@ -6,6 +6,7 @@ const analyticsRoutes = require('./src/routes/analyticsRoutes');
 const logsRoutes = require('./src/routes/logsRoutes');
 const routesRoutes = require('./src/routes/routesRoutes');
 const methodologyRoutes = require('./src/routes/methodologyRoutes');
+const aiRoutes = require('./src/routes/aiRoutes');
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use(['/api/v1/routes', '/api/routes'], routesRoutes);
 app.use(['/api/v1/methodology', '/api/methodology'], methodologyRoutes);
 app.use(['/api/v1/logs', '/api/logs'], logsRoutes);
 app.use(['/api/v1/audit', '/api/audit'], logsRoutes);
+app.use(['/api/v1/ai', '/api/ai'], aiRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

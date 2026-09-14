@@ -5,10 +5,18 @@ import {
   RefreshCw,
   ExternalLink,
   X as XIcon,
+  Zap,
+  Bot,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import botAvatar from '../../assets/bot-avatar.png'
 import { policyRagKnowledgeBase } from '../../data/policyRagData'
+import { API_BASE_URL } from '../../services/api'
+
+interface ToolExecution {
+  tool: string
+  summary: string
+}
 
 interface Message {
   id: string
@@ -17,19 +25,24 @@ interface Message {
   timestamp: string
   actionLabel?: string
   actionRoute?: string
+  toolsUsed?: ToolExecution[]
+  isLiveGroq?: boolean
+  confidence?: number
 }
 
 const presetQueries = [
-  'How does APIx eliminate MoSPI’s 45-day lag?',
+  'What is the current Macro APIx index?',
+  'Scan for active price surge anomalies',
+  'Analyze DEL-BOM lead-time elasticity',
+  'Audit latest scraper pipeline & SHA-256 seal',
   'Explain Jevons vs Carli index bias',
-  'Why do T+1 fares surge 200%–400%?',
+  'How does APIx eliminate MoSPI’s 45-day lag?',
   'How are seat add-ons stripped?',
-  'How are DGCA quarterly traffic weights applied?',
   'What is IMF Chapter 10 compliance?',
-  'Is scraping verified with SHA-256?',
 ]
 
-function getBotReply(query: string): { reply: string; actionLabel?: string; actionRoute?: string } {
+// Client-side fallback rule-based reply if server/network is offline
+function getLocalBotReply(query: string): { reply: string; actionLabel?: string; actionRoute?: string } {
   const q = query.toLowerCase()
 
   if (q.includes('45-day') || q.includes('lag') || q.includes('nowcast')) {
@@ -86,33 +99,6 @@ function getBotReply(query: string): { reply: string; actionLabel?: string; acti
     }
   }
 
-  if (q.includes('forecast') || q.includes('ml') || q.includes('predict') || q.includes('model') || q.includes('mae')) {
-    return {
-      reply:
-        'APIx utilizes a multi-horizon predictive forecasting model calibrated across 1.2M historical quotes to project fare trajectories 45 days in advance (T+1 to T+45) with 94.2% accuracy and an MAE of ₹148. This enables proactive inflation warning before flights take off.',
-      actionLabel: 'View ML Forecasting',
-      actionRoute: '/ai-intelligence',
-    }
-  }
-
-  if (q.includes('hampel') || q.includes('outlier') || q.includes('iqr') || q.includes('filter') || q.includes('clean')) {
-    return {
-      reply:
-        'To protect against temporary web artifacts, bot-detection redirects, and scraping glitches, APIx applies a rolling 3-sigma Hampel filter combined with IQR interquartile bounds. Only genuine market quotes are aggregated into the elementary Jevons price relatives.',
-      actionLabel: 'Inspect Telemetry Logs',
-      actionRoute: '/audit-logs',
-    }
-  }
-
-  if (q.includes('carrier') || q.includes('indigo') || q.includes('parity') || q.includes('monopoly') || q.includes('cci') || q.includes('hhi')) {
-    return {
-      reply:
-        'APIx computes the Herfindahl-Hirschman Index (HHI) across airlines on each city-pair corridor. Routes with high concentration (e.g. Leh, Srinagar, Port Blair) are tracked for price gouging to alert the Competition Commission of India (CCI) and DGCA tariff surveillance cells.',
-      actionLabel: 'View Routes & Parity',
-      actionRoute: '/routes-horizons',
-    }
-  }
-
   // Dynamic lookup in policyRagKnowledgeBase for semantic policy inquiries
   const words = q.split(/\s+/).filter((w) => w.length > 3)
   let bestMatch = null
@@ -149,6 +135,42 @@ function getBotReply(query: string): { reply: string; actionLabel?: string; acti
   }
 }
 
+// Markdown bold text renderer helper
+function renderFormattedText(text: string) {
+  const paragraphs = text.split('\n\n')
+  return paragraphs.map((para, pIdx) => {
+    const lines = para.split('\n')
+    if (lines.length > 1 && lines.every((line) => line.trim().startsWith('- ') || line.trim().startsWith('* '))) {
+      return (
+        <ul key={pIdx} className="list-disc pl-4 space-y-1 my-1">
+          {lines.map((l, lIdx) => (
+            <li key={lIdx}>{renderBoldParts(l.replace(/^[-*]\s*/, ''))}</li>
+          ))}
+        </ul>
+      )
+    }
+    return (
+      <p key={pIdx} className={pIdx > 0 ? 'mt-1.5' : ''}>
+        {renderBoldParts(para)}
+      </p>
+    )
+  })
+}
+
+function renderBoldParts(text: string) {
+  const parts = text.split(/(\*\*.*?\*\*)/g)
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return (
+        <strong key={idx} className="font-semibold text-slate-900">
+          {part.slice(2, -2)}
+        </strong>
+      )
+    }
+    return part
+  })
+}
+
 export function FloatingChatBot() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
@@ -159,7 +181,7 @@ export function FloatingChatBot() {
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: 'Namaste! I am your APIx Statistical Copilot. Ask me anything about real-time airfare CPI calculation, Jevons geometric indexing, MoSPI 45-day nowcasting, or dynamic surge analysis.',
+      text: 'Namaste! I am your **APIx Autonomous Copilot**. Connected to live MoSPI database & Groq inference. Ask me to query current price indices, scan for surge anomalies, diagnose route elasticity, or audit scraper cryptographic seals.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])
@@ -172,7 +194,7 @@ export function FloatingChatBot() {
     }
   }, [messages, isOpen, isTyping])
 
-  const sendMessage = (textToSend?: string) => {
+  const sendMessage = async (textToSend?: string) => {
     const query = (textToSend || input).trim()
     if (!query) return
 
@@ -187,19 +209,55 @@ export function FloatingChatBot() {
     setInput('')
     setIsTyping(true)
 
+    try {
+      // Call backend Agentic AI endpoint
+      const response = await fetch(`${API_BASE_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          conversationHistory: messages.slice(-4).map((m) => ({ sender: m.sender, text: m.text })),
+        }),
+      })
+
+      if (response.ok) {
+        const json = await response.json()
+        if (json.success && json.data) {
+          const botMsg: Message = {
+            id: `bot-${Date.now()}`,
+            sender: 'bot',
+            text: json.data.reply,
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            actionLabel: json.data.actionLabel,
+            actionRoute: json.data.actionRoute,
+            toolsUsed: json.data.toolsUsed,
+            isLiveGroq: json.data.isLiveGroq,
+            confidence: json.data.confidence,
+          }
+          setMessages((prev) => [...prev, botMsg])
+          setIsTyping(false)
+          return
+        }
+      }
+    } catch (err) {
+      console.warn('[FloatingChatBot] Backend AI engine error, falling back to local domain engine:', err)
+    }
+
+    // Graceful offline fallback
     setTimeout(() => {
-      const response = getBotReply(query)
+      const fallback = getLocalBotReply(query)
       const botMsg: Message = {
         id: `bot-${Date.now()}`,
         sender: 'bot',
-        text: response.reply,
+        text: fallback.reply,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        actionLabel: response.actionLabel,
-        actionRoute: response.actionRoute,
+        actionLabel: fallback.actionLabel,
+        actionRoute: fallback.actionRoute,
+        confidence: 95.0,
       }
       setMessages((prev) => [...prev, botMsg])
       setIsTyping(false)
-    }, 600)
+    }, 450)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -211,16 +269,15 @@ export function FloatingChatBot() {
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
-      {/* Floating Chat Window (Expanded View) - Styled with Website Single Theme (#0B2545 / #133A6B) */}
+      {/* Floating Chat Window */}
       {isOpen && (
-        <div className="mb-3 flex w-[92vw] max-w-[390px] sm:w-[410px] h-[430px] max-h-[72vh] flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-lg overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200">
+        <div className="mb-3 flex w-[92vw] max-w-[420px] sm:w-[430px] h-[480px] max-h-[75vh] flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-lg overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between bg-gradient-to-r from-[#0B2545] via-[#133A6B] to-[#0B2545] px-4 py-3 text-white">
             <div className="flex items-center gap-2.5">
-              {/* Clean Avatar Container matching Website Theme */}
               <div
                 className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 p-1 text-white shadow-inner overflow-hidden shrink-0"
-                title="APIx AI Bot"
+                title="APIx AI Agent"
               >
                 <img
                   src={botAvatar}
@@ -229,10 +286,14 @@ export function FloatingChatBot() {
                 />
               </div>
               <div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <p className="text-sm font-bold tracking-tight">APIx Copilot</p>
+                  <span className="flex items-center gap-1 rounded-full bg-emerald-400/20 px-1.5 py-0.5 text-[8.5px] font-bold text-emerald-300 border border-emerald-400/30">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Groq Llama 3.3
+                  </span>
                 </div>
-                <p className="text-[10px] text-blue-200/80">MoSPI CPI Intelligence &amp; Analytics</p>
+                <p className="text-[10px] text-blue-200/80">MoSPI CPI Intelligence &amp; Autonomous Diagnostics</p>
               </div>
             </div>
 
@@ -243,7 +304,7 @@ export function FloatingChatBot() {
                     {
                       id: 'welcome-reset',
                       sender: 'bot',
-                      text: 'Chat history cleared. How can I assist your MoSPI or aviation price indexing research?',
+                      text: 'Agent context cleared. Ready to assist with live MoSPI index calculations, route diagnostics, or anomaly reviews.',
                       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     },
                   ])
@@ -264,9 +325,9 @@ export function FloatingChatBot() {
           </div>
 
           {/* Quick Preset Queries Pill Bar */}
-          <div className="border-b border-slate-100 bg-slate-50/80 px-3 py-2 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0">
+          <div className="border-b border-slate-100 bg-slate-50/90 px-3 py-2 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0">
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 text-amber-500" /> Quick:
+              <Sparkles className="h-2.5 w-2.5 text-amber-500" /> Agent Tools:
             </span>
             {presetQueries.map((preset, idx) => (
               <button
@@ -286,14 +347,13 @@ export function FloatingChatBot() {
                 key={m.id}
                 className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {/* Bot Avatar Icon in chat messages - clean, without colored circular background */}
                 {m.sender === 'bot' && (
                   <div className="h-6 w-6 flex items-center justify-center shrink-0 mt-1">
                     <img src={botAvatar} alt="Bot" className="h-full w-full object-contain filter drop-shadow-xs" />
                   </div>
                 )}
 
-                <div className="flex flex-col max-w-[85%]">
+                <div className="flex flex-col max-w-[88%]">
                   <div
                     className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
                       m.sender === 'user'
@@ -301,7 +361,23 @@ export function FloatingChatBot() {
                         : 'bg-white text-slate-800 border border-slate-200/80 shadow-xs self-start'
                     }`}
                   >
-                    <p>{m.text}</p>
+                    {/* Agent Tool Calling Badges */}
+                    {m.toolsUsed && m.toolsUsed.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1 border-b border-slate-100 pb-1.5">
+                        {m.toolsUsed.map((t, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 shadow-2xs"
+                            title={t.summary}
+                          >
+                            <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
+                            <span>Tool: {t.tool.replace(/_/g, ' ')}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div>{renderFormattedText(m.text)}</div>
 
                     {/* Contextual Action Link */}
                     {m.actionRoute && m.actionLabel && (
@@ -333,10 +409,15 @@ export function FloatingChatBot() {
                 <div className="h-6 w-6 flex items-center justify-center shrink-0">
                   <img src={botAvatar} alt="Bot" className="h-full w-full object-contain filter drop-shadow-xs" />
                 </div>
-                <div className="flex items-center gap-1.5 rounded-2xl bg-white border border-slate-200/80 px-3.5 py-2.5 text-xs text-slate-500 w-fit shadow-xs">
-                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce"></span>
-                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]"></span>
-                  <span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]"></span>
+                <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-3 py-2 text-xs text-slate-500 w-fit shadow-xs">
+                  <span className="text-[11px] font-medium text-blue-600 flex items-center gap-1">
+                    <Bot className="h-3 w-3 animate-spin text-blue-600" /> Thinking &amp; querying...
+                  </span>
+                  <div className="flex gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce"></span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]"></span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]"></span>
+                  </div>
                 </div>
               </div>
             )}
@@ -351,7 +432,7 @@ export function FloatingChatBot() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask query on CPI index, surge, or data..."
+                placeholder="Ask query or tell agent to check routes, spikes, logs..."
                 className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none"
               />
               <button
@@ -366,7 +447,7 @@ export function FloatingChatBot() {
         </div>
       )}
 
-      {/* Floating Chat Bot Button */}
+      {/* Floating Chat Bot Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="group relative flex items-center justify-center transition-all duration-300 cursor-pointer focus:outline-none"
@@ -390,4 +471,3 @@ export function FloatingChatBot() {
     </div>
   )
 }
-
