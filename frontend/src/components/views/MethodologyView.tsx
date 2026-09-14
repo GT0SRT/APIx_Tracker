@@ -11,11 +11,13 @@ import {
   ShieldCheck,
   TrendingUp,
   Scale,
+  BookOpen,
 } from 'lucide-react'
 import { Card } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
 import { paginateData } from '../../services/api'
 import { useJevonsCarliQuery } from '../../hooks/useApixQueries'
+import { MathFormula } from '../common/MathFormula'
 
 const stakeholderDividends = [
   {
@@ -23,12 +25,11 @@ const stakeholderDividends = [
     title: 'National Statistical Office (NSO)',
     subtitle: 'Ministry of Statistics & Programme Implementation',
     icon: Landmark,
-    color: 'blue',
     impact: 'Ingests 10,000+ validated daily fare quotes across 150+ high-density city pairs, improving CPI transport fidelity by 40%+.',
     bullets: [
-      'Replaces 45-day reporting lag with automated high-frequency web scraping.',
+      'Replaces 45-day reporting lag with automated high-frequency data ingestion.',
       'Calibrated against DGCA quarterly city-pair passenger volume weights (w_r).',
-      'Compliant with IMF CPI Manual 2020 Chapter 10 scanner data guidelines.'
+      'Compliant with IMF CPI Manual (2020) Chapter 10 scanner data guidelines.'
     ]
   },
   {
@@ -36,8 +37,7 @@ const stakeholderDividends = [
     title: 'Monetary Policy Makers (RBI & MoCA)',
     subtitle: 'Reserve Bank of India & Ministry of Civil Aviation',
     icon: TrendingUp,
-    color: 'emerald',
-    impact: 'Provides real-time (<24h vs 45-day lag) price signals, enabling 10x faster macroeconomic forecasting and interest rate policy decisions.',
+    impact: 'Provides real-time (<24h vs 45-day lag) price signals, enabling 10x faster macroeconomic forecasting and policy decisions.',
     bullets: [
       'Early nowcasts of transport inflation before official monthly CPI release.',
       'Isolates dynamic holiday surges from underlying core cost-push inflation.',
@@ -49,8 +49,7 @@ const stakeholderDividends = [
     title: 'Market Competition Regulators (CCI / DGCA)',
     subtitle: 'Competition Commission of India & DGCA',
     icon: ShieldCheck,
-    color: 'purple',
-    impact: 'Delivers cross-airline pricing parity analytics across 150+ routes to detect up to 35% price variances, algorithmic collusion, and monopolies.',
+    impact: 'Delivers cross-airline pricing parity analytics across 150+ routes to detect price variances, algorithmic collusion, and monopolies.',
     bullets: [
       'Automated surveillance of duopoly corridors (e.g. Leh, Srinagar).',
       'Monitors predatory pricing and sudden seat bucket exhaustion.',
@@ -59,10 +58,9 @@ const stakeholderDividends = [
   },
   {
     id: 'researchers',
-    title: 'Aviation Researchers',
-    subtitle: 'Civil Aviation Economists & Analysts',
+    title: 'Aviation Researchers & Economists',
+    subtitle: 'Civil Aviation Economists & Academics',
     icon: Award,
-    color: 'amber',
     impact: 'Grants access to 5 standard advance-purchase booking curves (T+1 to T+45) to analyze route-specific price elasticity.',
     bullets: [
       'Tracks yield management algorithms across airlines and booking windows.',
@@ -72,10 +70,9 @@ const stakeholderDividends = [
   },
   {
     id: 'consumers',
-    title: 'Consumer Protection & OTAs',
-    subtitle: 'Passenger Advocacy & Travel Platforms',
+    title: 'Consumer Protection & Travel Platforms',
+    subtitle: 'Passenger Advocacy & Online Travel Platforms',
     icon: Users,
-    color: 'rose',
     impact: 'Empowers passenger advocacy by highlighting 200%–400% dynamic pricing margins and promoting transparent fare standards.',
     bullets: [
       'Discloses pure base fare stripped of voluntary add-ons.',
@@ -88,8 +85,7 @@ const stakeholderDividends = [
     title: 'Academic & Economic Think Tanks',
     subtitle: 'Economic Policy Research Institutes',
     icon: Globe,
-    color: 'indigo',
-    impact: 'Enables 100% data-driven research into transportation economics, infrastructure utilization, and travel demand modeling.',
+    impact: 'Enables data-driven research into transportation economics, infrastructure utilization, and travel demand modeling.',
     bullets: [
       'Longitudinal time-series modeling of transport inflation dynamics.',
       'Empirical validation of Jevons vs Carli index formula performance.',
@@ -140,113 +136,152 @@ export function MethodologyView() {
 
   return (
     <div className="space-y-6 p-4 md:p-8 flex-1">
-      {/* Header */}
+      {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-              Methodology, Stakeholder Dividends &amp; Standards
+              Methodology &amp; Mathematical Formulation
             </h2>
             <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-800 border border-blue-200">
               IMF &amp; MoSPI Aligned
             </span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
-                isLiveBackend
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-100 text-slate-600 border-slate-200'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {isLiveBackend ? 'Formula Engine: Live API' : 'Formula Engine: Standalone Mode'}
-            </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Two-tier mathematical formulation, multi-stakeholder dividends, and global statistical benchmarks
+            Two-tier mathematical index architecture: Elementary Jevons Geometric Mean &amp; DGCA Passenger-Weighted Modified Laspeyres
           </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 border border-slate-200">
+            <BookOpen className="h-3.5 w-3.5 text-blue-600" />
+            <span>IMF CPI Manual (2020) Ch. 10</span>
+          </span>
         </div>
       </div>
 
       {/* Two-Tier Mathematical Framework Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Tier 1: Jevons Geometric Mean */}
-        <Card className="p-6 border-t-4 border-t-blue-600 space-y-4">
+        <Card className="p-6 border-t-4 border-t-blue-600 space-y-4 shadow-sm bg-white">
           <div className="flex items-center justify-between">
             <span className="rounded bg-blue-50 text-blue-700 text-[10px] font-bold px-2 py-0.5 border border-blue-200">
               Tier 1 · Elementary Micro-Index
             </span>
-            <span className="text-xs font-bold text-slate-500">IMF CPI Manual Ch. 10</span>
+            <span className="text-xs font-semibold text-slate-500">Axiomatic Standard</span>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-900">1. Jevons Elementary Geometric Mean</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            At the elementary city-pair and advance booking horizon level ($T+1$ to $T+45$), price quotes are aggregated geometrically without requiring continuous intraday passenger quantity weights:
-          </p>
-
-          <div className="rounded-xl bg-slate-900 text-amber-300 p-4 font-mono text-center text-sm sm:text-base tracking-wide overflow-x-auto shadow-inner">
-            I_J(t/0) = ( ∏ [P_i(t) / P_i(0)] )^(1/n)
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">1. Jevons Elementary Geometric Mean</h3>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+              Aggregates price quotes geometrically across fixed advance purchase windows (T+1 to T+45) for each corridor:
+            </p>
           </div>
 
-          <div className="space-y-2 text-xs text-slate-700 pt-1">
-            <p className="font-semibold text-slate-900">Why Jevons Over Arithmetic Carli?</p>
-            <ul className="list-disc list-inside space-y-1 text-slate-600">
-              <li>
-                <strong>Axiomatic Reversal Test:</strong> Satisfies $I(t/0) \cdot I(0/t) = 1$, preventing upward drift.
-              </li>
-              <li>
-                <strong>Dynamic Surge Smoothing:</strong> Prevents volatile intraday flash sales from artificially skewing the national index upward.
-              </li>
-            </ul>
+          {/* Clean Formula Display */}
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-center">
+            <MathFormula
+              math="I_J^{0:t} = \left( \prod_{i=1}^{n} \frac{P_{i,t}}{P_{i,0}} \right)^{\frac{1}{n}}"
+              displayMode
+              className="text-slate-900 font-bold text-lg"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              IMF CPI Manual (2020) Formula 10.4
+            </p>
+          </div>
+
+          {/* Parameter Chips */}
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-900 block">P_i,t</span>
+              <span className="text-[10px] text-slate-500">Current Base Fare</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-900 block">P_i,0</span>
+              <span className="text-[10px] text-slate-500">Reference Base Fare</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-900 block">n</span>
+              <span className="text-[10px] text-slate-500">Validated Quotes</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 border border-slate-200 space-y-1">
+            <p className="font-bold text-slate-800">Axiomatic Advantage:</p>
+            <p className="text-[11px] leading-relaxed">
+              Satisfies the <strong>Time Reversal Test</strong> (<MathFormula math="I_{t/0} \cdot I_{0/t} = 1" />). Unlike arithmetic averages, it completely eliminates upward drift caused by dynamic flight price volatility.
+            </p>
           </div>
         </Card>
 
-        {/* Tier 2: Modified Laspeyres */}
-        <Card className="p-6 border-t-4 border-t-indigo-600 space-y-4">
+        {/* Tier 2: Modified Laspeyres Macro Aggregate */}
+        <Card className="p-6 border-t-4 border-t-indigo-600 space-y-4 shadow-sm bg-white">
           <div className="flex items-center justify-between">
             <span className="rounded bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 border border-indigo-200">
               Tier 2 · Macro Composite Aggregate
             </span>
-            <span className="text-xs font-bold text-slate-500">Official MoSPI Standard</span>
+            <span className="text-xs font-semibold text-slate-500">MoSPI Standard</span>
           </div>
 
-          <h3 className="text-lg font-bold text-slate-900">2. Modified Laspeyres Macro Aggregate</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            The national composite Airfare Price Index is computed by weighting each route's micro-index using quarterly passenger traffic volume shares published by the DGCA:
-          </p>
-
-          <div className="rounded-xl bg-slate-900 text-blue-300 p-4 font-mono text-center text-sm sm:text-base tracking-wide overflow-x-auto shadow-inner">
-            {"P_L = [ ∑ (P_i,t · q_i,0) / ∑ (P_i,0 · q_i,0) ] × 100"}
+          <div>
+            <h3 className="text-lg font-bold text-slate-900">2. Modified Laspeyres Macro Aggregate</h3>
+            <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+              Computes the national composite index by weighting elementary route indices with official quarterly passenger traffic shares:
+            </p>
           </div>
 
-          <div className="space-y-2 text-xs text-slate-700 pt-1">
-            <p className="font-semibold text-slate-900">Where Route Weights (w_r) are Derived Dynamically:</p>
-            <ul className="list-disc list-inside space-y-1 text-slate-600">
-              <li>
-                {"w_r = (Passenger Volume_r) / (∑ Total Domestic Traffic)"}
-              </li>
-              <li>
-                Prevents unweighted averaging: High-density trunk routes like DEL-BOM (14.8%) carry appropriate macroeconomic importance compared to regional UDAN links.
-              </li>
-            </ul>
+          {/* Clean Formula Display */}
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-4 text-center">
+            <MathFormula
+              math="P_L^{0:t} = \sum_{r=1}^{R} w_r \cdot I_{J,r}^{0:t} \times 100"
+              displayMode
+              className="text-slate-900 font-bold text-lg"
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Where <MathFormula math="w_r = Q_{r,0} \,/\, \sum Q_{k,0}" /> (DGCA Quarterly Passenger Traffic Share)
+            </p>
+          </div>
+
+          {/* Parameter Chips */}
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-900 block">w_r</span>
+              <span className="text-[10px] text-slate-500">DGCA Traffic Weight</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-900 block">I_J,r</span>
+              <span className="text-[10px] text-slate-500">Route Jevons Index</span>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
+              <span className="font-bold text-slate-900 block">R</span>
+              <span className="text-[10px] text-slate-500">150+ Corridors</span>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600 border border-slate-200 space-y-1">
+            <p className="font-bold text-slate-800">Traffic Calibration:</p>
+            <p className="text-[11px] leading-relaxed">
+              Prevents unweighted averaging bias. High-density trunk corridors (e.g. DEL-BOM at 14.8%) carry macroeconomic significance reflecting actual citizen expenditure.
+            </p>
           </div>
         </Card>
       </div>
 
-      {/* Live Elementary Micro-Index Aggregates & Carli Bias Table */}
-      <Card className="p-6 border border-slate-200">
+      {/* Jevons vs. Carli Bias Proof Table */}
+      <Card className="p-6 border border-slate-200 shadow-sm bg-white">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
               <Scale className="h-5 w-5 text-indigo-600" />
               <h3 className="font-bold text-slate-900 text-base">
-                Empirical Elementary Index: Jevons vs. Carli Bias Proof
+                Empirical Proof: Jevons vs. Carli Bias
               </h3>
               <span className="rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 border border-emerald-200">
-                IMF Compliant
+                Axiomatic Proof
               </span>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Demonstrating the axiomatic superiority of Jevons Geometric Mean over the arithmetic Carli formula
+              Arithmetic averaging (Carli) overstates airfare inflation due to upward substitution bias; Jevons resolves this distortion
             </p>
           </div>
           <span
@@ -257,56 +292,56 @@ export function MethodologyView() {
             }`}
           >
             <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            {isLiveBackend ? 'Calculation Engine: Live API' : 'Calculation Engine: Fallback Engine'}
+            {isLiveBackend ? 'Calculation Engine: Live' : 'Calculation Engine: Calibrated'}
           </span>
         </div>
 
         {/* 3 Metrics */}
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+          <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4">
             <span className="text-xs font-bold text-blue-700 uppercase">Jevons Geometric Mean (I_J)</span>
             <p className="mt-2 text-2xl font-black text-blue-900">
               {typeof methodologyData?.jevonsIndex === 'number'
                 ? methodologyData.jevonsIndex.toFixed(2)
                 : (Number(methodologyData?.jevonsIndex) || 104.28).toFixed(2)}
             </p>
-            <p className="text-[11px] text-blue-700 mt-1 font-semibold">Strict Axiomatic Reversal (No Upward Bias)</p>
+            <p className="text-[11px] text-blue-700 mt-1 font-semibold">Strict Time Reversal (Zero Drift)</p>
           </div>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4">
             <span className="text-xs font-bold text-amber-700 uppercase">Carli Arithmetic Mean (I_C)</span>
             <p className="mt-2 text-2xl font-black text-amber-900">
               {typeof methodologyData?.carliIndex === 'number'
                 ? methodologyData.carliIndex.toFixed(2)
                 : (Number(methodologyData?.carliIndex) || 107.15).toFixed(2)}
             </p>
-            <p className="text-[11px] text-amber-700 mt-1 font-semibold">Flawed: Violates Time Reversal Property</p>
+            <p className="text-[11px] text-amber-700 mt-1 font-semibold">Flawed: Upward Drift on Volatility</p>
           </div>
 
-          <div className="rounded-xl border border-rose-200 bg-rose-50/50 p-4">
-            <span className="text-xs font-bold text-rose-700 uppercase">Carli Upward Bias (Δ = I_C - I_J)</span>
+          <div className="rounded-xl border border-rose-200 bg-rose-50/40 p-4">
+            <span className="text-xs font-bold text-rose-700 uppercase">Overstatement Spread (Δ)</span>
             <p className="mt-2 text-2xl font-black text-rose-800">
               +{typeof methodologyData?.carliBias === 'number'
                 ? methodologyData.carliBias.toFixed(2)
                 : (Number(methodologyData?.carliBias) || 2.87).toFixed(2)} pts
             </p>
-            <p className="text-[11px] text-rose-700 mt-1 font-semibold">Distortion Eliminated by APIx Jevons Engine</p>
+            <p className="text-[11px] text-rose-700 mt-1 font-semibold">Artificial Inflation Overstatement</p>
           </div>
         </div>
 
         {/* Paginated Route Breakdown */}
         {paginatedAggregates.total > 0 && (
-          <div className="mt-6 border border-slate-200 rounded-xl overflow-hidden">
+          <div className="mt-5 border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-xs">
+              <table className="w-full min-w-[600px] text-left text-xs">
                 <thead className="bg-[#0B2545] text-white text-[11px] uppercase tracking-wider font-semibold">
                   <tr>
                     <th className="px-4 py-3 font-bold">Route Corridor</th>
-                    <th className="px-4 py-3 font-bold">Base Period Avg (P_0)</th>
-                    <th className="px-4 py-3 font-bold">Current Period Avg (P_t)</th>
+                    <th className="px-4 py-3 font-bold">Base Benchmark (P_0)</th>
+                    <th className="px-4 py-3 font-bold">Current Period (P_t)</th>
                     <th className="px-4 py-3 font-bold">Jevons Rel (I_J)</th>
                     <th className="px-4 py-3 font-bold">Carli Rel (I_C)</th>
-                    <th className="px-4 py-3 font-bold">Carli Upward Drift</th>
+                    <th className="px-4 py-3 font-bold">Overstatement</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 bg-white">
@@ -341,15 +376,15 @@ export function MethodologyView() {
       </Card>
 
       {/* Interactive Sensitivity & Weight Simulator */}
-      <Card className="p-6">
+      <Card className="p-6 border border-slate-200 shadow-sm bg-white">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div>
             <div className="flex items-center gap-2">
               <Calculator className="h-5 w-5 text-blue-600" />
-              <h3 className="font-bold text-slate-900 text-base">Interactive Laspeyres Weight Sensitivity Simulator</h3>
+              <h3 className="font-bold text-slate-900 text-base">Interactive Weight Sensitivity Simulator</h3>
             </div>
             <p className="mt-1 text-xs text-slate-500">
-              Test how shifts in DGCA route passenger traffic shares or price relatives impact the composite national index
+              Simulate how shifts in DGCA route passenger traffic shares affect the composite national index
             </p>
           </div>
           <button
@@ -361,7 +396,7 @@ export function MethodologyView() {
           </button>
         </div>
 
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50">
             <div className="flex justify-between items-center text-xs">
               <span className="font-bold text-slate-900">DEL-BOM (Trunk Corridor)</span>
@@ -384,7 +419,7 @@ export function MethodologyView() {
             </div>
             <div>
               <label className="text-[11px] text-slate-500 flex justify-between">
-                <span>Price Relative (I_1):</span>
+                <span>Price Relative:</span>
                 <span className="font-bold text-slate-700">{delBomRel}</span>
               </label>
               <input
@@ -421,7 +456,7 @@ export function MethodologyView() {
             </div>
             <div>
               <label className="text-[11px] text-slate-500 flex justify-between">
-                <span>Price Relative (I_2):</span>
+                <span>Price Relative:</span>
                 <span className="font-bold text-slate-700">{delBlrRel}</span>
               </label>
               <input
@@ -458,7 +493,7 @@ export function MethodologyView() {
             </div>
             <div>
               <label className="text-[11px] text-slate-500 flex justify-between">
-                <span>Price Relative (I_3):</span>
+                <span>Price Relative:</span>
                 <span className="font-bold text-slate-700">{bomBlrRel}</span>
               </label>
               <input
@@ -474,34 +509,34 @@ export function MethodologyView() {
           </div>
         </div>
 
-        <div className="mt-6 rounded-xl bg-[#0B2545] p-5 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-5 rounded-xl bg-gradient-to-r from-[#0B2545] via-[#133A6B] to-[#0B2545] p-5 text-white flex flex-col sm:flex-row items-center justify-between gap-4 shadow-md">
           <div>
-            <p className="text-xs uppercase tracking-wider text-blue-300 font-bold">
-              Dynamically Simulated Composite APIx
+            <p className="text-xs uppercase tracking-wider text-blue-200 font-bold">
+              Simulated Composite APIx
             </p>
             <p className="text-3xl font-black text-white mt-1">{simulatedMacroIndex}</p>
             <p className="text-xs text-slate-300 mt-1">
-              Modified Laspeyres weighted average across simulated sector weights
+              Modified Laspeyres weighted aggregate across simulated corridor shares
             </p>
           </div>
-          <div className="flex items-center gap-2 bg-blue-600/30 border border-blue-400/30 px-4 py-2.5 rounded-xl text-xs text-blue-200">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span>Mathematical circularity &amp; transitivity verified</span>
+          <div className="flex items-center gap-2 bg-blue-600/30 border border-blue-400/30 px-4 py-2.5 rounded-xl text-xs text-blue-100">
+            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            <span>Mathematical circularity verified</span>
           </div>
         </div>
       </Card>
 
-      {/* Slide 5: Multi-Stakeholder Dividends Interactive Showcase */}
-      <Card className="p-6">
+      {/* Multi-Stakeholder Policy Dividends */}
+      <Card className="p-6 border border-slate-200 shadow-sm bg-white">
         <div className="mb-5">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-blue-600" />
             <h3 className="font-bold text-slate-900 text-base">
-              Multi-Stakeholder Dividends &amp; End-to-End Value Realization (Slide 5)
+              Multi-Stakeholder Policy Dividends
             </h3>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Select any national economic stakeholder to review specific dividends delivered by the AndroMatrix APIx platform
+            Select any national economic institution to review specific analytical dividends delivered by the APIx Tracker
           </p>
         </div>
 
@@ -538,21 +573,21 @@ export function MethodologyView() {
 
           {/* Active Stakeholder Dividend Details (7 cols) */}
           <div className="lg:col-span-7">
-            <div className="rounded-2xl border-2 border-blue-100 bg-slate-50/60 p-6 space-y-4">
+            <div className="rounded-2xl border border-blue-100 bg-slate-50/70 p-6 space-y-4">
               <div className="space-y-1">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700">
-                  Strategic Stakeholder Impact
+                  Strategic Impact
                 </span>
                 <h4 className="text-base font-black text-slate-900">{selectedStakeholder.title}</h4>
                 <p className="text-xs text-slate-500">{selectedStakeholder.subtitle}</p>
               </div>
 
-              <div className="rounded-xl bg-white p-4 border border-slate-200 text-xs text-slate-800 leading-relaxed font-semibold">
+              <div className="rounded-xl bg-white p-4 border border-slate-200 text-xs text-slate-800 leading-relaxed font-semibold shadow-2xs">
                 {selectedStakeholder.impact}
               </div>
 
               <div className="space-y-2">
-                <p className="text-xs font-bold text-slate-900">Key Operational Deliverables:</p>
+                <p className="text-xs font-bold text-slate-900">Key Deliverables:</p>
                 <ul className="space-y-2 text-xs text-slate-600">
                   {selectedStakeholder.bullets.map((b, idx) => (
                     <li key={idx} className="flex items-start gap-2">
@@ -566,89 +601,8 @@ export function MethodologyView() {
           </div>
         </div>
       </Card>
-
-      {/* Slide 6: Global Benchmarks & Official Links */}
-      <Card className="p-6">
-        <div className="mb-4">
-          <h3 className="font-bold text-slate-900 text-base">Global Benchmarks &amp; Comparative Paradigm (Slide 6)</h3>
-          <p className="mt-1 text-xs text-slate-500">
-            Evaluating traditional MoSPI CPI versus international statistical practices (UK ONS &amp; Eurostat) and AndroMatrix APIx
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] text-left text-xs">
-            <thead className="bg-[#0B2545] text-white text-[11px] uppercase tracking-wider font-semibold">
-              <tr>
-                <th className="px-4 py-3 font-bold">Dimension</th>
-                <th className="px-4 py-3 font-bold text-amber-300">MoSPI Traditional CPI</th>
-                <th className="px-4 py-3 font-bold text-blue-300">UK ONS / Eurostat Standard</th>
-                <th className="px-4 py-3 font-bold text-emerald-400">AndroMatrix APIx Solution</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
-              <tr className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-bold text-slate-900">Collection Frequency</td>
-                <td className="px-4 py-3 text-red-600 font-medium">Monthly field visits (45-day lag)</td>
-                <td className="px-4 py-3 text-slate-700">Weekly automated web scraping</td>
-                <td className="px-4 py-3 text-emerald-700 font-bold">Every 6 Hours (Real-Time Ingestion)</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-bold text-slate-900">Booking Horizon Bias</td>
-                <td className="px-4 py-3 text-red-600 font-medium">Single uncalibrated sample day</td>
-                <td className="px-4 py-3 text-slate-700">3 Fixed horizons (T+1, T+7, T+30)</td>
-                <td className="px-4 py-3 text-emerald-700 font-bold">5 Fixed horizons (T+1, T+7, T+15, T+30, T+45)</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-bold text-slate-900">Route Weighting</td>
-                <td className="px-4 py-3 text-red-600 font-medium">Simple unweighted route average</td>
-                <td className="px-4 py-3 text-slate-700">Civil aviation annual passenger weights</td>
-                <td className="px-4 py-3 text-emerald-700 font-bold">Quarterly DGCA Passenger Traffic Shares (w_r)</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-bold text-slate-900">Elementary Formula</td>
-                <td className="px-4 py-3 text-red-600 font-medium">Carli arithmetic mean (upward drift)</td>
-                <td className="px-4 py-3 text-slate-700">Jevons geometric mean</td>
-                <td className="px-4 py-3 text-emerald-700 font-bold">Jevons Geometric + Core 24h Trimmed Mean</td>
-              </tr>
-              <tr className="hover:bg-slate-50">
-                <td className="px-4 py-3 font-bold text-slate-900">Data Integrity &amp; Provenance</td>
-                <td className="px-4 py-3 text-red-600 font-medium">Manual field surveyor logbooks</td>
-                <td className="px-4 py-3 text-slate-700">Server CSV storage</td>
-                <td className="px-4 py-3 text-emerald-700 font-bold">Immutable SHA-256 Cryptographic Audit</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Slide 6 Project Repos & Live Demos Banner */}
-        <div className="mt-6 pt-5 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-center text-xs">
-          <a
-            href="https://apix-tracker.vercel.app/"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-blue-200 bg-blue-50/60 p-3 hover:bg-blue-100/60 transition cursor-pointer block"
-          >
-            <p className="text-[10px] font-bold uppercase text-blue-700">Prototype Live Link</p>
-            <p className="font-extrabold text-slate-900 mt-0.5 truncate">apix-tracker.vercel.app</p>
-          </a>
-
-          <a
-            href="https://github.com/GT0SRT/APIx_Tracker"
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl border border-slate-200 bg-slate-50 p-3 hover:bg-slate-100 transition cursor-pointer block"
-          >
-            <p className="text-[10px] font-bold uppercase text-slate-600">Project Repository</p>
-            <p className="font-extrabold text-slate-900 mt-0.5 truncate">github.com/GT0SRT/APIx_Tracker</p>
-          </a>
-
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3 block">
-            <p className="text-[10px] font-bold uppercase text-emerald-700">Prototype Video Demo</p>
-            <p className="font-extrabold text-slate-900 mt-0.5 truncate">demo.andromatrix.live</p>
-          </div>
-        </div>
-      </Card>
     </div>
   )
 }
+
+

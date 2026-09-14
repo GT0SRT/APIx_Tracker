@@ -48,7 +48,7 @@ export const agenticAnomalyAlerts: AnomalyAlert[] = [
     rootCause:
       'Akasa Air Monsoon Flash Sale campaign for advance bookings beyond 30 days. Validated as genuine unbundled consumer fare.',
     actionTaken:
-      'Approved by Pydantic schema validation. Ingested into T+30 basket using 24h trimmed geometric smoothing to prevent artificial index collapse.',
+      'Approved by standardized schema validation. Ingested into T+30 basket using 24h trimmed geometric smoothing to prevent artificial index collapse.',
     agentConfidence: 98.4,
     regulatoryFlag: false,
   },
@@ -59,13 +59,13 @@ export const agentWorkflowSteps = [
     step: '01',
     name: 'High-Frequency Ingestion',
     status: 'Continuous',
-    description: 'Playwright stealth workers query top 150 routes across 4 domestic carriers and 3 OTAs every 6 hours.',
+    description: 'Automated data ingestion workers query top 150 routes across 4 domestic carriers and 3 OTAs every 6 hours.',
   },
   {
     step: '02',
     name: 'Deterministic Decomposition',
     status: 'Automated',
-    description: 'Pydantic v2 schemas isolate Base Fare + Fuel Surcharge + Taxes while stripping meals, seats, and baggage.',
+    description: 'Standardized schema validators isolate Base Fare + Fuel Surcharge + Taxes while stripping meals, seats, and baggage.',
   },
   {
     step: '03',

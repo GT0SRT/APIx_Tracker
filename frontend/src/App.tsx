@@ -9,15 +9,14 @@ import { RoutesHorizonsView } from './components/views/RoutesHorizonsView'
 import { AiHubView } from './components/views/AiHubView'
 import { IngestionAuditView } from './components/views/IngestionAuditView'
 import { MethodologyView } from './components/views/MethodologyView'
+import { HelpSupportView } from './components/views/HelpSupportView'
 import { OneClickReportModal } from './components/reports/OneClickReportModal'
-import { agenticAnomalyAlerts } from './data/agenticData'
+import { FloatingChatBot } from './components/ai/FloatingChatBot'
 
 export default function App() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [aiSubTab, setAiSubTab] = useState<'ml' | 'agent' | 'rag'>('ml')
-  const [range, setRange] = useState('Daily')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
@@ -31,18 +30,13 @@ export default function App() {
     if (raw === 'ai-intelligence' || raw === 'ai' || raw === 'ml-forecasting' || raw === 'agentic-ai') return 'ai-intelligence'
     if (raw === 'audit-logs' || raw === 'audit' || raw === 'ingestion') return 'audit-logs'
     if (raw === 'methodology') return 'methodology'
+    if (raw === 'help-support' || raw === 'help') return 'help-support'
     return 'overview'
   }, [location.pathname])
 
   const handleTabChange = (tab: TabType) => {
     const path = tab === 'overview' ? '/' : `/${tab}`
     navigate(path)
-    if (tab === 'ai-intelligence') setAiSubTab('ml')
-  }
-
-  const navigateToAi = (subTab: 'ml' | 'agent' | 'rag') => {
-    setAiSubTab(subTab)
-    navigate(`/ai-intelligence?tab=${subTab}`)
   }
 
   return (
@@ -66,14 +60,7 @@ export default function App() {
         {/* Sticky Executive Header */}
         <Header
           activeTab={activeTab}
-          sidebarCollapsed={sidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
           setSidebarOpen={setSidebarOpen}
-          range={range}
-          setRange={setRange}
-          onOpenReportModal={() => setShowReportModal(true)}
-          onNavigateToAi={navigateToAi}
-          anomalyCount={agenticAnomalyAlerts.length}
         />
 
         {/* Dynamic Routed Views */}
@@ -82,8 +69,8 @@ export default function App() {
             path="/"
             element={
               <OverviewView
-                onNavigateToAi={navigateToAi}
                 onNavigateToTab={handleTabChange}
+                onOpenReportModal={() => setShowReportModal(true)}
               />
             }
           />
@@ -93,11 +80,18 @@ export default function App() {
           <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
           <Route
             path="/ai-intelligence"
-            element={<AiHubView key={location.search + aiSubTab} initialSubTab={aiSubTab} />}
+            element={<AiHubView />}
           />
+          <Route path="/ml-forecasting" element={<Navigate to="/ai-intelligence" replace />} />
+          <Route path="/ai" element={<Navigate to="/ai-intelligence" replace />} />
           <Route path="/audit-logs" element={<IngestionAuditView />} />
           <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
           <Route path="/methodology" element={<MethodologyView />} />
+          <Route
+            path="/help-support"
+            element={<HelpSupportView onOpenReportModal={() => setShowReportModal(true)} />}
+          />
+          <Route path="/help" element={<Navigate to="/help-support" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -106,6 +100,9 @@ export default function App() {
       {showReportModal && (
         <OneClickReportModal onClose={() => setShowReportModal(false)} />
       )}
+
+      {/* Floating AI Statistical Copilot Assistant */}
+      <FloatingChatBot />
     </div>
   )
 }

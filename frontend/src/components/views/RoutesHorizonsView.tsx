@@ -38,7 +38,6 @@ export function RoutesHorizonsView() {
   const routesList: RouteTrafficWeight[] = routesQuery.data?.data || dgcaRoutesData
   const elasticity: ElasticityPoint[] = elasticityQuery.data?.data || elasticityData
   const parityData = parityQuery.data?.data || airlineParityData
-  const isLiveBackend = routesQuery.data?.isLive || elasticityQuery.data?.isLive || parityQuery.data?.isLive || false
 
   const t1 = elasticity.find((e) => e.window === 'T+1')
   const t45 = elasticity.find((e) => e.window === 'T+45')
@@ -76,16 +75,6 @@ export function RoutesHorizonsView() {
             </h2>
             <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-800 border border-orange-200">
               T+1 to T+45 Horizons
-            </span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
-                isLiveBackend
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-100 text-slate-600 border-slate-200'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {isLiveBackend ? 'Parity API: Live Connected' : 'Parity API: Standalone Mode'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">

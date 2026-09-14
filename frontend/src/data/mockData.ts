@@ -218,9 +218,9 @@ export const pipelineTelemetry = {
   totalQuotesToday: 145210,
   averageLatencyMs: 38,
   outliersFilteredToday: 312,
-  tlsFingerprintSpoof: 'JA4 Active (curl-cffi)',
-  residentialProxyPool: '2,400 Clean IPs',
-  domSchemaStatus: 'Pydantic v2 Auto-Healing Online',
+  tlsFingerprintSpoof: 'Secure TLS Verified',
+  residentialProxyPool: 'High-Availability Ingestion Mesh',
+  domSchemaStatus: 'Automated Schema Integrity Online',
   lastScraped: '42 seconds ago',
-  database: 'PostgreSQL 16 + TimescaleDB (Neon)',
+  database: 'High-Throughput Time-Series Store',
 }

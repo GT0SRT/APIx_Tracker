@@ -1,8 +1,8 @@
 import {
   Plane,
   X,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react'
 import type { TabType } from '../../types/apix'
 import { navItems } from '../../data/navigation'
@@ -41,43 +41,56 @@ export function Sidebar({
         } ${sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className="flex h-20 items-center justify-between border-b border-[#153454] px-4">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/30">
-              <Plane className="h-5 w-5 rotate-45" />
-            </div>
-            {!sidebarCollapsed && (
-              <div className="transition-opacity duration-200">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-base font-bold tracking-tight text-white leading-none">APIx Tracker</p>
-                  <span className="rounded bg-blue-500/30 px-1 py-0.5 text-[9px] font-semibold text-blue-300">
-                    SIH 2026
-                  </span>
+        <div className={`flex h-20 items-center border-b border-[#153454] transition-all ${
+          sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+        }`}>
+          {sidebarCollapsed ? (
+            /* Collapsed State: Standard Sidebar Panel Open Icon */
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#133256] text-blue-300 hover:bg-blue-600 hover:text-white border border-[#1d4370] transition cursor-pointer group shadow-sm"
+              title="Expand sidebar panel"
+              aria-label="Expand sidebar panel"
+            >
+              <PanelLeftOpen className="h-5 w-5 transition-transform group-hover:scale-110" />
+            </button>
+          ) : (
+            /* Expanded State: Logo + Title + Panel Close Toggle */
+            <>
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/30">
+                  <Plane className="h-5 w-5 rotate-45" />
                 </div>
-                <p className="text-[10px] uppercase tracking-wider text-blue-200/80 font-medium mt-1">
-                  Airfare Price Index
-                </p>
+                <div className="transition-opacity duration-200">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-base font-bold tracking-tight text-white leading-none">APIx Tracker</p>
+                  </div>
+                  <p className="text-[10px] uppercase tracking-wider text-blue-200/80 font-medium mt-1">
+                    Airfare Price Index
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
 
-          {/* Close on mobile */}
-          <button
-            className="text-slate-400 hover:text-white lg:hidden cursor-pointer"
-            onClick={() => setSidebarOpen(false)}
-            aria-label="Close navigation"
-          >
-            <X className="h-5 w-5" />
-          </button>
+              {/* Close on mobile */}
+              <button
+                className="text-slate-400 hover:text-white lg:hidden cursor-pointer p-1.5 rounded-lg hover:bg-white/10"
+                onClick={() => setSidebarOpen(false)}
+                aria-label="Close navigation"
+              >
+                <X className="h-5 w-5" />
+              </button>
 
-          {/* Collapse/Expand on desktop */}
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden lg:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-          </button>
+              {/* Collapse button on desktop */}
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="hidden lg:flex p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+                title="Collapse sidebar panel"
+                aria-label="Collapse sidebar panel"
+              >
+                <PanelLeftClose className="h-5 w-5 text-blue-300" />
+              </button>
+            </>
+          )}
         </div>
 
         {/* Navigation */}

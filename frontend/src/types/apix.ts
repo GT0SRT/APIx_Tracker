@@ -7,6 +7,7 @@ export type TabType =
   | 'methodology'
   | 'ml-forecasting'
   | 'agentic-ai'
+  | 'help-support'
 
 export interface TrendPoint {
   day: string

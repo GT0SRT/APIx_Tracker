@@ -46,7 +46,6 @@ export function IndexSeriesView() {
   const [showHeadline, setShowHeadline] = useState(true)
   const [showCoreTrimmed, setShowCoreTrimmed] = useState(true)
   const [showMospiLag, setShowMospiLag] = useState(true)
-  const [baseYear, setBaseYear] = useState<'2024' | '2012'>('2024')
   const [showTable, setShowTable] = useState(true)
   const [tablePage, setTablePage] = useState(1)
   const [tablePageSize, setTablePageSize] = useState(5)
@@ -57,9 +56,6 @@ export function IndexSeriesView() {
 
   const trendData = trendRes?.data && trendRes.data.length > 0 ? trendRes.data : []
   const summary = summaryRes?.data || null
-  const isLive = Boolean(trendRes?.isLive || summaryRes?.isLive)
-
-  const baseMultiplier = baseYear === '2024' ? 1.0 : 1.48 // Base 2012 conversion factor
 
   const rawPoints = trendData.length > 0 ? trendData : historicalSeries90Days
 
@@ -71,10 +67,10 @@ export function IndexSeriesView() {
       const mRaw = Number(item.mospiLag ?? 128.5)
       const bRaw = Number(item.baseline ?? 128.0)
 
-      const headline = isNaN(hRaw) ? 140.0 : parseFloat((hRaw * baseMultiplier).toFixed(1))
-      const coreTrimmed = isNaN(cRaw) ? 138.0 : parseFloat((cRaw * baseMultiplier).toFixed(1))
-      const mospiLag = isNaN(mRaw) ? 128.5 : parseFloat((mRaw * baseMultiplier).toFixed(1))
-      const baseline = isNaN(bRaw) ? 128.0 : parseFloat((bRaw * baseMultiplier).toFixed(1))
+      const headline = isNaN(hRaw) ? 140.0 : parseFloat(hRaw.toFixed(1))
+      const coreTrimmed = isNaN(cRaw) ? 138.0 : parseFloat(cRaw.toFixed(1))
+      const mospiLag = isNaN(mRaw) ? 128.5 : parseFloat(mRaw.toFixed(1))
+      const baseline = isNaN(bRaw) ? 128.0 : parseFloat(bRaw.toFixed(1))
 
       return {
         date: typeof dateStr === 'string' && dateStr.length > 10 ? dateStr.substring(5, 10) : dateStr,
@@ -84,7 +80,7 @@ export function IndexSeriesView() {
         baseline,
       }
     })
-  }, [rawPoints, baseMultiplier])
+  }, [rawPoints])
 
   const latestItem = seriesData[seriesData.length - 1]
   const headlineDisplay = latestItem ? latestItem.headline.toFixed(1) : summary?.currentApix ? summary.currentApix.toFixed(1) : '--'
@@ -109,15 +105,7 @@ export function IndexSeriesView() {
               APIx Time-Series &amp; Inflation Analysis
             </h2>
             <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
-              Base {baseYear}=100
-            </span>
-            <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
-                isLive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-600 border-slate-200'
-              }`}
-            >
-              <span className={`h-2 w-2 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {isLive ? 'Live API Connected' : 'Calibrated Series'}
+              Base 2024=100
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
@@ -125,40 +113,19 @@ export function IndexSeriesView() {
           </p>
         </div>
 
-        {/* Base year & Timeframe Toggles */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold shadow-xs">
+        {/* Timeframe Toggles */}
+        <div className="flex items-center rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold shadow-xs">
+          {(['30D', '90D', '1Y'] as const).map((tf) => (
             <button
-              onClick={() => setBaseYear('2024')}
+              key={tf}
+              onClick={() => setSelectedTimeframe(tf)}
               className={`rounded-md px-3 py-1 transition cursor-pointer ${
-                baseYear === '2024' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                selectedTimeframe === tf ? 'bg-[#0B2545] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Base 2024=100
+              {tf}
             </button>
-            <button
-              onClick={() => setBaseYear('2012')}
-              className={`rounded-md px-3 py-1 transition cursor-pointer ${
-                baseYear === '2012' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Base 2012=100
-            </button>
-          </div>
-
-          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold shadow-xs">
-            {(['30D', '90D', '1Y'] as const).map((tf) => (
-              <button
-                key={tf}
-                onClick={() => setSelectedTimeframe(tf)}
-                className={`rounded-md px-3 py-1 transition cursor-pointer ${
-                  selectedTimeframe === tf ? 'bg-[#0B2545] text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {tf}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
 
@@ -341,7 +308,7 @@ export function IndexSeriesView() {
         <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-xs text-slate-700 flex items-start gap-3">
           <Sparkles className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="font-bold text-slate-900">Statistical Analysis &amp; Production Countermeasure (Slide 4)</p>
+            <p className="font-bold text-slate-900">Statistical Analysis &amp; Volatility Suppression</p>
             <p className="leading-relaxed">
               Notice the spike on August 15 (Independence Day holiday surge). The unfiltered <strong>Headline APIx</strong> captured the true +8.1% surge experienced by consumers, while the <strong>Core Trimmed APIx</strong> mathematically suppressed the ephemeral spike to track underlying cost-push inflation. Both indexes deliver actionable forward intelligence weeks ahead of traditional MoSPI manual reporting.
             </p>
