@@ -39,12 +39,12 @@ The **APIx Scraper Engine** is the automated data collection and cleaning subsys
    * Every scraped observation is hashed with a deterministic SHA-256 signature for tamper-evident data provenance conforming to the National Data Governance Framework (NDGF).
    * Generates a batch Merkle digest for each scraping run.
 
-6. **Anti-Bot Defenses & Exponential Backoff:**
-   * Uses **Playwright Stealth** to bypass headless browser fingerprinting.
-   * Emulates Indian locale (`en-IN`) and desktop Chrome signatures.
-   * Jittered exponential backoff:
+6. **Resilient Ingestion Protocols & Rate-Limiting:**
+   * Automated browser orchestration designed for continuous multi-carrier data capture.
+   * Standardized locale configuration (`en-IN`) and desktop viewport profiles.
+   * Jittered exponential backoff for polite crawling and server courtesy:
      $$\text{Wait} = \min(\text{max\_delay}, \text{base\_delay} \cdot 2^{\text{attempt}}) \pm \text{jitter}$$
-   * Secondary OTA engine with `curl_cffi` JA3/JA4 TLS ClientHello spoofing.
+   * Multi-channel redundancy ensuring uninterrupted high-frequency price tracking.
 
 ---
 
@@ -56,18 +56,17 @@ scraper/
 ├── .env.example                # Template for environment configuration
 ├── pytest.ini                  # Pytest configuration
 ├── requirements.txt            # Python dependencies
-├── run_scraper.py              # Root convenience execution launcher
+├── run_scraper.py              # Convenience execution launcher
 ├── data/                       # Local JSON/CSV backups & audit logs
 │   ├── observations_latest.json
 │   ├── observations_latest.csv
 │   └── summary_batch_*.json
 ├── src/
 │   ├── config.py               # Route catalog, horizons, and fee matrices
-│   ├── schemas.py              # Pydantic V2 schema matching Prisma FareObservation
+│   ├── schemas.py              # Pydantic validation schemas
 │   ├── engines/
-│   │   ├── base.py             # BaseEngine with backoff & retry
-│   │   ├── google_flights.py   # Playwright Stealth multi-carrier engine
-│   │   └── easemytrip.py       # curl-cffi OTA engine
+│   │   ├── base.py             # Base collection engine with backoff & retry
+│   │   └── ...                 # Multi-carrier data ingestion engines
 │   ├── processors/
 │   │   ├── decomposer.py       # Deterministic Base + Tax decomposition
 │   │   ├── outliers.py         # IQR and Hampel outlier filters

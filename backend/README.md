@@ -27,13 +27,13 @@ npm install
 ```
 
 ### 2. Environment Configuration
-Copy `.env.example` to `.env` and set your PostgreSQL / NeonDB connection string:
+Copy `.env.example` to `.env` and set your PostgreSQL connection string:
 ```bash
 cp .env.example .env
 ```
 In `.env`:
 ```env
-DATABASE_URL="postgresql://username:password@ep-host.neon.tech/neondb?sslmode=require"
+DATABASE_URL="postgresql://username:password@localhost:5432/apix_db?sslmode=require"
 PORT=5000
 ```
 
