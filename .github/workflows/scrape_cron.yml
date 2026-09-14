@@ -33,7 +33,7 @@ jobs:
 
       - name: Run APIx Scraper Engine (Top 15 Core Corridors, 45-Day Basket)
         env:
-          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL || 'http://localhost:5000' }}
+          BACKEND_API_URL: ${{ secrets.BACKEND_API_URL || 'https://apix-tracker.onrender.com' }}
           INGEST_SECRET: ${{ secrets.INGEST_SECRET || 'apix_secret_token_sih2026' }}
           SCRAPER_PORTAL: 'google_flights'
           SCRAPER_CONCURRENCY: '3'

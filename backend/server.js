@@ -30,6 +30,17 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Request logging middleware for Render & local terminal observability
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.originalUrl} - ${res.statusCode} (${duration}ms)`);
+  });
+  next();
+});
+
 // API Routes (supporting both /api/v1 and /api prefixes)
 app.use(['/api/v1/analytics', '/api/analytics'], analyticsRoutes);
 app.use(['/api/v1/routes', '/api/routes'], routesRoutes);

@@ -233,6 +233,7 @@ const getRecentLogs = async (req, res) => {
 /**
  * Ingestion Endpoint: POST /api/v1/logs/ingest
  * Receives validated scrape batches from Python Playwright / curl-cffi engines.
+ * Optimized with bulk master caching and Prisma createMany for sub-second execution.
  */
 const ingestObservations = async (req, res) => {
   try {
@@ -245,163 +246,203 @@ const ingestObservations = async (req, res) => {
 
     const { observations = [], summary = {} } = req.body;
 
+    console.log(`[Ingestion API] 📥 Received batch of ${observations.length} observations from ${summary.source_portal || 'SCRAPER'} (Batch: ${summary.batch_id || 'N/A'})`);
+
     if (!Array.isArray(observations) || observations.length === 0) {
       return res.status(400).json({ error: 'No observations provided in batch payload' });
     }
 
     // Always update in-memory buffer with freshest batch for instant frontend reactivity
-    inMemoryObservationsBuffer = [...observations, ...inMemoryObservationsBuffer].slice(0, 200);
+    inMemoryObservationsBuffer = [...observations, ...inMemoryObservationsBuffer].slice(0, 500);
 
     let dbSavedCount = 0;
     const routeHorizonGroups = {};
 
-    // Persist to PostgreSQL via Prisma
-    try {
-      if (prisma && prisma.fareObservation) {
+    // Persist to PostgreSQL via Prisma with high-efficiency bulk operations
+    if (prisma && prisma.fareObservation) {
+      try {
+        // 1. Bulk Upsert Master Airports
+        const airportCodes = new Set();
         for (const obs of observations) {
-          const [origin, destination] = (obs.route_code || 'DEL-BOM').split('-');
+          const [orig, dest] = (obs.route_code || 'DEL-BOM').split('-');
+          if (orig) airportCodes.add(orig.trim().toUpperCase());
+          if (dest) airportCodes.add(dest.trim().toUpperCase());
+        }
 
-          // 1. Ensure Origin & Destination Airports exist
-          await prisma.airport.upsert({
-            where: { iataCode: origin },
-            update: {},
-            create: {
-              iataCode: origin,
-              city: origin,
-              airportName: `${origin} Airport`,
-              state: 'India',
-            },
-          });
-          await prisma.airport.upsert({
-            where: { iataCode: destination },
-            update: {},
-            create: {
-              iataCode: destination,
-              city: destination,
-              airportName: `${destination} Airport`,
-              state: 'India',
-            },
-          });
+        await Promise.all(
+          Array.from(airportCodes).map((code) =>
+            prisma.airport.upsert({
+              where: { iataCode: code },
+              update: {},
+              create: {
+                iataCode: code,
+                city: code,
+                airportName: `${code} Airport`,
+                state: 'India',
+              },
+            })
+          )
+        );
 
-          // 2. Ensure Route exists
-          const route = await prisma.route.upsert({
-            where: { routeCode: obs.route_code },
-            update: {},
-            create: {
-              routeCode: obs.route_code,
-              originCode: origin,
-              destinationCode: destination,
-              dgcaWeight: 0.05,
-              distanceKm: 1100,
-            },
-          });
+        // 2. Bulk Upsert Master Airlines & Map IDs
+        const airlineEntries = new Map();
+        for (const obs of observations) {
+          const code = (obs.airline_code || '6E').trim().toUpperCase();
+          const name = obs.airline_name || 'Carrier';
+          airlineEntries.set(code, name);
+        }
 
-          // 3. Ensure Airline exists
-          const airline = await prisma.airline.upsert({
-            where: { code: obs.airline_code || '6E' },
-            update: {},
-            create: {
-              code: obs.airline_code || '6E',
-              name: obs.airline_name || 'Carrier',
-            },
-          });
+        const resolvedAirlines = await Promise.all(
+          Array.from(airlineEntries.entries()).map(([code, name]) =>
+            prisma.airline.upsert({
+              where: { code },
+              update: { name },
+              create: { code, name },
+            })
+          )
+        );
+        const airlineIdMap = {};
+        resolvedAirlines.forEach((a) => {
+          airlineIdMap[a.code] = a.id;
+        });
 
-          // 4. Upsert Fare Observation (deduplicated by sha256Hash)
-          await prisma.fareObservation.upsert({
-            where: { sha256Hash: obs.sha256_hash },
-            update: {},
-            create: {
-              routeId: route.id,
-              airlineId: airline.id,
-              flightNumber: obs.flight_number,
-              departureDate: new Date(obs.departure_date),
-              advanceWindow: obs.advance_window,
-              baseFare: obs.base_fare,
-              fuelSurcharge: obs.fuel_surcharge,
-              airportTaxUDF: obs.airport_tax_udf,
-              taxGST: obs.tax_gst,
-              totalFare: obs.total_fare,
-              isOutlier: obs.is_outlier || false,
-              provenanceStatus: obs.provenance_status || 'CLEANED',
-              sha256Hash: obs.sha256_hash,
-            },
-          });
-          dbSavedCount++;
+        // 3. Bulk Upsert Master Routes & Map IDs
+        const routeCodes = Array.from(new Set(observations.map((obs) => obs.route_code || 'DEL-BOM')));
+        const resolvedRoutes = await Promise.all(
+          routeCodes.map((rc) => {
+            const [orig, dest] = rc.split('-');
+            return prisma.route.upsert({
+              where: { routeCode: rc },
+              update: {},
+              create: {
+                routeCode: rc,
+                originCode: orig || 'DEL',
+                destinationCode: dest || 'BOM',
+                dgcaWeight: 0.05,
+                distanceKm: 1100,
+              },
+            });
+          })
+        );
+        const routeIdMap = {};
+        resolvedRoutes.forEach((r) => {
+          routeIdMap[r.routeCode] = r.id;
+        });
+
+        // 4. Bulk Insert Fare Observations via createMany (skipDuplicates prevents duplicates on sha256Hash)
+        const defaultAirlineId = resolvedAirlines[0] ? resolvedAirlines[0].id : 1;
+        const defaultRouteId = resolvedRoutes[0] ? resolvedRoutes[0].id : 1;
+
+        const observationRecords = observations.map((obs) => {
+          const rId = routeIdMap[obs.route_code] || defaultRouteId;
+          const aId = airlineIdMap[obs.airline_code] || defaultAirlineId;
 
           // Group for elementary Jevons index calculation
-          const groupKey = `${route.id}__${obs.advance_window}`;
+          const groupKey = `${rId}__${obs.advance_window}`;
           if (!routeHorizonGroups[groupKey]) {
             routeHorizonGroups[groupKey] = {
-              routeId: route.id,
+              routeId: rId,
               advanceWindow: obs.advance_window,
               fares: [],
             };
           }
-          if (!obs.is_outlier) {
+          if (!obs.is_outlier && obs.base_fare > 0) {
             routeHorizonGroups[groupKey].fares.push(obs.base_fare);
           }
-        }
+
+          return {
+            routeId: rId,
+            airlineId: aId,
+            flightNumber: obs.flight_number || 'DEFAULT',
+            departureDate: new Date(obs.departure_date),
+            advanceWindow: obs.advance_window,
+            baseFare: obs.base_fare,
+            fuelSurcharge: obs.fuel_surcharge || 0,
+            airportTaxUDF: obs.airport_tax_udf || 0,
+            taxGST: obs.tax_gst || 0,
+            totalFare: obs.total_fare,
+            isOutlier: obs.is_outlier || false,
+            provenanceStatus: obs.provenance_status || 'CLEANED',
+            sha256Hash: obs.sha256_hash,
+            timestamp: obs.timestamp ? new Date(obs.timestamp) : new Date(),
+          };
+        });
+
+        const insertResult = await prisma.fareObservation.createMany({
+          data: observationRecords,
+          skipDuplicates: true,
+        });
+        dbSavedCount = insertResult.count;
+        console.log(`[Ingestion] Successfully bulk-inserted ${dbSavedCount} observations into Neon DB.`);
 
         // 5. Compute & Upsert Elementary Jevons Route Micro-Index (DailyRouteIndex)
         if (prisma.dailyRouteIndex) {
-          const todayDate = new Date();
-          todayDate.setHours(0, 0, 0, 0);
+          try {
+            const todayUtc = new Date(new Date().toISOString().split('T')[0]);
 
-          for (const group of Object.values(routeHorizonGroups)) {
-            if (group.fares.length > 0) {
-              const jevonsVal = computeJevonsGeometricMean(group.fares);
-              const avgBase = group.fares.reduce((a, b) => a + b, 0) / group.fares.length;
-              const minF = Math.min(...group.fares);
-              const maxF = Math.max(...group.fares);
+            for (const group of Object.values(routeHorizonGroups)) {
+              if (group.fares.length > 0) {
+                const jevonsVal = computeJevonsGeometricMean(group.fares);
+                const avgBase = group.fares.reduce((a, b) => a + b, 0) / group.fares.length;
+                const minF = Math.min(...group.fares);
+                const maxF = Math.max(...group.fares);
 
-              await prisma.dailyRouteIndex.upsert({
-                where: {
-                  date_routeId_advanceWindow: {
-                    date: todayDate,
+                await prisma.dailyRouteIndex.upsert({
+                  where: {
+                    date_routeId_advanceWindow: {
+                      date: todayUtc,
+                      routeId: group.routeId,
+                      advanceWindow: group.advanceWindow,
+                    },
+                  },
+                  update: {
+                    jevonsIndexValue: jevonsVal,
+                    sampleCount: group.fares.length,
+                    avgBaseFare: avgBase,
+                    minFare: minF,
+                    maxFare: maxF,
+                  },
+                  create: {
+                    date: todayUtc,
                     routeId: group.routeId,
                     advanceWindow: group.advanceWindow,
+                    jevonsIndexValue: jevonsVal,
+                    sampleCount: group.fares.length,
+                    avgBaseFare: avgBase,
+                    minFare: minF,
+                    maxFare: maxF,
                   },
-                },
-                update: {
-                  jevonsIndexValue: jevonsVal,
-                  sampleCount: group.fares.length,
-                  avgBaseFare: avgBase,
-                  minFare: minF,
-                  maxFare: maxF,
-                },
-                create: {
-                  date: todayDate,
-                  routeId: group.routeId,
-                  advanceWindow: group.advanceWindow,
-                  jevonsIndexValue: jevonsVal,
-                  sampleCount: group.fares.length,
-                  avgBaseFare: avgBase,
-                  minFare: minF,
-                  maxFare: maxF,
-                },
-              });
+                });
+              }
             }
+          } catch (indexError) {
+            console.warn('[Ingestion] Non-fatal: DailyRouteIndex update skipped:', indexError.message);
           }
         }
 
         // 6. Record Scraper Run Log
         if (prisma.scraperRunLog) {
-          await prisma.scraperRunLog.create({
-            data: {
-              runStartedAt: new Date(summary.run_started_at || Date.now()),
-              runFinishedAt: new Date(summary.run_finished_at || Date.now()),
-              status: summary.status || 'SUCCESS',
-              totalScraped: summary.total_scraped || observations.length,
-              validRecords: summary.valid_records || observations.length,
-              outliersFiltered: summary.outliers_filtered || 0,
-              batchSha256: summary.batch_sha256,
-              sourcePortal: summary.source_portal || 'GOOGLE_FLIGHTS',
-            },
-          });
+          try {
+            await prisma.scraperRunLog.create({
+              data: {
+                runStartedAt: new Date(summary.run_started_at || Date.now()),
+                runFinishedAt: new Date(summary.run_finished_at || Date.now()),
+                status: summary.status || 'SUCCESS',
+                totalScraped: summary.total_scraped || observations.length,
+                validRecords: summary.valid_records || observations.length,
+                outliersFiltered: summary.outliers_filtered || 0,
+                batchSha256: summary.batch_sha256 || null,
+                sourcePortal: summary.source_portal || 'GOOGLE_FLIGHTS',
+              },
+            });
+            console.log(`[Ingestion] Scraper run log successfully recorded.`);
+          } catch (logError) {
+            console.warn('[Ingestion] Non-fatal: ScraperRunLog record skipped:', logError.message);
+          }
         }
+      } catch (dbError) {
+        console.error('[Ingestion] Database bulk insertion error:', dbError.message);
       }
-    } catch (dbError) {
-      console.warn('Database write bypassed (in-memory mode active):', dbError.message);
     }
 
     return res.status(200).json({
@@ -486,9 +527,20 @@ const verifyHash = async (req, res) => {
     const effectiveTotalFare = totalFare || (recordData && recordData.totalFare);
 
     if (effectiveRoute && effectiveCarrier && effectiveHorizon && effectiveTotalFare) {
-      const inputStr = `${effectiveRoute}-${effectiveCarrier}-${effectiveFlightNo}-${effectiveHorizon}-${effectiveTotalFare}-${timestamp || ''}`;
-      const computed = crypto.createHash('sha256').update(inputStr).digest('hex');
-      const matches = computed.toLowerCase() === targetHash.toLowerCase();
+      // 1. Try exact format matching scraper/src/processors/crypto.py:
+      // route_code|airline_code|flight_number|departure_date|advance_window|base_fare|total_fare|timestamp
+      const effectiveDepDate = (recordData && recordData.departureDate) || '';
+      const effectiveBaseFare = Number((recordData && recordData.baseFare) || 0).toFixed(2);
+      const effectiveTotal = Number(effectiveTotalFare).toFixed(2);
+      const pipeStr = `${effectiveRoute}|${effectiveCarrier}|${effectiveFlightNo}|${effectiveDepDate}|${effectiveHorizon}|${effectiveBaseFare}|${effectiveTotal}|${timestamp || ''}`;
+      const pipeHash = crypto.createHash('sha256').update(pipeStr).digest('hex');
+
+      // 2. Try legacy hyphen format fallback:
+      const hyphenStr = `${effectiveRoute}-${effectiveCarrier}-${effectiveFlightNo}-${effectiveHorizon}-${effectiveTotalFare}-${timestamp || ''}`;
+      const hyphenHash = crypto.createHash('sha256').update(hyphenStr).digest('hex');
+
+      const matches = pipeHash.toLowerCase() === targetHash.toLowerCase() || hyphenHash.toLowerCase() === targetHash.toLowerCase();
+      const finalHash = matches && pipeHash.toLowerCase() === targetHash.toLowerCase() ? pipeHash : hyphenHash;
 
       return res.status(200).json({
         success: true,
@@ -496,8 +548,8 @@ const verifyHash = async (req, res) => {
         isValid: matches,
         recordId: recordId || null,
         providedHash: targetHash,
-        calculatedHash: computed,
-        recomputedHash: computed,
+        calculatedHash: finalHash,
+        recomputedHash: finalHash,
         message: matches
           ? 'Cryptographic SHA-256 seal verified and immutable'
           : 'Tamper detected: SHA-256 checksum mismatch',
@@ -530,9 +582,97 @@ const verifyHash = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/v1/logs/runs
+ * Returns recent automated scraper execution runs from ScraperRunLog.
+ * Protected: Requires valid x-ingest-token or ?token query param to prevent unauthorized DoS.
+ */
+const getScraperRuns = async (req, res) => {
+  try {
+    const expectedSecret = process.env.INGEST_SECRET || 'apix_secret_token_sih2026';
+    const authHeader = req.headers['authorization'];
+    const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    const providedSecret = req.headers['x-ingest-token'] || bearerToken || req.query.token;
+
+    if (!providedSecret || providedSecret !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized: valid admin/ingestion secret required to view run logs' });
+    }
+
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    if (prisma && prisma.scraperRunLog) {
+      const runs = await prisma.scraperRunLog.findMany({
+        take: limit,
+        orderBy: { runStartedAt: 'desc' },
+      });
+      return res.status(200).json({
+        success: true,
+        count: runs.length,
+        data: runs,
+      });
+    }
+    return res.status(200).json({ success: true, count: 0, data: [] });
+  } catch (error) {
+    console.error('Error in getScraperRuns:', error.message);
+    return res.status(500).json({ error: 'Failed to fetch scraper run logs' });
+  }
+};
+
+/**
+ * POST /api/v1/logs/clear
+ * Clears volatile scraping data: FareObservation, ScraperRunLog, DailyRouteIndex.
+ * Preserves master tables: Airport, Airline, Route, MacroDailyIndex.
+ * Protected by x-ingest-token.
+ */
+const clearDatabaseObservations = async (req, res) => {
+  try {
+    const expectedSecret = process.env.INGEST_SECRET || 'apix_secret_token_sih2026';
+    const providedSecret = req.headers['x-ingest-token'] || req.query.secret;
+
+    if (providedSecret !== expectedSecret) {
+      return res.status(401).json({ error: 'Unauthorized: invalid admin secret token' });
+    }
+
+    let deletedObs = 0;
+    let deletedLogs = 0;
+    let deletedIndices = 0;
+
+    if (prisma) {
+      if (prisma.fareObservation) {
+        const resObs = await prisma.fareObservation.deleteMany({});
+        deletedObs = resObs.count;
+      }
+      if (prisma.dailyRouteIndex) {
+        const resIdx = await prisma.dailyRouteIndex.deleteMany({});
+        deletedIndices = resIdx.count;
+      }
+      if (prisma.scraperRunLog) {
+        const resLogs = await prisma.scraperRunLog.deleteMany({});
+        deletedLogs = resLogs.count;
+      }
+    }
+
+    inMemoryObservationsBuffer = [];
+
+    return res.status(200).json({
+      success: true,
+      message: 'Database observations, daily route indices, and scraper logs cleared successfully',
+      deleted: {
+        fareObservations: deletedObs,
+        dailyRouteIndices: deletedIndices,
+        scraperRunLogs: deletedLogs,
+      },
+    });
+  } catch (error) {
+    console.error('Error in clearDatabaseObservations:', error.message);
+    return res.status(500).json({ error: 'Failed to clear database records' });
+  }
+};
+
 module.exports = {
   getRecentLogs,
   ingestObservations,
   getTelemetry,
   verifyHash,
+  getScraperRuns,
+  clearDatabaseObservations,
 };
