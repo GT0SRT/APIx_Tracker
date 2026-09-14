@@ -190,3 +190,18 @@ export interface PaginatedResult<T> {
   limit: number
   totalPages: number
 }
+
+export interface ExecutiveReportData {
+  currentDate?: string
+  headlineApix?: number | string
+  coreTrimmedApix?: number | string
+  averageFare?: number | string
+  momChangePercent?: number | string
+  totalQuotes?: number | string
+  monitoredRoutes?: number | string
+  isLive?: boolean
+}
+
+export interface ExecutiveReportModalProps extends ExecutiveReportData {
+  onClose: () => void
+}

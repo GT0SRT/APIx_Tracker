@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import type { TabType } from './types/apix'
+import type { TabType, ExecutiveReportData } from './types/apix'
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
 import { OverviewView } from './components/views/OverviewView'
@@ -10,7 +10,7 @@ import { AiHubView } from './components/views/AiHubView'
 import { IngestionAuditView } from './components/views/IngestionAuditView'
 import { MethodologyView } from './components/views/MethodologyView'
 import { HelpSupportView } from './components/views/HelpSupportView'
-import { OneClickReportModal } from './components/reports/OneClickReportModal'
+import { ExecutiveReportModal } from './components/reports/ExecutiveReportModal'
 import { FloatingChatBot } from './components/ai/FloatingChatBot'
 
 export default function App() {
@@ -20,6 +20,12 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
+  const [reportModalData, setReportModalData] = useState<ExecutiveReportData | undefined>(undefined)
+
+  const handleOpenReportModal = (data?: ExecutiveReportData) => {
+    setReportModalData(data)
+    setShowReportModal(true)
+  }
 
   // Derive active tab from current URL pathname
   const activeTab = useMemo<TabType>(() => {
@@ -70,7 +76,7 @@ export default function App() {
             element={
               <OverviewView
                 onNavigateToTab={handleTabChange}
-                onOpenReportModal={() => setShowReportModal(true)}
+                onOpenReportModal={handleOpenReportModal}
               />
             }
           />
@@ -89,7 +95,7 @@ export default function App() {
           <Route path="/methodology" element={<MethodologyView />} />
           <Route
             path="/help-support"
-            element={<HelpSupportView onOpenReportModal={() => setShowReportModal(true)} />}
+            element={<HelpSupportView onOpenReportModal={() => handleOpenReportModal()} />}
           />
           <Route path="/help" element={<Navigate to="/help-support" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
@@ -98,7 +104,10 @@ export default function App() {
 
       {/* One-Click Executive Report Modal */}
       {showReportModal && (
-        <OneClickReportModal onClose={() => setShowReportModal(false)} />
+        <ExecutiveReportModal
+          onClose={() => setShowReportModal(false)}
+          {...reportModalData}
+        />
       )}
 
       {/* Floating AI Statistical Copilot Assistant */}
