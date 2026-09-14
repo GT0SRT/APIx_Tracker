@@ -101,7 +101,7 @@ export function MethodologyView() {
 
   const { data: jevonsRes } = useJevonsCarliQuery()
   const methodologyData = jevonsRes?.data || null
-  const isLiveBackend = Boolean(jevonsRes?.isLive)
+  const isLiveBackend = Boolean(jevonsRes?.isLive && !jevonsRes?.isDemoData)
 
   const paginatedAggregates = useMemo(() => {
     const list = methodologyData?.elementaryAggregates || []
@@ -288,11 +288,11 @@ export function MethodologyView() {
             className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
               isLiveBackend
                 ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'bg-slate-100 text-slate-600 border-slate-200'
+                : 'bg-amber-50 text-amber-800 border-amber-300'
             }`}
           >
-            <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-            {isLiveBackend ? 'Calculation Engine: Live' : 'Calculation Engine: Calibrated'}
+            <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+            {isLiveBackend ? 'Calculation Engine: Live DB' : 'Calculation Engine: Demo Data'}
           </span>
         </div>
 

@@ -90,11 +90,19 @@ const mockTelemetry: PipelineTelemetry = {
   ],
 }
 
+export interface ApiResponse<T> {
+  data: T
+  isLive: boolean
+  dataSource: 'live' | 'mock'
+  isDemoData: boolean
+  message?: string
+}
+
 async function safeFetch<T>(
   endpoint: string,
   fallback: T,
   options?: RequestInit
-): Promise<{ data: T; isLive: boolean }> {
+): Promise<ApiResponse<T>> {
   try {
     const controller = new AbortController()
     const id = setTimeout(() => controller.abort(), 8000)
@@ -108,12 +116,29 @@ async function safeFetch<T>(
     })
     clearTimeout(id)
     if (!res.ok) {
-      return { data: fallback, isLive: false }
+      return { data: fallback, isLive: false, dataSource: 'mock', isDemoData: true }
     }
     const json = await res.json()
-    return { data: (json.data ?? json) as T, isLive: true }
+    const rawIsLive = json.isLive !== undefined ? json.isLive : json.data?.isLive
+    const rawDataSource = json.dataSource || json.data?.dataSource
+    const isLive = rawIsLive !== undefined ? Boolean(rawIsLive) : rawDataSource === 'mock' ? false : true
+    const dataSource: 'live' | 'mock' = (rawDataSource || (isLive ? 'live' : 'mock')) as 'live' | 'mock'
+    const isDemoData = json.isDemoData !== undefined
+      ? Boolean(json.isDemoData)
+      : json.data?.isDemoData !== undefined
+        ? Boolean(json.data.isDemoData)
+        : !isLive
+    const message = json.message || json.data?.message
+
+    return {
+      data: (json.data ?? json) as T,
+      isLive,
+      dataSource,
+      isDemoData,
+      message,
+    }
   } catch {
-    return { data: fallback, isLive: false }
+    return { data: fallback, isLive: false, dataSource: 'mock', isDemoData: true }
   }
 }
 
@@ -133,7 +158,7 @@ export async function checkBackendHealth(): Promise<boolean> {
 }
 
 /** High-level KPI summary cards */
-export async function fetchSummary(route?: string, airline?: string): Promise<{ data: SystemSummary; isLive: boolean }> {
+export async function fetchSummary(route?: string, airline?: string): Promise<ApiResponse<SystemSummary>> {
   const query = new URLSearchParams()
   if (route) query.set('route', route)
   if (airline) query.set('airline', airline)
@@ -142,23 +167,28 @@ export async function fetchSummary(route?: string, airline?: string): Promise<{ 
 }
 
 /** Deterministic Fare Decomposition */
-export async function fetchFareDecomposition(): Promise<{ data: FareComponent[]; isLive: boolean }> {
+export async function fetchFareDecomposition(): Promise<ApiResponse<FareComponent[]>> {
   return safeFetch<FareComponent[]>('/analytics/fare-decomposition', mockFareBreakdown)
 }
 
 /** 30-Day Index Trend series */
-export async function fetchTrendSeries(horizon: string = '30d'): Promise<{ data: TrendPoint[]; isLive: boolean }> {
+export async function fetchTrendSeries(horizon: string = '30d'): Promise<ApiResponse<TrendPoint[]>> {
   return safeFetch<TrendPoint[]>(`/analytics/trend?horizon=${horizon}`, mockTrendData)
 }
 
+/** Lead-Time Series Comparison */
+export async function fetchSeriesComparison(baseYear: string = '2024'): Promise<ApiResponse<any[]>> {
+  return safeFetch<any[]>(`/analytics/series?baseYear=${baseYear}`, [])
+}
+
 /** Elasticity Lead Times */
-export async function fetchElasticity(route?: string): Promise<{ data: ElasticityPoint[]; isLive: boolean }> {
+export async function fetchElasticity(route?: string): Promise<ApiResponse<ElasticityPoint[]>> {
   const q = route ? `?route=${route}` : ''
   return safeFetch<ElasticityPoint[]>(`/analytics/elasticity${q}`, mockElasticityData)
 }
 
 /** DGCA Monitored Corridors */
-export async function fetchRoutes(): Promise<{ data: RouteTrafficWeight[]; isLive: boolean }> {
+export async function fetchRoutes(): Promise<ApiResponse<RouteTrafficWeight[]>> {
   const result = await safeFetch<any>('/routes', mockDgcaRoutesData)
   const rawList = Array.isArray(result.data)
     ? result.data
@@ -197,7 +227,13 @@ export async function fetchRoutes(): Promise<{ data: RouteTrafficWeight[]; isLiv
     }
   })
 
-  return { data: normalized, isLive: result.isLive }
+  return {
+    data: normalized,
+    isLive: result.isLive,
+    dataSource: result.dataSource,
+    isDemoData: result.isDemoData,
+    message: result.message,
+  }
 }
 
 /** Fetch Paginated Audit Trail / Scraping Logs */
@@ -211,6 +247,9 @@ export async function fetchLogs(
   limit: number
   totalPages: number
   isLive: boolean
+  dataSource: 'live' | 'mock'
+  isDemoData: boolean
+  message?: string
 }> {
   try {
     const controller = new AbortController()
@@ -223,6 +262,11 @@ export async function fetchLogs(
     if (!res.ok) throw new Error()
     const json = await res.json()
     const quotes = json.quotes || []
+    const isLive = json.isLive !== undefined ? Boolean(json.isLive) : quotes.length > 0
+    const dataSource: 'live' | 'mock' = (json.dataSource || (isLive ? 'live' : 'mock')) as 'live' | 'mock'
+    const isDemoData = json.isDemoData !== undefined ? Boolean(json.isDemoData) : !isLive
+    const message = json.message
+
     if (quotes.length > 0) {
       const records: ScrapedFareRecord[] = quotes.map((q: any) => {
         const route = q.route || 'DEL-BOM'
@@ -255,7 +299,10 @@ export async function fetchLogs(
         page: Number(json.page || page),
         limit: Number(json.limit || limit),
         totalPages: Number(json.totalPages || Math.ceil(total / limit)),
-        isLive: true,
+        isLive,
+        dataSource,
+        isDemoData,
+        message,
       }
     }
   } catch {}
@@ -267,6 +314,9 @@ export async function fetchLogs(
     limit,
     totalPages: 1,
     isLive: false,
+    dataSource: 'mock',
+    isDemoData: true,
+    message: 'Demo audit trail: Database empty or service offline',
   }
 }
 
@@ -275,6 +325,9 @@ export async function fetchRouteParity(): Promise<{
   data: AirlineParityItem[]
   hhiBenchmark?: any
   isLive: boolean
+  dataSource: 'live' | 'mock'
+  isDemoData: boolean
+  message?: string
 }> {
   try {
     const controller = new AbortController()
@@ -283,29 +336,35 @@ export async function fetchRouteParity(): Promise<{
     clearTimeout(id)
     if (!res.ok) throw new Error()
     const json = await res.json()
-    const parityData = json.data?.parityAnalysis || json.parityAnalysis || mockRouteParityData
+    const parityData = json.data?.parityAnalysis || json.parityAnalysis || (Array.isArray(json.data) ? json.data : mockRouteParityData)
+    const isLive = json.isLive !== undefined ? Boolean(json.isLive) : true
+    const dataSource: 'live' | 'mock' = (json.dataSource || (isLive ? 'live' : 'mock')) as 'live' | 'mock'
+    const isDemoData = json.isDemoData !== undefined ? Boolean(json.isDemoData) : !isLive
     return {
       data: parityData,
       hhiBenchmark: json.data?.hhiBenchmark || json.hhiBenchmark,
-      isLive: true,
+      isLive,
+      dataSource,
+      isDemoData,
+      message: json.message,
     }
   } catch {
-    return { data: mockRouteParityData, isLive: false }
+    return { data: mockRouteParityData, isLive: false, dataSource: 'mock', isDemoData: true }
   }
 }
 
 /** Jevons vs. Carli Elementary Index Analysis */
-export async function fetchJevonsCarli(): Promise<{ data: MethodologyComparison; isLive: boolean }> {
+export async function fetchJevonsCarli(): Promise<ApiResponse<MethodologyComparison>> {
   return safeFetch<MethodologyComparison>('/methodology/jevons-carli', mockMethodology)
 }
 
 /** Modified Laspeyres Macro Index Analysis */
-export async function fetchLaspeyres(): Promise<{ data: LaspeyresMacroData; isLive: boolean }> {
+export async function fetchLaspeyres(): Promise<ApiResponse<LaspeyresMacroData>> {
   return safeFetch<LaspeyresMacroData>('/methodology/laspeyres', mockLaspeyres)
 }
 
 /** Scraping Pipeline Telemetry & Worker Cluster */
-export async function fetchTelemetry(): Promise<{ data: PipelineTelemetry; isLive: boolean }> {
+export async function fetchTelemetry(): Promise<ApiResponse<PipelineTelemetry>> {
   return safeFetch<PipelineTelemetry>('/logs/telemetry', mockTelemetry)
 }
 

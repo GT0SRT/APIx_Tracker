@@ -76,6 +76,15 @@ export function RoutesHorizonsView() {
             <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-800 border border-orange-200">
               T+1 to T+45 Horizons
             </span>
+            {routesQuery.data?.isLive && !routesQuery.data?.isDemoData ? (
+              <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                Live Data
+              </span>
+            ) : (
+              <span className="rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                Demo Data
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Analyzing advance booking elasticity curves, DGCA passenger weights, and cross-airline pricing spreads
@@ -158,9 +167,20 @@ export function RoutesHorizonsView() {
       <Card className="p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="font-bold text-slate-900 text-base">
-              Constant-Horizon Price Curve (T+1 to T+45)
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-900 text-base">
+                Constant-Horizon Price Curve (T+1 to T+45)
+              </h3>
+              {elasticityQuery.data?.isLive && !elasticityQuery.data?.isDemoData ? (
+                <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  Live Data
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  Demo Data
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-xs text-slate-500">
               Synthetic basket tracking strictly defined fixed lead times to prevent sampling bias (ILO &amp; Eurostat standard)
             </p>
@@ -221,13 +241,22 @@ export function RoutesHorizonsView() {
       <Card className="overflow-hidden border border-slate-200">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-5">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-bold text-slate-900 text-base">
                 Cross-Airline Pricing Parity Analytics (CCI &amp; DGCA Module)
               </h3>
               <span className="rounded bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5">
                 Regulator Mode
               </span>
+              {parityQuery.data?.isLive && !parityQuery.data?.isDemoData ? (
+                <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                  Live Data
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                  Demo Data
+                </span>
+              )}
             </div>
             <p className="mt-1 text-xs text-slate-500">
               Detects cross-airline price variances up to 35% and potential route monopolies across scheduled carriers

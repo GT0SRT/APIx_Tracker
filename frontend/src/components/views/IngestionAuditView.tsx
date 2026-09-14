@@ -40,7 +40,7 @@ export function IngestionAuditView() {
   const totalRecords: number = logsQuery.data?.total || 0
   const isLoadingLogs = logsQuery.isLoading && liveLogs.length === 0
   const telemetry = telemetryQuery.data?.data || null
-  const isLiveBackend = logsQuery.data?.isLive || telemetryQuery.data?.isLive || false
+  const isLiveBackend = Boolean(logsQuery.data?.isLive && !logsQuery.data?.isDemoData)
 
   const filteredLogs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
@@ -100,11 +100,11 @@ export function IngestionAuditView() {
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
                 isLiveBackend
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-300'
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {isLiveBackend ? 'Status: Live Connected' : 'Status: Standalone Mode'}
+              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+              {isLiveBackend ? 'Status: Live Connected' : 'Status: Demo Audit Trail'}
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">

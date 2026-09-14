@@ -154,12 +154,21 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
         <Card className="p-5 border-l-4 border-l-blue-600">
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">National APIx</p>
                 <MetricInfo
                   align="left"
                   text="Composite Airfare Price Index calculated using the IMF-standard Jevons Geometric Mean across all domestic corridors (Base 2024=100)."
                 />
+                {summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData ? (
+                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                    Live
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                    Demo Data
+                  </span>
+                )}
               </div>
               <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                 {currentApixDisplay}
@@ -187,12 +196,21 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
         <Card className="p-5 border-l-4 border-l-indigo-600">
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Weighted Base Fare</p>
                 <MetricInfo
                   align="left"
                   text="Pure unbundled base airfare weighted by DGCA quarterly passenger traffic, stripping fuel surcharges, airport UDF fees, and voluntary baggage/seat add-ons."
                 />
+                {routesQuery.data?.isLive && !routesQuery.data?.isDemoData ? (
+                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                    Live
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                    Demo Data
+                  </span>
+                )}
               </div>
               <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
                 {nationalBaseFareDisplay}
@@ -309,11 +327,20 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
         <Card className="p-5">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-bold text-slate-900 text-base">30-Day National APIx Inflation Trend</h3>
                 <span className="rounded bg-blue-100 text-blue-700 text-[10px] font-bold px-1.5 py-0.5">
                   Macro Composite
                 </span>
+                {trendQuery.data?.isLive && !trendQuery.data?.isDemoData ? (
+                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                    Live Data
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                    Demo Data
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-xs text-slate-500">
                 Composite Headline vs Core Trimmed vs Baseline index trajectory across India
@@ -377,11 +404,20 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
         <Card className="p-5">
           <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-bold text-slate-900 text-base">National Lead-Time Elasticity Basket</h3>
                 <span className="rounded bg-orange-100 text-orange-800 text-[10px] font-bold px-1.5 py-0.5">
                   Constant Horizon
                 </span>
+                {elasticityQuery.data?.isLive && !elasticityQuery.data?.isDemoData ? (
+                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
+                    Live Data
+                  </span>
+                ) : (
+                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
+                    Demo Data
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-xs text-slate-500">
                 Average price curve across fixed lead times (T+1 to T+45), eliminating 200%–400% timing bias

@@ -45,3 +45,24 @@ def test_crypto_hash_determinism():
     assert h1 == h2
     assert h1 != h3
     assert len(h1) == 64
+
+
+def test_apply_outlier_filters():
+    obs = [
+        {"route_code": "DEL-BOM", "advance_window": "T+7", "base_fare": 5000.0, "total_fare": 6500.0, "is_outlier": False, "provenance_status": "CLEANED"},
+        {"route_code": "DEL-BOM", "advance_window": "T+7", "base_fare": 5100.0, "total_fare": 6600.0, "is_outlier": False, "provenance_status": "CLEANED"},
+        {"route_code": "DEL-BOM", "advance_window": "T+7", "base_fare": 4900.0, "total_fare": 6400.0, "is_outlier": False, "provenance_status": "CLEANED"},
+        {"route_code": "DEL-BOM", "advance_window": "T+7", "base_fare": 5200.0, "total_fare": 6700.0, "is_outlier": False, "provenance_status": "CLEANED"},
+        {"route_code": "DEL-BOM", "advance_window": "T+7", "base_fare": 45000.0, "total_fare": 52000.0, "is_outlier": False, "provenance_status": "CLEANED"},
+        {"route_code": "DEL-BLR", "advance_window": "T+1", "base_fare": 200.0, "total_fare": 400.0, "is_outlier": False, "provenance_status": "CLEANED"},
+    ]
+    filtered = apply_outlier_filters(obs)
+    # The 45000 spike should be flagged
+    assert filtered[4]["is_outlier"] is True
+    assert filtered[4]["provenance_status"] == "FLAGGED"
+    # The normal fares should not be flagged
+    assert filtered[0]["is_outlier"] is False
+    # The 200 base fare should be flagged by sanity bounds
+    assert filtered[5]["is_outlier"] is True
+    assert filtered[5]["provenance_status"] == "FLAGGED"
+

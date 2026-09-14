@@ -14,12 +14,14 @@ async function resetAndSeed() {
   console.log('🔄 [APIx Database Reset] Starting pristine database reset...');
 
   // 1. Wipe volatile scrape tables
-  console.log('🧹 Clearing FareObservation, DailyRouteIndex, and ScraperRunLog tables...');
+  console.log('🧹 Clearing FareObservation, DailyRouteIndex, MacroDailyIndex, and ScraperRunLog tables...');
   const obsDel = await prisma.fareObservation.deleteMany({});
   const idxDel = await prisma.dailyRouteIndex.deleteMany({});
+  const macroDel = await prisma.macroDailyIndex.deleteMany({});
   const logDel = await prisma.scraperRunLog.deleteMany({});
   console.log(`   - Deleted ${obsDel.count} FareObservations`);
   console.log(`   - Deleted ${idxDel.count} DailyRouteIndices`);
+  console.log(`   - Deleted ${macroDel.count} MacroDailyIndices`);
   console.log(`   - Deleted ${logDel.count} ScraperRunLogs`);
 
   // 2. Seed DGCA Airports

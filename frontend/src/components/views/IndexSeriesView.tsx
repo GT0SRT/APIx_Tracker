@@ -95,18 +95,29 @@ export function IndexSeriesView() {
   }, [seriesData, tablePage, tablePageSize])
 
 
+  const isLive = Boolean(trendRes?.isLive && !trendRes?.isDemoData && trendData.length > 0)
+
   return (
     <div className="space-y-6 p-4 md:p-8 flex-1">
       {/* Title & Subtitle */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
               APIx Time-Series &amp; Inflation Analysis
             </h2>
             <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-bold text-blue-700">
               Base 2024=100
             </span>
+            {isLive ? (
+              <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                Live Data
+              </span>
+            ) : (
+              <span className="rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-xs font-bold text-amber-800">
+                Demo Data
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
             Comparing high-frequency real-time index series vs. traditional 45-day survey reporting
@@ -216,9 +227,20 @@ export function IndexSeriesView() {
       <Card className="p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h3 className="font-bold text-slate-900 text-base">
-              Headline APIx vs. Core Trimmed APIx vs. MoSPI Official (45-Day Lag)
-            </h3>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-slate-900 text-base">
+                Headline APIx vs. Core Trimmed APIx vs. MoSPI Official (45-Day Lag)
+              </h3>
+              {isLive ? (
+                <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  Live Data
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  Demo Data
+                </span>
+              )}
+            </div>
             <p className="mt-1 text-xs text-slate-500">
               Highlighting how traditional manual collection completely misses dynamic pricing surge volatility
             </p>

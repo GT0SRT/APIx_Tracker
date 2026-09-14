@@ -76,98 +76,38 @@ async function main() {
     createdRoutes[r.routeCode] = route;
   }
 
-  // 4. Seed MacroDailyIndex (30-day historical time-series)
-  console.log('📈 Seeding MacroDailyIndex Series...');
-  const baseDate = new Date('2024-08-01');
-  const macroTrend = [
-    { dayOffset: 3, index: 135.4, baseline: 132.2 },
-    { dayOffset: 5, index: 136.8, baseline: 132.5 },
-    { dayOffset: 7, index: 137.1, baseline: 132.8 },
-    { dayOffset: 9, index: 139.5, baseline: 133.1 },
-    { dayOffset: 11, index: 138.7, baseline: 133.3 },
-    { dayOffset: 13, index: 140.8, baseline: 133.6 },
-    { dayOffset: 15, index: 139.9, baseline: 134.1 },
-    { dayOffset: 17, index: 141.2, baseline: 134.4 },
-    { dayOffset: 19, index: 142.5, baseline: 134.8 },
-  ];
-
-  for (const t of macroTrend) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() + t.dayOffset);
-
-    await prisma.macroDailyIndex.upsert({
-      where: { date },
-      update: { compositeIndex: t.index, baselineIndex: t.baseline },
-      create: {
-        date,
-        compositeIndex: t.index,
-        baselineIndex: t.baseline,
-        volatilityRating: 'High',
-        totalDataPoints: 145200,
-        momInflation: 2.4,
-        yoyInflation: 8.7,
-      },
-    });
-  }
-
-  // 5. Seed DailyRouteIndex for Lead-Time Elasticity (T+1 to T+45)
-  console.log('⏱️  Seeding Lead-Time Elasticity Horizons (T+1 to T+45)...');
-  const delBomRoute = createdRoutes['DEL-BOM'];
-  if (delBomRoute) {
-    const elasticityWindows = [
-      { window: 'T+1', avgFare: 8450, jevons: 154.2, sampleCount: 48 },
-      { window: 'T+7', avgFare: 6820, jevons: 142.5, sampleCount: 52 },
-      { window: 'T+15', avgFare: 5940, jevons: 136.1, sampleCount: 50 },
-      { window: 'T+30', avgFare: 5480, jevons: 131.4, sampleCount: 46 },
-      { window: 'T+45', avgFare: 5320, jevons: 129.8, sampleCount: 44 },
-    ];
-
-    const today = new Date('2024-08-20');
-    for (const w of elasticityWindows) {
-      await prisma.dailyRouteIndex.upsert({
-        where: {
-          date_routeId_advanceWindow: {
-            date: today,
-            routeId: delBomRoute.id,
-            advanceWindow: w.window,
-          },
-        },
-        update: { avgBaseFare: w.avgFare, jevonsIndexValue: w.jevons },
-        create: {
-          date: today,
-          routeId: delBomRoute.id,
-          advanceWindow: w.window,
-          jevonsIndexValue: w.jevons,
-          sampleCount: w.sampleCount,
-          avgBaseFare: w.avgFare,
-          minFare: w.avgFare * 0.85,
-          maxFare: w.avgFare * 1.35,
-        },
-      });
-    }
-  }
-
-  // 6. Seed Sample Fare Observations with SHA-256 Cryptographic Hashes
-  console.log('🔒 Seeding Verified Fare Observations (Audit Logs)...');
+  // 4. Seed Verified Sample Fare Observations with Cryptographic Hashes
+  console.log('🔒 Seeding Verified Sample Fare Observations (Audit Logs)...');
   const airlines = await prisma.airline.findMany();
   const airlineMap = {};
   airlines.forEach((a) => (airlineMap[a.name] = a.id));
 
   const sampleScrapes = [
     { route: 'DEL-BOM', airline: 'IndiGo', flightNo: '6E-204', window: 'T+7', base: 5420, fuel: 850, udf: 334, gst: 271 },
+    { route: 'DEL-BOM', airline: 'Air India', flightNo: 'AI-102', window: 'T+7', base: 5560, fuel: 850, udf: 334, gst: 278 },
+    { route: 'DEL-BOM', airline: 'Akasa Air', flightNo: 'QP-1102', window: 'T+1', base: 7920, fuel: 1100, udf: 462, gst: 396 },
+    { route: 'DEL-BOM', airline: 'IndiGo', flightNo: '6E-290', window: 'T+1', base: 8250, fuel: 1100, udf: 462, gst: 412 },
+    { route: 'DEL-BOM', airline: 'IndiGo', flightNo: '6E-188', window: 'T+15', base: 5120, fuel: 800, udf: 316, gst: 256 },
+    { route: 'DEL-BOM', airline: 'Air India', flightNo: 'AI-840', window: 'T+30', base: 4890, fuel: 740, udf: 300, gst: 245 },
+    { route: 'DEL-BOM', airline: 'IndiGo', flightNo: '6E-533', window: 'T+45', base: 4750, fuel: 740, udf: 300, gst: 238 },
     { route: 'DEL-BLR', airline: 'Air India', flightNo: 'AI-506', window: 'T+15', base: 6180, fuel: 920, udf: 376, gst: 309 },
-    { route: 'BOM-BLR', airline: 'Akasa Air', flightNo: 'QP-1102', window: 'T+1', base: 8920, fuel: 1100, udf: 462, gst: 446 },
-    { route: 'DEL-CCU', airline: 'IndiGo', flightNo: '6E-451', window: 'T+30', base: 4860, fuel: 740, udf: 300, gst: 243 },
-    { route: 'DEL-MAA', airline: 'Air India', flightNo: 'AI-440', window: 'T+45', base: 5120, fuel: 800, udf: 316, gst: 256 },
+    { route: 'DEL-BLR', airline: 'IndiGo', flightNo: '6E-712', window: 'T+7', base: 5890, fuel: 900, udf: 376, gst: 295 },
+    { route: 'BOM-BLR', airline: 'Akasa Air', flightNo: 'QP-1350', window: 'T+1', base: 6920, fuel: 950, udf: 350, gst: 346 },
+    { route: 'BOM-BLR', airline: 'IndiGo', flightNo: '6E-451', window: 'T+7', base: 4650, fuel: 750, udf: 300, gst: 233 },
+    { route: 'DEL-CCU', airline: 'IndiGo', flightNo: '6E-611', window: 'T+30', base: 4860, fuel: 740, udf: 300, gst: 243 },
+    { route: 'MAA-DEL', airline: 'Air India', flightNo: 'AI-440', window: 'T+45', base: 5120, fuel: 800, udf: 316, gst: 256 },
   ];
 
+  const routeFaresMap = {};
   for (const s of sampleScrapes) {
     const route = createdRoutes[s.route];
     const airlineId = airlineMap[s.airline] || airlines[0].id;
     const total = s.base + s.fuel + s.udf + s.gst;
     const timestamp = new Date('2024-08-20T06:00:00Z');
+    const depDate = '2024-08-27';
 
-    const hashInput = `${s.route}-${s.airline}-${s.flightNo}-${s.window}-${total}-${timestamp.toISOString()}`;
+    // Cryptographic hash format aligned with scraper/src/processors/crypto.py
+    const hashInput = `${s.route}|${s.airline}|${s.flightNo}|${depDate}|${s.window}|${s.base.toFixed(2)}|${total.toFixed(2)}|${timestamp.toISOString()}`;
     const sha256Hash = crypto.createHash('sha256').update(hashInput).digest('hex');
 
     const existing = await prisma.fareObservation.findUnique({
@@ -181,7 +121,7 @@ async function main() {
           routeId: route.id,
           airlineId,
           flightNumber: s.flightNo,
-          departureDate: new Date('2024-08-27'),
+          departureDate: new Date(depDate),
           advanceWindow: s.window,
           baseFare: s.base,
           fuelSurcharge: s.fuel,
@@ -194,7 +134,84 @@ async function main() {
         },
       });
     }
+
+    const key = `${s.route}__${s.window}`;
+    if (!routeFaresMap[key]) routeFaresMap[key] = [];
+    routeFaresMap[key].push(s.base);
   }
+
+  // 5. Compute and Seed DailyRouteIndex using REAL Jevons Geometric Mean
+  console.log('⏱️  Computing DailyRouteIndex via real Jevons Geometric Mean formula...');
+  const computeJevons = (fares) => {
+    if (!fares || fares.length === 0) return 0;
+    const sumLogs = fares.reduce((sum, f) => sum + Math.log(f), 0);
+    return Math.exp(sumLogs / fares.length);
+  };
+
+  const seedDate = new Date('2024-08-20');
+  const computedRouteIndices = [];
+
+  for (const [key, fares] of Object.entries(routeFaresMap)) {
+    const [routeCode, window] = key.split('__');
+    const route = createdRoutes[routeCode];
+    if (!route) continue;
+
+    const geomFare = computeJevons(fares);
+    const avgBase = fares.reduce((a, b) => a + b, 0) / fares.length;
+    // Base benchmark: ₹5,000 reference base fare
+    const referenceBaseFare = routeCode === 'DEL-BOM' ? 5200 : routeCode === 'DEL-BLR' ? 5800 : 4500;
+    const jevonsIndexValue = parseFloat(((geomFare / referenceBaseFare) * 100).toFixed(2));
+
+    await prisma.dailyRouteIndex.upsert({
+      where: {
+        date_routeId_advanceWindow: {
+          date: seedDate,
+          routeId: route.id,
+          advanceWindow: window,
+        },
+      },
+      update: { avgBaseFare: avgBase, jevonsIndexValue },
+      create: {
+        date: seedDate,
+        routeId: route.id,
+        advanceWindow: window,
+        jevonsIndexValue,
+        sampleCount: fares.length,
+        avgBaseFare: avgBase,
+        minFare: Math.min(...fares),
+        maxFare: Math.max(...fares),
+      },
+    });
+
+    computedRouteIndices.push({
+      weight: route.dgcaWeight,
+      index: jevonsIndexValue,
+    });
+  }
+
+  // 6. Compute and Seed MacroDailyIndex using REAL Modified Laspeyres formula
+  console.log('📈 Computing MacroDailyIndex via real Modified Laspeyres formula...');
+  let weightedSum = 0;
+  let totalWeight = 0;
+  for (const cr of computedRouteIndices) {
+    weightedSum += cr.index * cr.weight;
+    totalWeight += cr.weight;
+  }
+  const realComposite = totalWeight > 0 ? parseFloat((weightedSum / totalWeight).toFixed(2)) : 100.0;
+
+  await prisma.macroDailyIndex.upsert({
+    where: { date: seedDate },
+    update: { compositeIndex: realComposite, baselineIndex: 100.0 },
+    create: {
+      date: seedDate,
+      compositeIndex: realComposite,
+      baselineIndex: 100.0,
+      volatilityRating: realComposite > 115 ? 'High' : 'Moderate',
+      totalDataPoints: sampleScrapes.length,
+      momInflation: 2.1,
+      yoyInflation: 8.7,
+    },
+  });
 
   // 7. Seed ScraperRunLog
   console.log('🤖 Seeding Automated Scraper Run Log...');
@@ -203,15 +220,15 @@ async function main() {
       runStartedAt: new Date(Date.now() - 3600000),
       runFinishedAt: new Date(),
       status: 'SUCCESS',
-      totalScraped: 450,
-      validRecords: 442,
-      outliersFiltered: 8,
+      totalScraped: sampleScrapes.length,
+      validRecords: sampleScrapes.length,
+      outliersFiltered: 0,
       sourcePortal: 'DIRECT_CARRIERS',
       batchSha256: crypto.createHash('sha256').update(`BATCH-${Date.now()}`).digest('hex'),
     },
   });
 
-  console.log('✅ APIx Tracker Database Seed completed successfully!');
+  console.log('✅ APIx Tracker Database Seed completed with real computed formulas!');
 }
 
 main()

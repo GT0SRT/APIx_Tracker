@@ -62,29 +62,52 @@ def apply_outlier_filters(observations: List[Dict[str, Any]], iqr_multiplier: fl
     """
     Groups observations by (route_code, advance_window) and applies
     two-stage IQR + Hampel statistical outlier rejection.
+    Also enforces absolute physical airfare sanity bounds (e.g. base < 500 or > 80000)
+    and pools at route level for small-sample groups (<4 observations).
     Updates `is_outlier` flag and `provenance_status` on matching records.
     """
     if not observations:
         return observations
 
-    # Group by (route_code, advance_window)
+    # 1. Absolute sanity bounds check
+    for obs in observations:
+        base = obs.get("base_fare", 0.0)
+        total = obs.get("total_fare", 0.0)
+        if base < 500.0 or base > 80000.0 or total < 1000.0 or total > 100000.0:
+            obs["is_outlier"] = True
+            obs["provenance_status"] = "FLAGGED"
+
+    # 2. Group by (route_code, advance_window)
     groups: Dict[tuple, List[int]] = {}
+    route_groups: Dict[str, List[int]] = {}
     for idx, obs in enumerate(observations):
-        key = (obs.get("route_code"), obs.get("advance_window"))
-        groups.setdefault(key, []).append(idx)
+        rc = obs.get("route_code")
+        win = obs.get("advance_window")
+        groups.setdefault((rc, win), []).append(idx)
+        if rc:
+            route_groups.setdefault(rc, []).append(idx)
 
-    for key, indices in groups.items():
-        if len(indices) < 4:
-            continue
+    # 3. Fine-grained horizon group filtering
+    for (route_code, advance_window), indices in groups.items():
+        if len(indices) >= 4:
+            base_fares = [observations[i]["base_fare"] for i in indices]
+            iqr_flags = filter_outliers_iqr(base_fares, multiplier=iqr_multiplier)
+            hampel_flags = filter_outliers_hampel(base_fares, n_sigmas=3.0)
 
-        base_fares = [observations[i]["base_fare"] for i in indices]
-
-        iqr_flags = filter_outliers_iqr(base_fares, multiplier=iqr_multiplier)
-        hampel_flags = filter_outliers_hampel(base_fares, n_sigmas=3.0)
-
-        for i, idx in enumerate(indices):
-            if iqr_flags[i] or hampel_flags[i]:
-                observations[idx]["is_outlier"] = True
-                observations[idx]["provenance_status"] = "FLAGGED"
+            for i, idx in enumerate(indices):
+                if iqr_flags[i] or hampel_flags[i]:
+                    observations[idx]["is_outlier"] = True
+                    observations[idx]["provenance_status"] = "FLAGGED"
+        else:
+            # For small groups (< 4), test against route-level pool if available
+            route_indices = route_groups.get(route_code, [])
+            if len(route_indices) >= 4:
+                route_fares = [observations[i]["base_fare"] for i in route_indices]
+                iqr_flags = filter_outliers_iqr(route_fares, multiplier=2.0)
+                hampel_flags = filter_outliers_hampel(route_fares, n_sigmas=3.5)
+                for i, r_idx in enumerate(route_indices):
+                    if r_idx in indices and (iqr_flags[i] or hampel_flags[i]):
+                        observations[r_idx]["is_outlier"] = True
+                        observations[r_idx]["provenance_status"] = "FLAGGED"
 
     return observations

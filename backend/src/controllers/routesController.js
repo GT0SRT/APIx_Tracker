@@ -41,6 +41,7 @@ const getRoutes = async (req, res) => {
 
     let routes = [];
     let total = 0;
+    let routeAvgMap = {};
 
     if (prisma && prisma.route) {
       total = await prisma.route.count({ where: { isActive: true } });
@@ -53,6 +54,22 @@ const getRoutes = async (req, res) => {
         queryOptions.take = limit;
       }
       routes = await prisma.route.findMany(queryOptions);
+
+      // Query real scraped average fares per route
+      try {
+        const routeAverages = await prisma.fareObservation.groupBy({
+          by: ['routeId'],
+          _avg: { totalFare: true },
+          _count: { id: true },
+          where: { isOutlier: false },
+        });
+        routeAverages.forEach((a) => {
+          routeAvgMap[a.routeId] = Math.round(a._avg.totalFare || 0);
+        });
+      } catch (err) {
+        console.warn('Could not compute real route averages:', err.message);
+      }
+
       if (routes && routes.length > 0) {
         routes = routes.map((r) => {
           const fallback = defaultRoutes.find((d) => d.routeCode === r.routeCode) || {};
@@ -66,7 +83,7 @@ const getRoutes = async (req, res) => {
             originCode: r.originCode,
             destination: r.destinationCode,
             destinationCode: r.destinationCode,
-            fare: fallback.fare || 6200,
+            fare: routeAvgMap[r.id] || fallback.fare || 6200,
             passengersMonthly: fallback.passengersMonthly || fallback.monthlyPassengers || 250000,
             monthlyPassengers: fallback.passengersMonthly || fallback.monthlyPassengers || 250000,
             dgcaWeight: weightPct,
@@ -90,8 +107,12 @@ const getRoutes = async (req, res) => {
       }
     }
 
+    const hasLiveObservations = Object.keys(routeAvgMap || {}).length > 0;
     const response = {
       success: true,
+      isLive: hasLiveObservations,
+      dataSource: hasLiveObservations ? 'live' : 'mock',
+      isDemoData: !hasLiveObservations,
       total,
       count: routes.length,
       data: routes,
@@ -109,6 +130,9 @@ const getRoutes = async (req, res) => {
     console.warn('Fallback to default routes:', error.message);
     return res.status(200).json({
       success: true,
+      isLive: false,
+      dataSource: 'mock',
+      isDemoData: true,
       total: defaultRoutes.length,
       count: defaultRoutes.length,
       data: defaultRoutes,
@@ -123,6 +147,81 @@ const getRoutes = async (req, res) => {
  */
 const getRouteParity = async (req, res) => {
   try {
+    if (prisma && prisma.fareObservation) {
+      const observations = await prisma.fareObservation.findMany({
+        where: { isOutlier: false },
+        include: { route: true, airline: true },
+      });
+
+      if (observations && observations.length > 0) {
+        // Group fares by route and carrier
+        const routeGroups = {};
+        for (const obs of observations) {
+          const rCode = obs.route?.routeCode;
+          if (!rCode) continue;
+          if (!routeGroups[rCode]) routeGroups[rCode] = {};
+          const carrier = obs.airline?.name || 'Unknown';
+          if (!routeGroups[rCode][carrier]) routeGroups[rCode][carrier] = [];
+          routeGroups[rCode][carrier].push(obs.totalFare);
+        }
+
+        const avg = (arr) => (arr && arr.length > 0 ? Math.round(arr.reduce((s, x) => s + x, 0) / arr.length) : null);
+
+        const liveParityResults = [];
+        for (const [routeCode, carriers] of Object.entries(routeGroups)) {
+          const indigoFare = avg(carriers['IndiGo']);
+          const airIndiaFare = avg(carriers['Air India'] || carriers['Air India Express']);
+          const akasaFare = avg(carriers['Akasa Air']);
+          const spiceJetFare = avg(carriers['SpiceJet']);
+
+          const validFares = [indigoFare, airIndiaFare, akasaFare, spiceJetFare].filter(
+            (f) => typeof f === 'number' && f > 0
+          );
+
+          if (validFares.length >= 2) {
+            const minFare = Math.min(...validFares);
+            const maxFare = Math.max(...validFares);
+            const spreadPercent = parseFloat((((maxFare - minFare) / minFare) * 100).toFixed(1));
+
+            let monopolyRisk = 'Competitive';
+            if (spreadPercent >= 35 || validFares.length <= 2) {
+              monopolyRisk = 'Monopolistic Warning';
+            } else if (spreadPercent >= 15) {
+              monopolyRisk = 'Moderate Variance';
+            }
+
+            liveParityResults.push({
+              route: routeCode,
+              indigoFare,
+              airIndiaFare,
+              akasaFare,
+              spiceJetFare,
+              minFare,
+              maxFare,
+              priceSpreadPercent: spreadPercent,
+              monopolyRisk,
+              flaggedForRegulatoryReview: monopolyRisk === 'Monopolistic Warning',
+            });
+          }
+        }
+
+        if (liveParityResults.length > 0) {
+          return res.status(200).json({
+            success: true,
+            isLive: true,
+            dataSource: 'live',
+            isDemoData: false,
+            timestamp: new Date().toISOString(),
+            surveillanceAuthority: 'Competition Commission of India (CCI) & DGCA',
+            totalRoutesAudited: liveParityResults.length,
+            monopolyWarningsCount: liveParityResults.filter((p) => p.flaggedForRegulatoryReview).length,
+            data: { parityAnalysis: liveParityResults },
+            parityAnalysis: liveParityResults,
+          });
+        }
+      }
+    }
+
     const parityResults = parityObservations.map((item) => {
       const validFares = [item.indigoFare, item.airIndiaFare, item.akasaFare, item.spiceJetFare].filter(
         (f) => typeof f === 'number' && f > 0
@@ -155,11 +254,16 @@ const getRouteParity = async (req, res) => {
 
     return res.status(200).json({
       success: true,
+      isLive: false,
+      dataSource: 'mock',
+      isDemoData: true,
+      message: 'Demo route parity: Live database contains insufficient cross-carrier quotes',
       timestamp: new Date().toISOString(),
       surveillanceAuthority: 'Competition Commission of India (CCI) & DGCA',
       totalRoutesAudited: parityResults.length,
       monopolyWarningsCount: parityResults.filter((p) => p.flaggedForRegulatoryReview).length,
-      data: parityResults,
+      data: { parityAnalysis: parityResults },
+      parityAnalysis: parityResults,
     });
   } catch (error) {
     console.error('Error in getRouteParity:', error.message);

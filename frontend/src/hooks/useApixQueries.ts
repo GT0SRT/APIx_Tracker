@@ -3,6 +3,7 @@ import {
   fetchSummary,
   fetchFareDecomposition,
   fetchTrendSeries,
+  fetchSeriesComparison,
   fetchRoutes,
   fetchLogs,
   fetchElasticity,
@@ -10,6 +11,7 @@ import {
   fetchRouteParity,
   fetchJevonsCarli,
   fetchLaspeyres,
+  type ApiResponse,
 } from '../services/api'
 import type {
   SystemSummary,
@@ -25,7 +27,7 @@ import type {
 
 /** 1. High-Level Summary Card KPIs */
 export function useSummaryQuery(route?: string, airline?: string) {
-  return useQuery<{ data: SystemSummary; isLive: boolean }>({
+  return useQuery<ApiResponse<SystemSummary>>({
     queryKey: ['summary', route || 'ALL', airline || 'ALL'],
     queryFn: () => fetchSummary(route, airline),
     staleTime: 45 * 1000,
@@ -34,7 +36,7 @@ export function useSummaryQuery(route?: string, airline?: string) {
 
 /** 2. Fare Decomposition Breakdown */
 export function useFareDecompositionQuery() {
-  return useQuery<{ data: FareComponent[]; isLive: boolean }>({
+  return useQuery<ApiResponse<FareComponent[]>>({
     queryKey: ['fareDecomposition'],
     queryFn: () => fetchFareDecomposition(),
     staleTime: 5 * 60 * 1000,
@@ -43,16 +45,25 @@ export function useFareDecompositionQuery() {
 
 /** 3. 30-Day Index Trend Series */
 export function useTrendSeriesQuery(horizon: string = '30d') {
-  return useQuery<{ data: TrendPoint[]; isLive: boolean }>({
+  return useQuery<ApiResponse<TrendPoint[]>>({
     queryKey: ['trendSeries', horizon],
     queryFn: () => fetchTrendSeries(horizon),
     staleTime: 60 * 1000,
   })
 }
 
+/** 3b. Macro Series Comparison (Headline vs Core Trimmed vs MoSPI Lag) */
+export function useSeriesComparisonQuery(baseYear: string = '2024') {
+  return useQuery<ApiResponse<any[]>>({
+    queryKey: ['seriesComparison', baseYear],
+    queryFn: () => fetchSeriesComparison(baseYear),
+    staleTime: 60 * 1000,
+  })
+}
+
 /** 4. DGCA Monitored Corridors */
 export function useRoutesQuery() {
-  return useQuery<{ data: RouteTrafficWeight[]; isLive: boolean }>({
+  return useQuery<ApiResponse<RouteTrafficWeight[]>>({
     queryKey: ['routes'],
     queryFn: () => fetchRoutes(),
     staleTime: 10 * 60 * 1000,
@@ -71,7 +82,7 @@ export function useLogsQuery(page: number = 1, limit: number = 6) {
 
 /** 6. Lead-Time Elasticity Horizons (T+1 to T+45) */
 export function useElasticityQuery(route?: string) {
-  return useQuery<{ data: ElasticityPoint[]; isLive: boolean }>({
+  return useQuery<ApiResponse<ElasticityPoint[]>>({
     queryKey: ['elasticity', route || 'DEL-BOM'],
     queryFn: () => fetchElasticity(route),
     staleTime: 60 * 1000,
@@ -80,7 +91,7 @@ export function useElasticityQuery(route?: string) {
 
 /** 7. Scraping Pipeline Telemetry & Cluster Status */
 export function useTelemetryQuery(enablePolling: boolean = false) {
-  return useQuery<{ data: PipelineTelemetry; isLive: boolean }>({
+  return useQuery<ApiResponse<PipelineTelemetry>>({
     queryKey: ['telemetry'],
     queryFn: () => fetchTelemetry(),
     staleTime: 15 * 1000,
@@ -90,7 +101,14 @@ export function useTelemetryQuery(enablePolling: boolean = false) {
 
 /** 8. Route Competition & Parity */
 export function useRouteParityQuery() {
-  return useQuery<{ data: AirlineParityItem[]; isLive: boolean; hhiBenchmark?: any }>({
+  return useQuery<{
+    data: AirlineParityItem[]
+    isLive: boolean
+    dataSource?: 'live' | 'mock'
+    isDemoData?: boolean
+    hhiBenchmark?: any
+    message?: string
+  }>({
     queryKey: ['routeParity'],
     queryFn: () => fetchRouteParity(),
     staleTime: 2 * 60 * 1000,
@@ -99,7 +117,7 @@ export function useRouteParityQuery() {
 
 /** 9. Jevons vs Carli Methodology */
 export function useJevonsCarliQuery() {
-  return useQuery<{ data: MethodologyComparison; isLive: boolean }>({
+  return useQuery<ApiResponse<MethodologyComparison>>({
     queryKey: ['methodology', 'jevons-carli'],
     queryFn: () => fetchJevonsCarli(),
     staleTime: 10 * 60 * 1000,
@@ -108,7 +126,7 @@ export function useJevonsCarliQuery() {
 
 /** 10. Modified Laspeyres Macro Index */
 export function useLaspeyresQuery() {
-  return useQuery<{ data: LaspeyresMacroData; isLive: boolean }>({
+  return useQuery<ApiResponse<LaspeyresMacroData>>({
     queryKey: ['methodology', 'laspeyres'],
     queryFn: () => fetchLaspeyres(),
     staleTime: 10 * 60 * 1000,
