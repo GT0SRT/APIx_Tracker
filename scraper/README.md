@@ -149,7 +149,6 @@ To configure production ingestion:
 ---
 
 ## Output Data Structure
-
 Observations perfectly match the backend Prisma `FareObservation` schema:
 
 ```json
