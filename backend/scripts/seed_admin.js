@@ -5,8 +5,13 @@ const prisma = require('../src/lib/prisma');
 async function seedAdmin() {
   console.log('[SeedAdmin] Initializing Admin account provisioning...');
 
-  const adminEmail = (process.env.ADMIN_EMAIL || 'admin@apix.gov.in').toLowerCase().trim();
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@APIx2026!';
+  const adminEmail = process.env.ADMIN_EMAIL ? process.env.ADMIN_EMAIL.toLowerCase().trim() : null;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    console.error('[SeedAdmin] Missing configuration: ADMIN_EMAIL and ADMIN_PASSWORD must be set in your .env file.');
+    process.exit(1);
+  }
 
   try {
     // Check if user already exists
@@ -40,13 +45,14 @@ async function seedAdmin() {
       console.log(`[SeedAdmin] Successfully created Admin account ID: ${newUser.id} (${newUser.email}).`);
     }
 
-    console.log('[SeedAdmin] Admin credentials initialized successfully.');
-    console.log(`[SeedAdmin] Login Email: ${adminEmail}`);
+    console.log('[SeedAdmin] Admin credentials provisioned successfully.');
   } catch (error) {
     console.error('[SeedAdmin] Failed to provision Admin account:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    if (prisma && prisma.$disconnect) {
+      await prisma.$disconnect();
+    }
   }
 }
 

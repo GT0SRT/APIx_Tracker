@@ -14,10 +14,10 @@ const router = express.Router();
 router.get('/index-trend', getIndexTrend);
 router.get('/trend', getIndexTrend);
 router.get('/summary', getSummaryKpis);
+router.get('/fare-decomposition', getFareDecomposition);
+router.get('/elasticity', getElasticity);
 
-// Sensitive Granular Analytics Endpoints (Admin Only)
-router.get('/elasticity', verifyToken, getElasticity);
-router.get('/fare-decomposition', verifyToken, getFareDecomposition);
+// Sensitive Granular Multi-Tier Series Comparison (Admin Only)
 router.get('/series', verifyToken, getSeriesComparison);
 
 module.exports = router;

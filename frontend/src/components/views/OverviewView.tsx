@@ -8,6 +8,7 @@ import {
   FileText,
   MapPin,
   ArrowRight,
+  Lock,
 } from 'lucide-react'
 import {
   Bar,
@@ -32,6 +33,7 @@ import {
   useElasticityQuery,
 } from '../../hooks/useApixQueries'
 import { useQueryClient } from '@tanstack/react-query'
+import { useAuth } from '../../context/AuthContext'
 import type { FareComponent, TrendPoint, RouteTrafficWeight, ElasticityPoint, ExecutiveReportData } from '../../types/apix'
 
 interface OverviewViewProps {
@@ -42,7 +44,16 @@ interface OverviewViewProps {
 
 export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewViewProps) {
   const queryClient = useQueryClient()
+  const { isAuthenticated, openLoginModal } = useAuth()
   const [refreshAnimation, setRefreshAnimation] = useState(false)
+
+  const handleProtectedNavigate = (tab: string) => {
+    if (!isAuthenticated) {
+      openLoginModal()
+      return
+    }
+    onNavigateToTab(tab)
+  }
 
   // TanStack React Query v5 declarative queries
   const summaryQuery = useSummaryQuery()
@@ -118,7 +129,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Link to Sector Deep-Dive */}
           <button
-            onClick={() => onNavigateToTab('routes-horizons')}
+            onClick={() => handleProtectedNavigate('routes-horizons')}
             className="flex items-center gap-1.5 rounded-lg border border-blue-600 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer shadow-xs"
           >
             <MapPin className="h-3.5 w-3.5 text-blue-600" />
@@ -126,39 +137,51 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
             <ArrowRight className="h-3.5 w-3.5" />
           </button>
 
-          {/* Executive Report Modal Trigger */}
+          {/* Executive Report Modal Trigger - Strictly for Authenticated Admins */}
           {onOpenReportModal && (
-            <button
-              onClick={() => {
-                const latestTrend = trendSeries.length > 0 ? trendSeries[trendSeries.length - 1] : null
-                const headline = summary?.currentApix !== undefined
-                  ? Number(summary.currentApix.toFixed(1))
-                  : (latestTrend?.headlineApix ? Number(Number(latestTrend.headlineApix).toFixed(1)) : 98.7)
-                const core = summary?.currentApix !== undefined
-                  ? Number((summary.currentApix * 0.985).toFixed(1))
-                  : (latestTrend?.coreTrimmedApix ? Number(Number(latestTrend.coreTrimmedApix).toFixed(1)) : 97.2)
-                const avgFare = summary?.currentAverageFare
-                  ? summary.currentAverageFare
-                  : (routes.length > 0 && routes[0].fare ? routes[0].fare : 4979)
+            isAuthenticated ? (
+              <button
+                onClick={() => {
+                  const latestTrend = trendSeries.length > 0 ? trendSeries[trendSeries.length - 1] : null
+                  const headline = summary?.currentApix !== undefined
+                    ? Number(summary.currentApix.toFixed(1))
+                    : (latestTrend?.headlineApix ? Number(Number(latestTrend.headlineApix).toFixed(1)) : 98.7)
+                  const core = summary?.currentApix !== undefined
+                    ? Number((summary.currentApix * 0.985).toFixed(1))
+                    : (latestTrend?.coreTrimmedApix ? Number(Number(latestTrend.coreTrimmedApix).toFixed(1)) : 97.2)
+                  const avgFare = summary?.currentAverageFare
+                    ? summary.currentAverageFare
+                    : (routes.length > 0 && routes[0].fare ? routes[0].fare : 4983)
 
-                onOpenReportModal({
-                  currentDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-                  headlineApix: headline,
-                  coreTrimmedApix: core,
-                  averageFare: avgFare,
-                  momChangePercent: summary?.momChangePercent !== undefined
-                    ? `${summary.momChangePercent > 0 ? '+' : ''}${summary.momChangePercent}%`
-                    : '+2.4%',
-                  totalQuotes: summary?.totalQuotes || summary?.standardizedScrapesCount || 774,
-                  monitoredRoutes: summary?.monitoredRoutes || routes.length || 15,
-                  isLive: Boolean(summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData),
-                })
-              }}
-              className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 active:scale-[0.98] transition cursor-pointer"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>Executive Report</span>
-            </button>
+                  onOpenReportModal({
+                    currentDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+                    headlineApix: headline,
+                    coreTrimmedApix: core,
+                    averageFare: avgFare,
+                    momChangePercent: summary?.momChangePercent !== undefined
+                      ? `${summary.momChangePercent > 0 ? '+' : ''}${summary.momChangePercent}%`
+                      : '+2.4%',
+                    totalQuotes: summary?.totalQuotes || summary?.standardizedScrapesCount || 774,
+                    monitoredRoutes: summary?.monitoredRoutes || routes.length || 19,
+                    isLive: Boolean(summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData),
+                  })
+                }}
+                className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 active:scale-[0.98] transition cursor-pointer"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>Executive Report</span>
+              </button>
+            ) : (
+              <button
+                onClick={openLoginModal}
+                title="Admin Authentication Required: Sign in to generate official executive briefings"
+                className="flex items-center gap-1.5 rounded-lg border border-slate-300 bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 transition cursor-pointer shadow-xs"
+              >
+                <Lock className="h-3.5 w-3.5 text-slate-500" />
+                <span>Executive Report</span>
+                <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">Admin</span>
+              </button>
+            )
           )}
 
           {/* Real-time Refresh */}
@@ -208,7 +231,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
               <span>vs baseline (30d MA)</span>
             </div>
             <button
-              onClick={() => onNavigateToTab('index-series')}
+              onClick={() => handleProtectedNavigate('index-series')}
               className="text-blue-600 hover:underline font-semibold text-[11px] cursor-pointer"
             >
               Series →
@@ -226,7 +249,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
                   align="left"
                   text="Pure unbundled base airfare weighted by DGCA quarterly passenger traffic, stripping fuel surcharges, airport UDF fees, and voluntary baggage/seat add-ons."
                 />
-                {routesQuery.data?.isLive && !routesQuery.data?.isDemoData ? (
+                {(summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData) || (routesQuery.data?.isLive && !routesQuery.data?.isDemoData) ? (
                   <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
                     Live
                   </span>
@@ -247,7 +270,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
           <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
             <span>National passenger-weighted</span>
             <button
-              onClick={() => onNavigateToTab('routes-horizons')}
+              onClick={() => handleProtectedNavigate('routes-horizons')}
               className="text-indigo-600 hover:underline font-semibold text-[11px] cursor-pointer"
             >
               By Sector →
@@ -282,7 +305,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
               <span>(&lt;24h cadence)</span>
             </div>
             <button
-              onClick={() => onNavigateToTab('methodology')}
+              onClick={() => handleProtectedNavigate('methodology')}
               className="text-amber-700 hover:underline font-semibold text-[11px] cursor-pointer"
             >
               Impact →
@@ -312,7 +335,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
           <div className="mt-4 flex items-center justify-between text-xs text-slate-500">
             <span className="font-bold text-emerald-600">100% SHA-256 Verified</span>
             <button
-              onClick={() => onNavigateToTab('audit-logs')}
+              onClick={() => handleProtectedNavigate('audit-logs')}
               className="text-emerald-700 hover:underline font-semibold text-[11px] cursor-pointer"
             >
               Audit Log →
@@ -337,7 +360,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
           </div>
         </div>
         <button
-          onClick={() => onNavigateToTab('routes-horizons')}
+          onClick={() => handleProtectedNavigate('routes-horizons')}
           className="inline-flex items-center gap-1.5 rounded-lg bg-white border border-blue-200 px-3.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-600 hover:text-white transition cursor-pointer shadow-2xs whitespace-nowrap self-start sm:self-auto"
         >
           <span>Open Sector Deep-Dive</span>
@@ -448,7 +471,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
               </p>
             </div>
             <button
-              onClick={() => onNavigateToTab('routes-horizons')}
+              onClick={() => handleProtectedNavigate('routes-horizons')}
               className="rounded-md bg-orange-50 hover:bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-700 border border-orange-200 transition cursor-pointer"
             >
               Route Curves →
@@ -489,7 +512,7 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
               </p>
             </div>
             <button
-              onClick={() => onNavigateToTab('routes-horizons')}
+              onClick={() => handleProtectedNavigate('routes-horizons')}
               className="text-xs text-blue-600 hover:underline font-semibold cursor-pointer"
             >
               View All 150+ Sectors →

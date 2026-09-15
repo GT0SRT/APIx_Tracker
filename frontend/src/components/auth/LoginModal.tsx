@@ -36,7 +36,7 @@ export function LoginModal() {
     setLoading(false)
 
     if (!result.success) {
-      setError(result.error || 'Authentication failed.')
+      setError(result.error || 'Authentication failed. Please check credentials.')
     } else {
       setSuccess(true)
       setTimeout(() => {
@@ -44,12 +44,6 @@ export function LoginModal() {
         closeLoginModal()
       }, 700)
     }
-  }
-
-  const fillDefaultCredentials = () => {
-    setEmail('admin@apix.gov.in')
-    setPassword('Admin@APIx2026!')
-    setError(null)
   }
 
   return (
@@ -89,12 +83,12 @@ export function LoginModal() {
                 <CheckCircle2 className="h-7 w-7" />
               </div>
               <h3 className="text-base font-bold text-slate-900">Access Authorized</h3>
-              <p className="text-xs text-slate-500">Unlocking complete analytical dashboard...</p>
+              <p className="text-xs text-slate-500">Unlocking complete live analytical dashboard...</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-xs text-slate-500 leading-relaxed">
-                Enter your administrative credentials to unlock granular corridor elasticity, carrier
+                Enter your administrative credentials to unlock live corridor elasticity, carrier
                 parity metrics, anomaly telemetry, and cryptographic audit logs.
               </p>
 
@@ -115,7 +109,7 @@ export function LoginModal() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@apix.gov.in"
+                  placeholder="admin@agency.gov.in"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-600 transition"
                   required
                 />
@@ -137,20 +131,8 @@ export function LoginModal() {
                 />
               </div>
 
-              {/* Quick autofill helper */}
-              <div className="pt-1 flex items-center justify-between">
-                <button
-                  type="button"
-                  onClick={fillDefaultCredentials}
-                  className="text-[11px] font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
-                >
-                  Fill Seed Admin Credentials
-                </button>
-                <span className="text-[10px] text-slate-400">Single-Role (Admin)</span>
-              </div>
-
               {/* Submit button */}
-              <div className="pt-2">
+              <div className="pt-3">
                 <button
                   type="submit"
                   disabled={loading}
