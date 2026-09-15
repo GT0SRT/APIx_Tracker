@@ -11,7 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import botAvatar from '../../assets/bot-avatar.png'
 import { policyRagKnowledgeBase } from '../../data/policyRagData'
-import { API_BASE_URL } from '../../services/api'
+import { API_BASE_URL, getAuthHeader } from '../../services/api'
 
 interface ToolExecution {
   tool: string
@@ -213,7 +213,10 @@ export function FloatingChatBot() {
       // Call backend AI endpoint
       const response = await fetch(`${API_BASE_URL}/ai/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader(),
+        },
         body: JSON.stringify({
           message: query,
           conversationHistory: messages.slice(-4).map((m) => ({ sender: m.sender, text: m.text })),

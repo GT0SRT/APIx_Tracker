@@ -129,3 +129,15 @@ model ScraperRunLog {
 
   @@index([runStartedAt])
 }
+
+// 8. Admin User Model (Single-Role Admin Access)
+model User {
+  id            Int      @id @default(autoincrement())
+  email         String   @unique
+  password_hash String
+  role          String   @default("ADMIN")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([email])
+}

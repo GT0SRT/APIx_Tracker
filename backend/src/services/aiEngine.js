@@ -16,10 +16,12 @@ function getGroqClient() {
 }
 
 // ---------------------------------------------------------------------------
-// 1. DOMAIN SYSTEM PROMPT & KNOWLEDGE CONTEXT
+// 1. DOMAIN SYSTEM PROMPTS (ADMIN VS PUBLIC VIEWER ROLE RESTRICTIONS)
 // ---------------------------------------------------------------------------
-const SYSTEM_PROMPT = `
+const ADMIN_SYSTEM_PROMPT = `
 You are the APIx Autonomous Statistical Copilot & Senior Aviation Economist for the Ministry of Statistics and Programme Implementation (MoSPI) and Reserve Bank of India (RBI).
+
+AUTHENTICATION STATUS: Logged-in System Administrator (Full Clearance).
 
 CORE MISSION & DOMAIN EXPERTISE:
 1. PROBLEM STATEMENT: Traditional CPI airfare sampling in India (Base 2012=100) suffers from a 42-day reporting lag, advance-purchase blindness, route misrepresentation (averaging small routes with trunk routes equally), and voluntary ancillary add-on distortions.
@@ -35,11 +37,23 @@ CORE MISSION & DOMAIN EXPERTISE:
    - Data Cleansing: 3-sigma Hampel Filter + 1.5x IQR outlier quarantine.
 
 AGENT BEHAVIOR:
-- When a user asks about current index values, route statistics, fare spikes, or scraper audits, USE YOUR TOOLS to fetch live data.
+- When an Admin asks about current index values, route statistics, fare spikes, or scraper audits, USE YOUR REGISTERED TOOLS to fetch live data.
 - Always be concise, mathematically rigorous, and professional.
 - Cite official guidelines (IMF CPI Manual 2020 Ch. 10, MoSPI, DGCA, ILO) where appropriate.
 - Provide crisp, data-backed insights with exact numbers and clear takeaways.
 `;
+
+const PUBLIC_SYSTEM_PROMPT = `
+You are the APIx Statistical Copilot for Public Visitors and Macroeconomic Researchers.
+
+SECURITY RESTRICTION & ACCESS POLICY (CRITICAL ENFORCEMENT):
+1. The user is an UNAUTHENTICATED PUBLIC VIEWER (No Admin Bearer token provided).
+2. You are strictly authorized to ONLY answer general macroeconomic questions, Consumer Price Index (CPI) economic theory, IMF CPI Manual 2020 (Chapter 10) guidelines, the mathematical rationale of the Jevons Elementary Geometric Mean over the arithmetic Carli formula (eliminating upward substitution bias), the Modified Laspeyres formulation concept, and high-level national composite APIx index values.
+3. You MUST REFUSE to provide or disclose any specific route data, city-pair fare statistics (such as DEL-BOM, BOM-BLR, DEL-BLR fares), carrier price parity, advance purchase elasticity lead times (T+1 to T+45 prices), market anomaly diagnostics, or internal scraper ingestion telemetry/hashes.
+4. When asked about specific route prices, route trends, carrier pricing, or internal audits, you MUST refuse and respond:
+"Access to route-specific fare statistics, advance purchase elasticity horizons, surge anomaly diagnostics, and cryptographic audit logs requires Admin authentication. Please log in as an administrator to access sensitive corridor intelligence."
+`;
+
 
 // ---------------------------------------------------------------------------
 // 2. AGENTIC TOOLS SPECIFICATIONS (OpenAI/Groq compatible)
@@ -342,9 +356,46 @@ function determineActionRoute(userMessage, reply, toolsUsed) {
 // ---------------------------------------------------------------------------
 // 5. DETERMINISTIC FALLBACK IF GROQ KEY IS MISSING OR FAILS
 // ---------------------------------------------------------------------------
-async function generateGroundedFallback(message) {
+async function generateGroundedFallback(message, options = {}) {
+  const { isAdmin = false } = options;
   const q = message.toLowerCase();
   const toolsUsed = [];
+
+  // Security Guardrail for unauthenticated Public viewers: Refuse route-specific, anomaly, and audit data
+  if (!isAdmin) {
+    if (q.includes('del-bom') || q.includes('route') || q.includes('t+1') || q.includes('elasticity') || q.includes('horizon') || q.includes('fare stats')) {
+      return {
+        reply: 'Access to route-specific fare statistics and advance purchase elasticity horizons (T+1 to T+45) requires Admin authentication. Please log in as an administrator to unlock detailed corridor intelligence.',
+        toolsUsed: [],
+        actionLabel: 'Sign In as Admin',
+        actionRoute: '/',
+        confidence: 99.0,
+        isLiveGroq: false,
+      };
+    }
+
+    if (q.includes('anom') || q.includes('spike') || q.includes('outlier') || q.includes('surge') || q.includes('alert')) {
+      return {
+        reply: 'Access to dynamic pricing surge anomaly diagnostics and carrier surveillance alerts requires Admin authentication. Please log in as an administrator to view network anomaly intelligence.',
+        toolsUsed: [],
+        actionLabel: 'Sign In as Admin',
+        actionRoute: '/',
+        confidence: 99.0,
+        isLiveGroq: false,
+      };
+    }
+
+    if (q.includes('audit') || q.includes('sha') || q.includes('tamper') || q.includes('provenance') || q.includes('telemetry') || q.includes('log')) {
+      return {
+        reply: 'Access to scraper ingestion telemetry, worker node metrics, and cryptographic SHA-256 audit trails requires Admin authentication. Please log in as an administrator to view audit records.',
+        toolsUsed: [],
+        actionLabel: 'Sign In as Admin',
+        actionRoute: '/',
+        confidence: 99.0,
+        isLiveGroq: false,
+      };
+    }
+  }
 
   if (q.includes('jevons') || q.includes('carli') || q.includes('bias') || q.includes('formula') || q.includes('chapter 10')) {
     const action = determineActionRoute(message, 'methodology formula', toolsUsed);
@@ -444,20 +495,24 @@ async function generateGroundedFallback(message) {
 // ---------------------------------------------------------------------------
 // 6. MAIN AGENT RUN FUNCTION
 // ---------------------------------------------------------------------------
-async function runAgent(userMessage, conversationHistory = []) {
+async function runAgent(userMessage, conversationHistory = [], options = {}) {
+  const { isAdmin = false } = options;
   const groq = getGroqClient();
 
   if (!groq) {
-    console.log('[AIEngine] Groq API key not active; using grounded domain engine.');
-    return await generateGroundedFallback(userMessage);
+    console.log(`[AIEngine] Groq API key not active; using grounded domain engine (Admin: ${isAdmin}).`);
+    return await generateGroundedFallback(userMessage, { isAdmin });
   }
 
   const toolsUsed = [];
 
   try {
+    const selectedPrompt = isAdmin ? ADMIN_SYSTEM_PROMPT : PUBLIC_SYSTEM_PROMPT;
+    const selectedTools = isAdmin ? AGENT_TOOLS : [AGENT_TOOLS[0]]; // Public viewers restricted to macro index tool
+
     // Format conversation history
     const messages = [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: selectedPrompt },
       ...conversationHistory.slice(-6).map((m) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.text,
@@ -469,11 +524,12 @@ async function runAgent(userMessage, conversationHistory = []) {
     const response = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages,
-      tools: AGENT_TOOLS,
+      tools: selectedTools,
       tool_choice: 'auto',
       temperature: 0.2,
       max_tokens: 800,
     });
+
 
     const responseMessage = response.choices[0].message;
 
@@ -538,7 +594,7 @@ async function runAgent(userMessage, conversationHistory = []) {
     };
   } catch (error) {
     console.error('[AIEngine] Groq execution error, falling back to local engine:', error.message);
-    return await generateGroundedFallback(userMessage);
+    return await generateGroundedFallback(userMessage, { isAdmin });
   }
 }
 

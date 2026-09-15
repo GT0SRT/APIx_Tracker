@@ -3,9 +3,13 @@ import {
   X,
   PanelLeftClose,
   PanelLeftOpen,
+  Lock,
+  ShieldCheck,
+  LogIn,
 } from 'lucide-react'
 import type { TabType } from '../../types/apix'
 import { navItems } from '../../data/navigation'
+import { useAuth } from '../../context/AuthContext'
 
 interface SidebarProps {
   activeTab: TabType
@@ -24,6 +28,12 @@ export function Sidebar({
   sidebarCollapsed,
   setSidebarCollapsed,
 }: SidebarProps) {
+  const { isAuthenticated, user, openLoginModal } = useAuth()
+
+  // Unauthenticated users ONLY see National Overview and Help & Support
+  const visibleNavItems = isAuthenticated
+    ? navItems
+    : navItems.filter((item) => item.id === 'overview' || item.id === 'help-support')
   return (
     <>
       {/* Mobile Backdrop */}
@@ -96,10 +106,19 @@ export function Sidebar({
         {/* Navigation */}
         <div className="px-3 py-6 flex-1 overflow-y-auto space-y-4">
           {!sidebarCollapsed && (
-            <p className="px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-2">Platform Navigation</p>
+            <div className="flex items-center justify-between px-3 mb-2">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                {isAuthenticated ? 'Platform Navigation' : 'Public Navigation'}
+              </p>
+              {!isAuthenticated && (
+                <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300 border border-amber-500/30">
+                  <Lock className="h-2.5 w-2.5" /> Public Mode
+                </span>
+              )}
+            </div>
           )}
           <nav className="space-y-1.5">
-            {navItems.map(({ id, label, icon: Icon, badge }) => {
+            {visibleNavItems.map(({ id, label, icon: Icon, badge }) => {
               const active = activeTab === id
               const isAi = id === 'ai-intelligence'
               return (
@@ -139,6 +158,53 @@ export function Sidebar({
               )
             })}
           </nav>
+
+          {/* Unauthenticated User: Quick Admin Sign-In Callout */}
+          {!isAuthenticated && !sidebarCollapsed && (
+            <div className="mt-4 rounded-xl border border-[#1d4370] bg-[#112d4e] p-3 text-xs space-y-2">
+              <div className="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Admin Clearance Locked</span>
+              </div>
+              <p className="text-[10px] text-slate-300 leading-relaxed">
+                5 analytical views (Routes, Forecaster, Audit, Formulas) are restricted to authorized MoSPI / RBI admins.
+              </p>
+              <button
+                onClick={() => {
+                  setSidebarOpen(false)
+                  openLoginModal()
+                }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
+              >
+                <LogIn className="h-3 w-3" />
+                <span>Sign In as Admin</span>
+              </button>
+            </div>
+          )}
+
+          {/* Collapsed Unauthenticated Login Icon Button */}
+          {!isAuthenticated && sidebarCollapsed && (
+            <div className="pt-2 flex justify-center">
+              <button
+                onClick={openLoginModal}
+                title="Admin Sign In"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
+              >
+                <Lock className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
+          {/* Authenticated Admin Active Indicator */}
+          {isAuthenticated && !sidebarCollapsed && (
+            <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-2.5 text-xs flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-400 shrink-0" />
+              <div className="overflow-hidden">
+                <p className="text-[11px] font-bold text-emerald-300 truncate">Admin Active</p>
+                <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Authority Footer */}

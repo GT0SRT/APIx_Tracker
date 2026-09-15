@@ -7,16 +7,19 @@ const {
   getScraperRuns,
   clearDatabaseObservations,
 } = require('../controllers/logsController');
+const { verifyToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.get('/', getRecentLogs);
-router.get('/recent', getRecentLogs);
-router.get('/feed', getRecentLogs);
-router.get('/telemetry', getTelemetry);
-router.get('/runs', getScraperRuns);
-router.post('/ingest', ingestObservations);
-router.post('/verify-hash', verifyHash);
-router.post('/clear', clearDatabaseObservations);
+// Sensitive Audit and Ingestion Telemetry routes (Admin Only)
+router.get('/', verifyToken, getRecentLogs);
+router.get('/recent', verifyToken, getRecentLogs);
+router.get('/feed', verifyToken, getRecentLogs);
+router.get('/telemetry', verifyToken, getTelemetry);
+router.get('/runs', verifyToken, getScraperRuns);
+router.post('/ingest', ingestObservations); // Ingestion pipeline protected via x-ingest-token
+router.post('/verify-hash', verifyToken, verifyHash);
+router.post('/clear', verifyToken, clearDatabaseObservations);
 
 module.exports = router;
+

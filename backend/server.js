@@ -7,6 +7,8 @@ const logsRoutes = require('./src/routes/logsRoutes');
 const routesRoutes = require('./src/routes/routesRoutes');
 const methodologyRoutes = require('./src/routes/methodologyRoutes');
 const aiRoutes = require('./src/routes/aiRoutes');
+const authRoutes = require('./src/routes/authRoutes');
+const supportRoutes = require('./src/routes/supportRoutes');
 
 const app = express();
 
@@ -43,6 +45,8 @@ app.use((req, res, next) => {
 });
 
 // API Routes (supporting both /api/v1 and /api prefixes)
+app.use(['/api/v1/auth', '/api/auth'], authRoutes);
+app.use(['/api/v1/support', '/api/support'], supportRoutes);
 app.use(['/api/v1/analytics', '/api/analytics'], analyticsRoutes);
 app.use(['/api/v1/routes', '/api/routes'], routesRoutes);
 app.use(['/api/v1/methodology', '/api/methodology'], methodologyRoutes);

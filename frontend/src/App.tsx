@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { TabType, ExecutiveReportData } from './types/apix'
+import { AuthProvider } from './context/AuthContext'
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
 import { OverviewView } from './components/views/OverviewView'
@@ -12,8 +13,10 @@ import { MethodologyView } from './components/views/MethodologyView'
 import { HelpSupportView } from './components/views/HelpSupportView'
 import { ExecutiveReportModal } from './components/reports/ExecutiveReportModal'
 import { FloatingChatBot } from './components/ai/FloatingChatBot'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { LoginModal } from './components/auth/LoginModal'
 
-export default function App() {
+function AppContent() {
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -69,8 +72,9 @@ export default function App() {
           setSidebarOpen={setSidebarOpen}
         />
 
-        {/* Dynamic Routed Views */}
+        {/* Dynamic Routed Views with Public and Protected Guards */}
         <Routes>
+          {/* Public Views: Available to all users */}
           <Route
             path="/"
             element={
@@ -81,23 +85,64 @@ export default function App() {
             }
           />
           <Route path="/overview" element={<Navigate to="/" replace />} />
-          <Route path="/index-series" element={<IndexSeriesView />} />
-          <Route path="/routes-horizons" element={<RoutesHorizonsView />} />
-          <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
-          <Route
-            path="/ai-intelligence"
-            element={<AiHubView />}
-          />
-          <Route path="/ml-forecasting" element={<Navigate to="/ai-intelligence" replace />} />
-          <Route path="/ai" element={<Navigate to="/ai-intelligence" replace />} />
-          <Route path="/audit-logs" element={<IngestionAuditView />} />
-          <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
-          <Route path="/methodology" element={<MethodologyView />} />
+
           <Route
             path="/help-support"
             element={<HelpSupportView onOpenReportModal={() => handleOpenReportModal()} />}
           />
           <Route path="/help" element={<Navigate to="/help-support" replace />} />
+
+          {/* Protected Views: Accessible only with valid Admin JWT */}
+          <Route
+            path="/index-series"
+            element={
+              <ProtectedRoute title="Index Series & Headline vs Core Trimmed">
+                <IndexSeriesView />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/routes-horizons"
+            element={
+              <ProtectedRoute title="DGCA Route Analysis & Horizon Elasticity">
+                <RoutesHorizonsView />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
+
+          <Route
+            path="/ai-intelligence"
+            element={
+              <ProtectedRoute title="Autonomous Price Forecaster & Anomaly Diagnostic">
+                <AiHubView />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/ml-forecasting" element={<Navigate to="/ai-intelligence" replace />} />
+          <Route path="/ai" element={<Navigate to="/ai-intelligence" replace />} />
+
+          <Route
+            path="/audit-logs"
+            element={
+              <ProtectedRoute title="Ingestion Pipeline & Cryptographic SHA-256 Audit">
+                <IngestionAuditView />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
+
+          <Route
+            path="/methodology"
+            element={
+              <ProtectedRoute title="Two-Tier Jevons & Laspeyres Mathematical Formulas">
+                <MethodologyView />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
@@ -110,8 +155,19 @@ export default function App() {
         />
       )}
 
+      {/* Admin Login Dialog Modal */}
+      <LoginModal />
+
       {/* Floating AI Statistical Copilot Assistant */}
       <FloatingChatBot />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
