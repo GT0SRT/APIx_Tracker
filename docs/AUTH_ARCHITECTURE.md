@@ -86,7 +86,7 @@ The seed script securely provisions or synchronizes the administrator credential
 # Provision Admin Account
 npm run seed:admin
 ```
-The script reads `ADMIN_EMAIL` (default: `admin@apix.gov.in`) and `ADMIN_PASSWORD` (default: `Admin@APIx2026!`) from environment variables, verifies non-duplication, hashes the password via bcrypt, and stores it in PostgreSQL (NeonDB).
+The script reads `ADMIN_EMAIL` and `ADMIN_PASSWORD` from environment variables, verifies non-duplication, hashes the password via bcrypt, and stores it in PostgreSQL (NeonDB).
 
 ---
 
@@ -117,10 +117,10 @@ Applied to endpoints that support both public baselines and privileged capabilit
 | `/api/auth/me` | `GET` | **Admin Only** | Session profile & token verification |
 | `/api/analytics/summary` | `GET` | **Public** | National Headline APIx & Macro KPIs |
 | `/api/analytics/trend` | `GET` | **Public** | 30-day macro inflation time-series |
-| `/api/analytics/elasticity` | `GET` | **Admin Only** | Lead-time elasticity ($T+1$ to $T+45$) |
-| `/api/analytics/fare-decomposition` | `GET` | **Admin Only** | Unbundled fee & ATF breakdown |
-| `/api/analytics/series` | `GET` | **Admin Only** | Comparative index time series |
-| `/api/routes` | `GET` | **Admin Only** | 42 DGCA city-pairs & traffic weights |
+| `/api/analytics/elasticity` | `GET` | **Public** | Lead-time elasticity basket ($T+1$ to $T+45$) |
+| `/api/analytics/fare-decomposition` | `GET` | **Public** | Unbundled fee & ATF breakdown |
+| `/api/analytics/series` | `GET` | **Admin Only** | Comparative multi-tier index time series |
+| `/api/routes` | `GET` | **Public** | 42 DGCA city-pairs & traffic weights |
 | `/api/routes/parity` | `GET` | **Admin Only** | Airline fare parity & HHI monopoly scores |
 | `/api/logs` | `GET` | **Admin Only** | Ingestion feeds & paginated audit trails |
 | `/api/logs/telemetry` | `GET` | **Admin Only** | Scraper worker cluster health |
@@ -153,7 +153,7 @@ The Autonomous Statistical Copilot (`/api/ai/chat`) adapts dynamically:
 2. **Navigation Filtering**:
    - **Public View**: Only **National Overview** and **Help & Support** tabs are visible in the sidebar navigation.
    - **Admin View**: Unlocks all 7 navigation tabs, including Route Analysis, Index Series, Price Forecasting, Ingestion & Audit, and Methodology.
-3. **Route Guards (`<ProtectedRoute>`):** Direct URL navigation to protected views is intercepted; unauthenticated visitors are redirected or presented with an authorization modal.
+3. **Route Guards**: Direct URL navigation to protected views is intercepted; unauthenticated visitors are redirected to the National Overview.
 4. **Header Controls**:
    - Unauthenticated: Displays **Admin Login** button.
    - Authenticated: Displays **Admin** badge and **Logout** button.
