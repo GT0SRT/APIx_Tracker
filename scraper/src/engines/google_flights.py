@@ -11,8 +11,8 @@ from typing import List, Optional
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 from playwright_stealth import Stealth
 
-from .base import BaseEngine
-from ..config import HEADLESS_MODE, AIRLINE_NAME_TO_CODE
+from .base import BaseEngine, Tier2Error, is_anti_bot_response, parse_playwright_proxy
+from ..config import HEADLESS_MODE, AIRLINE_NAME_TO_CODE, get_proxy_url
 from ..schemas import RawFlightQuote
 
 logger = logging.getLogger("apix_scraper")
@@ -28,7 +28,7 @@ class GoogleFlightsEngine(BaseEngine):
         self._context: Optional[BrowserContext] = None
 
     async def initialize(self):
-        """Launches Chromium browser and configures stealth context."""
+        """Launches Chromium browser and configures stealth context with proxy if configured."""
         if self._browser is None:
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(
@@ -40,16 +40,22 @@ class GoogleFlightsEngine(BaseEngine):
                     "--disable-setuid-sandbox",
                 ],
             )
-            self._context = await self._browser.new_context(
-                user_agent=(
+            proxy_settings = parse_playwright_proxy(get_proxy_url())
+            context_kwargs = {
+                "user_agent": (
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                     "AppleWebKit/537.36 (KHTML, like Gecko) "
                     "Chrome/124.0.0.0 Safari/537.36"
                 ),
-                viewport={"width": 1366, "height": 768},
-                locale="en-IN",
-                timezone_id="Asia/Kolkata",
-            )
+                "viewport": {"width": 1366, "height": 768},
+                "locale": "en-IN",
+                "timezone_id": "Asia/Kolkata",
+            }
+            if proxy_settings:
+                context_kwargs["proxy"] = proxy_settings
+                logger.info(f"[GoogleFlightsEngine] Playwright proxy configured: {proxy_settings.get('server')}")
+
+            self._context = await self._browser.new_context(**context_kwargs)
             logger.info("[GoogleFlightsEngine] Headless Chromium stealth browser initialized.")
 
     async def close(self):
@@ -129,10 +135,18 @@ class GoogleFlightsEngine(BaseEngine):
             card_count = await cards.count()
 
             if card_count == 0:
+                page_html = await page.content()
+                is_blocked = is_anti_bot_response(None, page_html)
                 logger.warning(
-                    f"[GoogleFlightsEngine] No flight cards found for {origin}-{destination} on {departure_date}"
+                    f"[GoogleFlightsEngine] No flight cards found for {origin}-{destination} on {departure_date} "
+                    f"(Anti-bot detected: {is_blocked})"
                 )
-                return quotes
+                raise Tier2Error(
+                    message=f"No flight cards rendered for {origin}-{destination} on {departure_date}",
+                    status_code=403 if is_blocked else 200,
+                    error_type="PlaywrightAntiBotChallenge" if is_blocked else "EmptyFlightCards",
+                    is_bot_blocked=is_blocked,
+                )
 
             # Extract up to 12 top flight options per route/horizon
             max_cards = min(card_count, 12)

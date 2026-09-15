@@ -38,7 +38,7 @@ from .processors import (
     compute_observation_hash,
     compute_batch_hash,
 )
-from .engines import GoogleFlightsEngine, EaseMyTripEngine, BaseEngine
+from .engines import GoogleFlightsEngine, EaseMyTripEngine, BaseEngine, MultiTierEngine
 from .ingestion_client import IngestionClient
 
 logger = logging.getLogger("apix_scraper")
@@ -71,7 +71,7 @@ class ScrapingPipeline:
         if self.portal_name == "easemytrip":
             return EaseMyTripEngine()
         else:
-            return GoogleFlightsEngine()
+            return MultiTierEngine(portal_name="GOOGLE_FLIGHTS")
 
     async def run(
         self,

@@ -55,7 +55,7 @@ def parse_arguments() -> argparse.Namespace:
         "--portal",
         type=str,
         default="google_flights",
-        choices=["google_flights", "easemytrip"],
+        choices=["google_flights", "easemytrip", "multi_tier"],
         help="Scraping portal provider (default: google_flights)",
     )
     parser.add_argument(
