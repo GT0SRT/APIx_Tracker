@@ -1,0 +1,47 @@
+{
+  "backoff": {
+    "max_retries": 3,
+    "base_delay_seconds": 2.0,
+    "max_delay_seconds": 30.0,
+    "jitter_factor": 0.75,
+    "backoff_factor": 2.0
+  },
+  "circuit_breaker": {
+    "failure_threshold": 3,
+    "cooldown_seconds": 21600,
+    "state_file": "data/circuit_breaker_state.json",
+    "alert_file": "data/circuit_breaker_alert.json",
+    "email_body_file": "data/alert_email.html"
+  },
+  "sources": {
+    "google_flights": {
+      "enabled": true,
+      "tier1_enabled": true,
+      "tier2_enabled": true,
+      "tier3_enabled": false,
+      "failure_threshold": 3,
+      "cooldown_seconds": 21600
+    },
+    "easemytrip": {
+      "enabled": true,
+      "tier1_enabled": true,
+      "tier2_enabled": true,
+      "tier3_enabled": false,
+      "failure_threshold": 3,
+      "cooldown_seconds": 21600
+    }
+  },
+  "proxies": {
+    "enabled": false,
+    "residential_proxy_url": null,
+    "rotating_proxy_url": null,
+    "timeout_seconds": 20
+  },
+  "third_party_api": {
+    "provider": "scrapingbee",
+    "enabled": false,
+    "timeout_seconds": 35,
+    "render_js": true,
+    "premium_proxy": false
+  }
+}
