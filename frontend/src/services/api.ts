@@ -35,6 +35,17 @@ function getApiBaseUrl(): string {
 
 export const API_BASE_URL = getApiBaseUrl()
 
+/** Retrieves stored Admin JWT Authorization header if present */
+export function getAuthHeader(): Record<string, string> {
+  if (typeof window !== 'undefined') {
+    const token = localStorage.getItem('apix_admin_token')
+    if (token) {
+      return { Authorization: `Bearer ${token}` }
+    }
+  }
+  return {}
+}
+
 const mockSummary: SystemSummary = {
   totalQuotes: 1482920,
   monitoredRoutes: 42,
@@ -111,6 +122,7 @@ async function safeFetch<T>(
       signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeader(),
         ...(options?.headers || {}),
       },
     })
@@ -256,7 +268,10 @@ export async function fetchLogs(
     const id = setTimeout(() => controller.abort(), 8000)
     const res = await fetch(`${API_BASE_URL}/logs?page=${page}&limit=${limit}`, {
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
     })
     clearTimeout(id)
     if (!res.ok) throw new Error()
@@ -332,7 +347,13 @@ export async function fetchRouteParity(): Promise<{
   try {
     const controller = new AbortController()
     const id = setTimeout(() => controller.abort(), 2500)
-    const res = await fetch(`${API_BASE_URL}/routes/parity`, { signal: controller.signal })
+    const res = await fetch(`${API_BASE_URL}/routes/parity`, {
+      signal: controller.signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+    })
     clearTimeout(id)
     if (!res.ok) throw new Error()
     const json = await res.json()
@@ -401,7 +422,10 @@ export async function verifyRecordHash(
     const id = setTimeout(() => controller.abort(), 2500)
     const res = await fetch(`${API_BASE_URL}/logs/verify-hash`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
       body: JSON.stringify({
         recordId,
         hash: providedHash,
