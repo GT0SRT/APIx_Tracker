@@ -32,7 +32,7 @@ export function LoginModal() {
     }
 
     setLoading(true)
-    const result = await login(email, password)
+    const result = await login(email.trim().toLowerCase(), password)
     setLoading(false)
 
     if (!result.success) {
@@ -109,7 +109,7 @@ export function LoginModal() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@agency.gov.in"
+                  placeholder="admin@mospi.gov.in"
                   className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2 text-xs text-slate-800 placeholder-slate-400 outline-none focus:border-blue-600 focus:bg-white focus:ring-1 focus:ring-blue-600 transition"
                   required
                 />

@@ -4,8 +4,10 @@
   "description": "AndroMatrix APIx Tracker Backend & Database Service for MoSPI / RBI",
   "main": "server.js",
   "scripts": {
+    "build": "prisma generate",
     "start": "node server.js",
     "dev": "nodemon server.js",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",

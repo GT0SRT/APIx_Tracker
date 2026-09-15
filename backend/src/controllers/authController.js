@@ -25,15 +25,37 @@ const login = async (req, res) => {
     let user = null;
     let isPasswordValid = false;
 
-    // 1. Check Database via Prisma if available
+    // 1. Check Database via Prisma if available, with resilient raw SQL fallback
     try {
       if (prisma && prisma.user) {
         user = await prisma.user.findUnique({
           where: { email: cleanEmail },
         });
       }
+      if (!user && prisma && prisma.$queryRawUnsafe) {
+        const rows = await prisma.$queryRawUnsafe(
+          'SELECT id, email, password_hash, role FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1',
+          cleanEmail
+        );
+        if (rows && rows.length > 0) {
+          user = rows[0];
+        }
+      }
     } catch (dbError) {
-      console.warn('[AuthController] Database query error (attempting environment credentials check):', dbError.message);
+      console.warn('[AuthController] Database query error (attempting raw SQL fallback):', dbError.message);
+      try {
+        if (prisma && prisma.$queryRawUnsafe) {
+          const rows = await prisma.$queryRawUnsafe(
+            'SELECT id, email, password_hash, role FROM "User" WHERE LOWER(email) = LOWER($1) LIMIT 1',
+            cleanEmail
+          );
+          if (rows && rows.length > 0) {
+            user = rows[0];
+          }
+        }
+      } catch (rawErr) {
+        console.warn('[AuthController] Raw SQL fallback error:', rawErr.message);
+      }
     }
 
     // 2. Validate against bcrypt hash from Database
@@ -117,6 +139,15 @@ const getMe = async (req, res) => {
           where: { id: req.user.id },
           select: { id: true, email: true, role: true, createdAt: true },
         });
+      }
+      if (!user && prisma && prisma.$queryRawUnsafe && req.user.id) {
+        const rows = await prisma.$queryRawUnsafe(
+          'SELECT id, email, role, "createdAt" FROM "User" WHERE id = $1 LIMIT 1',
+          req.user.id
+        );
+        if (rows && rows.length > 0) {
+          user = rows[0];
+        }
       }
     } catch (err) {
       console.warn('[AuthController] getMe database query failed:', err.message);
