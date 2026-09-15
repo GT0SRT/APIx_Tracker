@@ -19,6 +19,7 @@ from .google_flights import GoogleFlightsEngine
 from .tier3_api import Tier3ScrapingApiEngine
 from ..config import RESILIENCE_CONFIG
 from ..schemas import RawFlightQuote
+from ..resilience.circuit_breaker import CircuitBreaker
 
 logger = logging.getLogger("apix_scraper")
 
@@ -30,11 +31,13 @@ class MultiTierEngine(BaseEngine):
       Tier 1 (curl_cffi impersonation) ->
       Tier 2 (Playwright Stealth) ->
       Tier 3 (Commercial Scraping API)
+    Integrated with persistent Circuit Breaker and anti-bot defense detection.
     """
 
     def __init__(
         self,
         portal_name: str = "MULTI_TIER",
+        circuit_breaker: Optional[CircuitBreaker] = None,
         on_query_success: Optional[Callable[[str, str], Any]] = None,
         on_tier_failure: Optional[Callable[[str, TierScrapingError], Any]] = None,
         on_all_tiers_failed: Optional[Callable[[str, str, List[TierScrapingError]], Any]] = None,
@@ -43,13 +46,15 @@ class MultiTierEngine(BaseEngine):
         self.tier1 = Tier1CurlEngine()
         self.tier2 = GoogleFlightsEngine()
         self.tier3 = Tier3ScrapingApiEngine()
+        self.circuit_breaker = circuit_breaker or CircuitBreaker()
         self.on_query_success = on_query_success
         self.on_tier_failure = on_tier_failure
         self.on_all_tiers_failed = on_all_tiers_failed
 
     async def initialize(self):
-        """Initializes underlying browser contexts."""
+        """Initializes underlying browser contexts and loads circuit breaker state."""
         logger.info("[MultiTierEngine] Initializing multi-tier engine pipeline...")
+        self.circuit_breaker.load_state()
         await self.tier2.initialize()
 
     async def close(self):
@@ -70,6 +75,9 @@ class MultiTierEngine(BaseEngine):
         except Exception as e:
             logger.warning(f"[MultiTierEngine] Error closing Tier 3: {e}")
 
+        # Persist circuit breaker cache for ephemeral runners
+        self.circuit_breaker.save_state()
+
     async def scrape_route_horizon(
         self,
         origin: str,
@@ -79,11 +87,22 @@ class MultiTierEngine(BaseEngine):
     ) -> List[RawFlightQuote]:
         """
         Executes multi-tier fallback pipeline for a specific route and horizon:
-        1. Tier 1 (curl_cffi TLS impersonation)
-        2. Tier 2 (Playwright Stealth)
-        3. Tier 3 (3rd-Party Scraping API if enabled)
+        1. Check Circuit Breaker status (respects ephemeral runner cooldown cache)
+        2. Tier 1 (curl_cffi TLS impersonation)
+        3. Tier 2 (Playwright Stealth)
+        4. Tier 3 (3rd-Party Scraping API if enabled)
         """
         route_code = f"{origin}-{destination}"
+        source_key = self.portal_name.lower()
+
+        # Check Circuit Breaker status
+        if not self.circuit_breaker.is_call_permitted(source_key):
+            logger.warning(
+                f"[MultiTierEngine] Circuit breaker is OPEN for '{source_key}'. "
+                f"Skipping query for {route_code} ({advance_window}) to respect cooldown window."
+            )
+            return []
+
         tier_errors: List[TierScrapingError] = []
 
         # --- Tier 1: curl_cffi TLS Impersonation ---
@@ -92,6 +111,7 @@ class MultiTierEngine(BaseEngine):
                 origin, destination, departure_date, advance_window
             )
             if quotes:
+                self.circuit_breaker.record_success(source_key, "Tier 1 (curl_cffi)")
                 if self.on_query_success:
                     self.on_query_success(route_code, "TIER_1")
                 return quotes
@@ -121,6 +141,7 @@ class MultiTierEngine(BaseEngine):
                 logger.info(
                     f"[MultiTierEngine] Tier 2 (Playwright) succeeded for {route_code} ({len(quotes)} quotes)."
                 )
+                self.circuit_breaker.record_success(source_key, "Tier 2 (Playwright)")
                 if self.on_query_success:
                     self.on_query_success(route_code, "TIER_2")
                 return quotes
@@ -154,6 +175,7 @@ class MultiTierEngine(BaseEngine):
                     logger.info(
                         f"[MultiTierEngine] Tier 3 ({self.tier3.provider.upper()}) succeeded for {route_code} ({len(quotes)} quotes)."
                     )
+                    self.circuit_breaker.record_success(source_key, f"Tier 3 ({self.tier3.provider})")
                     if self.on_query_success:
                         self.on_query_success(route_code, "TIER_3")
                     return quotes
@@ -177,7 +199,15 @@ class MultiTierEngine(BaseEngine):
                 f"[MultiTierEngine] Tier 3 not enabled or missing credentials for {route_code}."
             )
 
-        # All tiers exhausted
+        # All tiers exhausted -> Record failure with Circuit Breaker
+        self.circuit_breaker.record_failure(
+            source_key=source_key,
+            departure_date=departure_date,
+            tier_errors=tier_errors,
+            failing_route=route_code,
+            retry_count=RESILIENCE_CONFIG.backoff.max_retries,
+        )
+
         if self.on_all_tiers_failed:
             self.on_all_tiers_failed(route_code, departure_date, tier_errors)
 
