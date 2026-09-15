@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
+    "seed:admin": "node scripts/seed_admin.js",
     "db:reset": "node scripts/reset_db.js"
   },
   "prisma": {
@@ -18,10 +19,12 @@
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "groq-sdk": "^1.6.0"
+    "groq-sdk": "^1.6.0",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.9",

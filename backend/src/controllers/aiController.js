@@ -15,11 +15,15 @@ const chatWithAgent = async (req, res) => {
       });
     }
 
-    const result = await aiEngine.runAgent(message.trim(), conversationHistory);
+    const isAdmin = Boolean(req.user && req.user.role === 'ADMIN');
+    const result = await aiEngine.runAgent(message.trim(), conversationHistory, { isAdmin });
 
     return res.status(200).json({
       success: true,
-      data: result,
+      data: {
+        ...result,
+        isAdmin,
+      },
     });
   } catch (error) {
     console.error('[AIController] Error handling agent chat:', error);
