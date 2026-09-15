@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import type { TabType, ExecutiveReportData } from './types/apix'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider, useAuth } from './context/AuthContext'
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
 import { OverviewView } from './components/views/OverviewView'
@@ -13,12 +13,12 @@ import { MethodologyView } from './components/views/MethodologyView'
 import { HelpSupportView } from './components/views/HelpSupportView'
 import { ExecutiveReportModal } from './components/reports/ExecutiveReportModal'
 import { FloatingChatBot } from './components/ai/FloatingChatBot'
-import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { LoginModal } from './components/auth/LoginModal'
 
 function AppContent() {
   const location = useLocation()
   const navigate = useNavigate()
+  const { isAuthenticated, openLoginModal } = useAuth()
 
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -26,6 +26,10 @@ function AppContent() {
   const [reportModalData, setReportModalData] = useState<ExecutiveReportData | undefined>(undefined)
 
   const handleOpenReportModal = (data?: ExecutiveReportData) => {
+    if (!isAuthenticated) {
+      openLoginModal()
+      return
+    }
     setReportModalData(data)
     setShowReportModal(true)
   }
@@ -72,9 +76,9 @@ function AppContent() {
           setSidebarOpen={setSidebarOpen}
         />
 
-        {/* Dynamic Routed Views with Public and Protected Guards */}
+        {/* Dynamic Routed Views */}
         <Routes>
-          {/* Public Views: Available to all users */}
+          {/* Public Views: Available to all viewers */}
           <Route
             path="/"
             element={
@@ -92,63 +96,40 @@ function AppContent() {
           />
           <Route path="/help" element={<Navigate to="/help-support" replace />} />
 
-          {/* Protected Views: Accessible only with valid Admin JWT */}
-          <Route
-            path="/index-series"
-            element={
-              <ProtectedRoute title="Index Series & Headline vs Core Trimmed">
-                <IndexSeriesView />
-              </ProtectedRoute>
-            }
-          />
+          {/* Admin Protected Views: Only rendered when authenticated with valid JWT */}
+          {isAuthenticated ? (
+            <>
+              <Route path="/index-series" element={<IndexSeriesView />} />
+              <Route path="/routes-horizons" element={<RoutesHorizonsView />} />
+              <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
+              <Route path="/ai-intelligence" element={<AiHubView />} />
+              <Route path="/ml-forecasting" element={<Navigate to="/ai-intelligence" replace />} />
+              <Route path="/ai" element={<Navigate to="/ai-intelligence" replace />} />
+              <Route path="/audit-logs" element={<IngestionAuditView />} />
+              <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
+              <Route path="/methodology" element={<MethodologyView />} />
+            </>
+          ) : (
+            <>
+              {/* Unauthenticated viewers accessing direct URLs are strictly redirected to public Overview */}
+              <Route path="/index-series" element={<Navigate to="/" replace />} />
+              <Route path="/routes-horizons" element={<Navigate to="/" replace />} />
+              <Route path="/routes" element={<Navigate to="/" replace />} />
+              <Route path="/ai-intelligence" element={<Navigate to="/" replace />} />
+              <Route path="/ml-forecasting" element={<Navigate to="/" replace />} />
+              <Route path="/ai" element={<Navigate to="/" replace />} />
+              <Route path="/audit-logs" element={<Navigate to="/" replace />} />
+              <Route path="/audit" element={<Navigate to="/" replace />} />
+              <Route path="/methodology" element={<Navigate to="/" replace />} />
+            </>
+          )}
 
-          <Route
-            path="/routes-horizons"
-            element={
-              <ProtectedRoute title="DGCA Route Analysis & Horizon Elasticity">
-                <RoutesHorizonsView />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
-
-          <Route
-            path="/ai-intelligence"
-            element={
-              <ProtectedRoute title="Autonomous Price Forecaster & Anomaly Diagnostic">
-                <AiHubView />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/ml-forecasting" element={<Navigate to="/ai-intelligence" replace />} />
-          <Route path="/ai" element={<Navigate to="/ai-intelligence" replace />} />
-
-          <Route
-            path="/audit-logs"
-            element={
-              <ProtectedRoute title="Ingestion Pipeline & Cryptographic SHA-256 Audit">
-                <IngestionAuditView />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
-
-          <Route
-            path="/methodology"
-            element={
-              <ProtectedRoute title="Two-Tier Jevons & Laspeyres Mathematical Formulas">
-                <MethodologyView />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
 
-      {/* One-Click Executive Report Modal */}
-      {showReportModal && (
+      {/* One-Click Executive Report Modal - Strictly for Logged-In Admins */}
+      {showReportModal && isAuthenticated && (
         <ExecutiveReportModal
           onClose={() => setShowReportModal(false)}
           {...reportModalData}

@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 import type { ExecutiveReportModalProps } from '../../types/apix'
+import { useAuth } from '../../context/AuthContext'
 
 export function ExecutiveReportModal({
   onClose,
@@ -23,7 +24,10 @@ export function ExecutiveReportModal({
   monitoredRoutes = 15,
   isLive = true,
 }: ExecutiveReportModalProps) {
+  const { isAuthenticated } = useAuth()
   const [copied, setCopied] = useState(false)
+
+  if (!isAuthenticated) return null
 
   const formattedDate =
     currentDate ||

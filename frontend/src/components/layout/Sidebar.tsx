@@ -30,10 +30,11 @@ export function Sidebar({
 }: SidebarProps) {
   const { isAuthenticated, user, openLoginModal } = useAuth()
 
-  // Unauthenticated users ONLY see National Overview and Help & Support
+  // Strictly filter navigation: Unauthenticated viewers ONLY see National Overview and Help & Support
   const visibleNavItems = isAuthenticated
     ? navItems
     : navItems.filter((item) => item.id === 'overview' || item.id === 'help-support')
+
   return (
     <>
       {/* Mobile Backdrop */}
@@ -51,11 +52,13 @@ export function Sidebar({
         } ${sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
         {/* Brand Header */}
-        <div className={`flex h-20 items-center border-b border-[#153454] transition-all ${
-          sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'
-        }`}>
+        <div
+          className={`flex h-20 items-center border-b border-[#153454] transition-all ${
+            sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+          }`}
+        >
           {sidebarCollapsed ? (
-            /* Collapsed State: Standard Sidebar Panel Open Icon */
+            /* Collapsed State */
             <button
               onClick={() => setSidebarCollapsed(false)}
               className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#133256] text-blue-300 hover:bg-blue-600 hover:text-white border border-[#1d4370] transition cursor-pointer group shadow-sm"
@@ -65,7 +68,7 @@ export function Sidebar({
               <PanelLeftOpen className="h-5 w-5 transition-transform group-hover:scale-110" />
             </button>
           ) : (
-            /* Expanded State: Logo + Title + Panel Close Toggle */
+            /* Expanded State */
             <>
               <div className="flex items-center gap-3 overflow-hidden">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-500/30">
@@ -108,11 +111,11 @@ export function Sidebar({
           {!sidebarCollapsed && (
             <div className="flex items-center justify-between px-3 mb-2">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                {isAuthenticated ? 'Platform Navigation' : 'Public Navigation'}
+                {isAuthenticated ? 'Platform Navigation' : 'Public Views'}
               </p>
               {!isAuthenticated && (
-                <span className="inline-flex items-center gap-1 rounded bg-amber-500/20 px-1.5 py-0.5 text-[9px] font-bold text-amber-300 border border-amber-500/30">
-                  <Lock className="h-2.5 w-2.5" /> Public Mode
+                <span className="inline-flex items-center gap-1 rounded bg-slate-800 px-1.5 py-0.5 text-[9px] font-bold text-slate-400 border border-slate-700">
+                  <Lock className="h-2.5 w-2.5" /> Restricted
                 </span>
               )}
             </div>
@@ -121,6 +124,7 @@ export function Sidebar({
             {visibleNavItems.map(({ id, label, icon: Icon, badge }) => {
               const active = activeTab === id
               const isAi = id === 'ai-intelligence'
+
               return (
                 <button
                   key={id}
@@ -141,6 +145,7 @@ export function Sidebar({
                     <Icon className={`h-4 w-4 shrink-0 ${isAi && !active ? 'text-amber-400' : ''}`} />
                     {!sidebarCollapsed && <span className="truncate">{label}</span>}
                   </div>
+
                   {!sidebarCollapsed && badge && (
                     <span
                       className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
@@ -159,15 +164,15 @@ export function Sidebar({
             })}
           </nav>
 
-          {/* Unauthenticated User: Quick Admin Sign-In Callout */}
+          {/* Unauthenticated User: Notice that Admin tabs are hidden */}
           {!isAuthenticated && !sidebarCollapsed && (
             <div className="mt-4 rounded-xl border border-[#1d4370] bg-[#112d4e] p-3 text-xs space-y-2">
-              <div className="flex items-center gap-1.5 text-amber-300 font-bold text-[11px]">
+              <div className="flex items-center gap-1.5 text-blue-300 font-bold text-[11px]">
                 <Lock className="h-3.5 w-3.5" />
-                <span>Admin Clearance Locked</span>
+                <span>Admin Access Required</span>
               </div>
               <p className="text-[10px] text-slate-300 leading-relaxed">
-                5 analytical views (Routes, Forecaster, Audit, Formulas) are restricted to authorized MoSPI / RBI admins.
+                Corridor analysis, price forecasting, ingestion telemetry, and formulas are restricted to authorized administrators.
               </p>
               <button
                 onClick={() => {
@@ -177,7 +182,7 @@ export function Sidebar({
                 className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-600 py-1.5 text-[11px] font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
               >
                 <LogIn className="h-3 w-3" />
-                <span>Sign In as Admin</span>
+                <span>Admin Login</span>
               </button>
             </div>
           )}
@@ -188,7 +193,7 @@ export function Sidebar({
               <button
                 onClick={openLoginModal}
                 title="Admin Sign In"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 hover:bg-amber-500/30 transition cursor-pointer"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-900/40 border border-blue-700/50 text-blue-300 hover:bg-blue-800/50 transition cursor-pointer"
               >
                 <Lock className="h-4 w-4" />
               </button>
