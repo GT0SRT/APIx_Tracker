@@ -119,3 +119,18 @@ def test_cooldown_expiration_and_half_open_recovery(temp_breaker_dir):
     cb.record_success(source_key, "Tier 1 (curl_cffi)")
     assert cb.records[source_key].state == CircuitBreakerState.CLOSED
     assert cb.records[source_key].consecutive_failures == 0
+
+
+def test_circuit_breaker_type_hints_evaluable():
+    import typing
+    from src.exceptions import TierScrapingError as ExError
+    from src.engines.base import TierScrapingError as BaseError
+    from src.engines import TierScrapingError as EngError
+
+    # Assert backward-compatible aliases point to the exact same class
+    assert ExError is BaseError is EngError
+
+    # Verify type hints are resolvable at runtime (prevents NameError in Python 3.10/3.11/3.12 CI runners)
+    hints = typing.get_type_hints(CircuitBreaker.record_failure)
+    assert hints["tier_errors"] == typing.List[ExError]
+

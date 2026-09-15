@@ -5,19 +5,19 @@ tracks consecutive multi-tier failures, enforces cooldown windows,
 distinctly detects anti-bot defense updates, and generates alert payloads.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
 from datetime import datetime, timezone, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Dict, List, Optional, Any, TYPE_CHECKING
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 
 from ..config import RESILIENCE_CONFIG
-
-if TYPE_CHECKING:
-    from ..engines.base import TierScrapingError
+from ..exceptions import TierScrapingError
 
 logger = logging.getLogger("apix_scraper")
 
