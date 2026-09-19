@@ -1,14 +1,11 @@
 import {
   PanelLeft,
   HelpCircle,
-  Lock,
   Bot,
-  LogOut,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { TabType } from '../../types/apix'
 import { navItems } from '../../data/navigation'
-import { useAuth } from '../../context/AuthContext'
 import { Badge } from '../common/CommonUI'
 
 interface HeaderProps {
@@ -25,7 +22,6 @@ export function Header({
   isAiCopilotOpen = false,
 }: HeaderProps) {
   const navigate = useNavigate()
-  const { isAuthenticated, openLoginModal, logout } = useAuth()
 
   const currentTabMeta = navItems.find((item) => item.id === activeTab) || navItems[0]
 

@@ -8,7 +8,6 @@ import {
   LogIn,
   LogOut,
   ShieldCheck,
-  SlidersHorizontal,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { TabType } from '../../types/apix'
@@ -67,24 +66,6 @@ export function Sidebar({
 
     window.addEventListener('mousemove', handleMouseMove)
     window.addEventListener('mouseup', handleMouseUp)
-  }
-
-  // Cycle through presets: Compact (220px) -> Standard (260px) -> Wide (340px)
-  const cycleWidthPreset = () => {
-    if (!setSidebarWidth) return
-    if (sidebarWidth < 240) {
-      setSidebarWidth(260)
-    } else if (sidebarWidth < 300) {
-      setSidebarWidth(340)
-    } else {
-      setSidebarWidth(220)
-    }
-  }
-
-  const getWidthPresetName = (w: number) => {
-    if (w <= 235) return 'Compact (220px)'
-    if (w >= 310) return 'Wide (340px)'
-    return 'Standard (260px)'
   }
 
   // Public tabs accessible to all citizens; all other tabs require administrator authorization
