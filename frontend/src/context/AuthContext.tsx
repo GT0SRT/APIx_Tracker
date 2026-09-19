@@ -116,14 +116,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const openLoginModal = () => setIsLoginModalOpen(true)
   const closeLoginModal = () => setIsLoginModalOpen(false)
 
-  const isAuthenticated = Boolean(token && user)
+  const DEV_BYPASS_AUTH = true
+
+  const devUser: AdminUser = {
+    id: 1,
+    email: 'dev@apix.local',
+    role: 'ADMIN',
+  }
+
+  const isAuthenticated = DEV_BYPASS_AUTH || Boolean(token && user)
+  const currentUser = DEV_BYPASS_AUTH ? devUser : user
 
   return (
     <AuthContext.Provider
       value={{
         isAuthenticated,
         token,
-        user,
+        user: currentUser,
         login,
         logout,
         isLoginModalOpen,
@@ -138,8 +147,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext)
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider')
   }
+
   return context
 }
