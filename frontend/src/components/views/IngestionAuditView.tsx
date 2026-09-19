@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Database,
   Lock,
@@ -9,90 +9,19 @@ import {
   Check,
   Server,
   Key,
-  Code2,
   ShieldCheck,
   RefreshCw,
 } from 'lucide-react'
-import { pipelineTelemetry } from '../../data/mockData'
 import { Card } from '../common/CommonUI'
 import { Pagination } from '../common/Pagination'
-import { fetchTelemetry, fetchLogs, verifyRecordHash, paginateData } from '../../services/api'
-import type { ScrapedFareRecord, PipelineTelemetry } from '../../types/apix'
-
-const dpiEndpoints = [
-  {
-    method: 'GET',
-    path: '/api/v1/analytics/trend?horizon=30d',
-    desc: "Returns 30-day Headline & Core Trimmed APIx time-series for MoSPI CPI data warehouse ingestion",
-    latency: '34ms',
-    sampleResponse: {
-      status: 'success',
-      timestamp: '2024-08-20T06:15:00Z',
-      baseYear: '2024=100',
-      series: [
-        { date: '2024-08-19', headlineApix: 141.7, coreTrimmedApix: 139.2, baseline: 134.4 },
-        { date: '2024-08-20', headlineApix: 142.5, coreTrimmedApix: 140.1, baseline: 134.8 }
-      ],
-      methodology: 'IMF CPI Manual 2020 Ch. 10 Jevons Geometric Mean'
-    }
-  },
-  {
-    method: 'GET',
-    path: '/api/v1/analytics/elasticity',
-    desc: 'Returns matched-model constant horizon pricing across T+1, T+7, T+15, T+30, T+45 lead times',
-    latency: '29ms',
-    sampleResponse: {
-      status: 'success',
-      basket: [
-        { horizon: 'T+1', avgFare: 8650, baseFare: 6100, surgeFactor: 1.63 },
-        { horizon: 'T+7', avgFare: 6820, baseFare: 4850, surgeFactor: 1.28 },
-        { horizon: 'T+30', avgFare: 5480, baseFare: 3880, surgeFactor: 1.03 }
-      ]
-    }
-  },
-  {
-    method: 'GET',
-    path: '/api/v1/routes/parity',
-    desc: 'Returns cross-airline price dispersion matrix and monopoly alerts for CCI & DGCA regulators',
-    latency: '41ms',
-    sampleResponse: {
-      status: 'success',
-      sectorsAudited: 150,
-      monopolyWarnings: 1,
-      topParitySpread: { route: 'DEL-IXL', spreadPercent: 39.4, flagged: true }
-    }
-  },
-  {
-    method: 'GET',
-    path: '/api/v1/audit/feed?limit=5',
-    desc: 'Returns verified fare observations with immutable SHA-256 cryptographic signatures',
-    latency: '38ms',
-    sampleResponse: {
-      status: 'success',
-      totalVerifiedToday: 145210,
-      quotes: [
-        {
-          id: 'SCR-90821',
-          route: 'DEL-BOM',
-          carrier: 'IndiGo',
-          baseFare: 5420,
-          sha256: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-          hampelVerified: true
-        }
-      ]
-    }
-  }
-]
+import { verifyRecordHash, paginateData } from '../../services/api'
+import { useLogsQuery, useTelemetryQuery } from '../../hooks/useApixQueries'
+import type { ScrapedFareRecord } from '../../types/apix'
 
 export function IngestionAuditView() {
-  const [activeTab, setActiveTab] = useState<'audit' | 'dpi'>('audit')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedRecord, setSelectedRecord] = useState<ScrapedFareRecord | null>(null)
   const [copiedHash, setCopiedHash] = useState(false)
-  const [selectedEndpoint, setSelectedEndpoint] = useState(dpiEndpoints[0])
-  const [copiedApiSnippet, setCopiedApiSnippet] = useState(false)
-  const [telemetry, setTelemetry] = useState<PipelineTelemetry | null>(null)
-  const [isLiveBackend, setIsLiveBackend] = useState(false)
   const [auditPage, setAuditPage] = useState(1)
   const [auditPageSize, setAuditPageSize] = useState(6)
   const [verificationResult, setVerificationResult] = useState<{
@@ -102,42 +31,16 @@ export function IngestionAuditView() {
     isLive: boolean
   } | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
-  const [liveLogs, setLiveLogs] = useState<ScrapedFareRecord[]>([])
-  const [totalRecords, setTotalRecords] = useState(0)
-  const [isLoadingLogs, setIsLoadingLogs] = useState(true)
 
-  useEffect(() => {
-    let mounted = true
-    setIsLoadingLogs(true)
-    void fetchTelemetry().then((res) => {
-      if (!mounted) return
-      if (res.data) setTelemetry(res.data)
-      setIsLiveBackend(res.isLive)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [])
+  // TanStack React Query v5 with keepPreviousData for zero-flash pagination
+  const logsQuery = useLogsQuery(auditPage, auditPageSize)
+  const telemetryQuery = useTelemetryQuery(true)
 
-  useEffect(() => {
-    let mounted = true
-    void fetchTelemetry().then((res) => {
-      if (!mounted) return
-      if (res.data) setTelemetry(res.data)
-      setIsLiveBackend(res.isLive)
-    })
-    void fetchLogs(auditPage, auditPageSize).then((res) => {
-      if (!mounted) return
-      if (res.data) {
-        setLiveLogs(res.data)
-        setTotalRecords(res.total)
-      }
-      setIsLoadingLogs(false)
-    })
-    return () => {
-      mounted = false
-    }
-  }, [auditPage, auditPageSize])
+  const liveLogs: ScrapedFareRecord[] = logsQuery.data?.data || []
+  const totalRecords: number = logsQuery.data?.total || 0
+  const isLoadingLogs = logsQuery.isLoading && liveLogs.length === 0
+  const telemetry = telemetryQuery.data?.data || null
+  const isLiveBackend = Boolean(logsQuery.data?.isLive && !logsQuery.data?.isDemoData)
 
   const filteredLogs = useMemo(() => {
     const q = searchQuery.toLowerCase().trim()
@@ -181,140 +84,105 @@ export function IngestionAuditView() {
     setTimeout(() => setCopiedHash(false), 2000)
   }
 
-  const copyCurl = (path: string) => {
-    const curl = `curl -X GET "https://api.andromatrix.live${path}" -H "Authorization: Bearer MOSPI_GOV_TOKEN"`
-    navigator.clipboard.writeText(curl)
-    setCopiedApiSnippet(true)
-    setTimeout(() => setCopiedApiSnippet(false), 2000)
-  }
-
   return (
-    <div className="space-y-6 p-4 md:p-8 flex-1">
+    <div className="min-h-full flex-1 space-y-6 bg-[#07111f] p-4 text-slate-200 md:p-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#24354a] pb-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
-              Ingestion, Cryptographic Audit &amp; DPI Gateway
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              Ingestion Telemetry &amp; Cryptographic Audit
             </h2>
-            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
+            <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-bold text-cyan-300 border border-cyan-400/30">
               SHA-256 Provenance
             </span>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
                 isLiveBackend
-                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-slate-100 text-slate-600 border-slate-200'
+                  ? 'bg-emerald-400/10 text-emerald-300 border-emerald-400/30'
+                  : 'bg-amber-300/10 text-amber-300 border-amber-400/30'
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
-              {isLiveBackend ? 'Cluster: Live Connected' : 'Cluster: Standalone Preview'}
+              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-cyan-400 animate-pulse' : 'bg-amber-300'}`} />
+              {isLiveBackend ? 'Status: Live Connected' : 'Status: Demo Audit Trail'}
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Automated scraping telemetry, Hampel/IQR outlier suppression, and MoSPI DPI REST API (&lt;50ms response)
+          <p className="text-xs text-slate-400 mt-1">
+            Automated price ingestion telemetry, statistical outlier suppression, and immutable SHA-256 provenance verification
           </p>
-        </div>
-
-        {/* View Switcher: Audit vs DPI */}
-        <div className="flex items-center rounded-xl border border-slate-200 bg-white p-1 text-xs font-bold shadow-xs">
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition cursor-pointer ${
-              activeTab === 'audit'
-                ? 'bg-[#0B2545] text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Database className="h-3.5 w-3.5" />
-            <span>Scraper &amp; Provenance</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('dpi')}
-            className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 transition cursor-pointer ${
-              activeTab === 'dpi'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Code2 className="h-3.5 w-3.5 text-amber-300" />
-            <span>DPI-Ready API (&lt;50ms)</span>
-          </button>
         </div>
       </div>
 
-      {activeTab === 'audit' && (
-        <>
-          {/* Production Telemetry Grid (Slide 4) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-4 border-l-4 border-l-blue-600">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>Anti-Bot Shield</span>
-                <Lock className="h-4 w-4 text-blue-600" />
+      {/* Production Telemetry Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-cyan-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-[0_20px_50px_rgba(34,211,238,0.10)]">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+                <span>Ingestion Network</span>
+                <Lock className="h-4 w-4 text-cyan-300" />
               </div>
-              <p className="mt-2 text-lg font-black text-slate-900">
-                {telemetry?.activeWorkers ? `${telemetry.activeWorkers} Active Scraper Nodes` : '16 Active Scraper Nodes'}
+              <p className="mt-2 text-lg font-black text-white">
+                {telemetry?.activeWorkers ? `${telemetry.activeWorkers} Active Ingestion Nodes` : '16 Active Ingestion Nodes'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-slate-400">
                 {telemetry?.throughputQuotesPerSec
                   ? `Throughput: ${telemetry.throughputQuotesPerSec} quotes/sec`
-                  : `JA4 TLS spoofing + ${telemetry?.residentialProxyPool || pipelineTelemetry.residentialProxyPool}`}
+                  : 'Continuous collection across 150+ domestic sectors'}
               </p>
             </Card>
 
-            <Card className="p-4 border-l-4 border-l-indigo-600">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>DOM Shift Resiliency</span>
-                <Server className="h-4 w-4 text-indigo-600" />
+            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-violet-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/40 hover:shadow-[0_20px_50px_rgba(139,92,246,0.10)]">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+                <span>Data Validation</span>
+                <Server className="h-4 w-4 text-violet-300" />
               </div>
-              <p className="mt-2 text-lg font-black text-slate-900">JSON Interception</p>
-              <p className="mt-1 text-xs text-slate-500">
-                {telemetry?.domSchemaStatus || pipelineTelemetry.domSchemaStatus}
+              <p className="mt-2 text-lg font-black text-white">Automated Normalization</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Real-time schema verification &amp; fare unbundling
               </p>
             </Card>
 
-            <Card className="p-4 border-l-4 border-l-amber-500">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>Outlier Engine</span>
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-amber-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/40 hover:shadow-[0_20px_50px_rgba(245,158,11,0.10)]">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+                <span>Outlier Filter</span>
+                <AlertTriangle className="h-4 w-4 text-amber-300" />
               </div>
-              <p className="mt-2 text-lg font-black text-slate-900">
+              <p className="mt-2 text-lg font-black text-white">
                 {telemetry?.outliersFilteredToday !== undefined
                   ? `${telemetry.outliersFilteredToday} Quarantined`
                   : telemetry?.hampelQuarantineRate
                   ? `${telemetry.hampelQuarantineRate} Quarantined`
                   : '0 Quarantined (All Passed)'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">Hampel &amp; IQR rejection filter</p>
+              <p className="mt-1 text-xs text-slate-400">Statistical anomaly &amp; glitch rejection</p>
             </Card>
 
-            <Card className="p-4 border-l-4 border-l-emerald-600">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-                <span>Database Storage</span>
-                <Database className="h-4 w-4 text-emerald-600" />
+            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-emerald-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/40 hover:shadow-[0_20px_50px_rgba(16,185,129,0.10)]">
+              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
+                <span>Time-Series Storage</span>
+                <Database className="h-4 w-4 text-emerald-300" />
               </div>
-              <p className="mt-2 text-lg font-black text-slate-900">
+              <p className="mt-2 text-lg font-black text-white">
                 {telemetry?.averageLatencyMs !== undefined
                   ? `${telemetry.averageLatencyMs}ms Latency`
                   : telemetry?.p95LatencyMs !== undefined
                   ? `${telemetry.p95LatencyMs}ms p95 Latency`
                   : '38ms Latency'}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                {telemetry?.database || 'TimescaleDB Hypertable on Neon PostgreSQL'}
+              <p className="mt-1 text-xs text-slate-400">
+                High-performance verified analytical data repository
               </p>
             </Card>
           </div>
 
           {/* Searchable Cryptographic Audit Log Table */}
-          <Card className="overflow-hidden border border-slate-200">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-5">
+          <Card className="overflow-hidden rounded-2xl border border-[#26364c] bg-gradient-to-br from-[#0f1b2b] to-[#0a1524] shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#26364c] bg-[#0d1929]/90 p-5">
               <div>
                 <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-slate-900 text-base">Cryptographic Provenance Explorer</h3>
-                  <Key className="h-4 w-4 text-amber-500" />
+                  <h3 className="font-bold text-white text-base">Cryptographic Provenance Explorer</h3>
+                  <Key className="h-4 w-4 text-amber-300" />
                 </div>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-slate-400">
                   Select any record to view its immutable SHA-256 seal, decomposed components, and schema validation
                 </p>
               </div>
@@ -329,14 +197,14 @@ export function IngestionAuditView() {
                     setSearchQuery(e.target.value)
                     setAuditPage(1)
                   }}
-                  className="rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-600 w-56"
+                  className="w-56 rounded-lg border border-[#31445d] bg-[#091523] py-2 pl-8 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30"
                 />
               </div>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-[780px] text-left text-xs">
-                <thead className="bg-[#0B2545] text-white text-[11px] uppercase tracking-wider font-semibold">
+                <thead className="bg-[#0a1524] text-cyan-100 text-[11px] uppercase tracking-wider font-semibold">
                   <tr>
                     <th className="px-5 py-3.5 font-bold">Quote ID</th>
                     <th className="px-5 py-3.5 font-bold">Sector</th>
@@ -348,10 +216,10 @@ export function IngestionAuditView() {
                     <th className="px-5 py-3.5 font-bold">Hampel/IQR Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className="divide-y divide-[#22334a] bg-[#0b1727]/80">
                   {isLoadingLogs && liveLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-8 text-center text-slate-500 font-medium animate-pulse">
+                      <td colSpan={8} className="px-5 py-8 text-center text-slate-400 font-medium animate-pulse">
                         Loading verified audit observations from database...
                       </td>
                     </tr>
@@ -376,32 +244,32 @@ export function IngestionAuditView() {
                             setSelectedRecord(row)
                             setVerificationResult(null)
                           }}
-                          className="hover:bg-blue-50/60 transition-colors cursor-pointer"
+                          className="hover:bg-cyan-400/[0.06] transition-colors cursor-pointer"
                         >
-                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-blue-600">{row.id}</td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-900">
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-cyan-300">{row.id}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-100">
                             {row.origin}-{row.destination}
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-700">{row.carrier}</td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-800">{row.horizon}</td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-slate-900">
+                          <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-300">{row.carrier}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-200">{row.horizon}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-white">
                             ₹{Number(row.baseFare || 0).toLocaleString()}
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 text-slate-500 font-mono">
+                          <td className="whitespace-nowrap px-5 py-3.5 text-slate-400 font-mono">
                             ₹{Number(row.voluntaryAddonsStripped || 0).toLocaleString()}
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[10px] text-slate-600">
+                          <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[10px] text-slate-400">
                             {(row.sha256Hash || '').substring(0, 16)}...
                           </td>
                           <td className="whitespace-nowrap px-5 py-3.5">
                             {isCleaned ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-bold text-emerald-300 border border-emerald-400/30">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-300" />
                                 Passed
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 border border-red-200">
-                                <AlertTriangle className="h-3 w-3 text-red-600" />
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-400/10 px-2.5 py-1 text-[11px] font-bold text-red-300 border border-red-400/30">
+                                <AlertTriangle className="h-3 w-3 text-red-300" />
                                 Quarantined
                               </span>
                             )}
@@ -428,91 +296,15 @@ export function IngestionAuditView() {
               itemName="audit records"
             />
           </Card>
-        </>
-      )}
-
-      {/* DPI-Ready MoSPI REST API Explorer (Slide 5) */}
-      {activeTab === 'dpi' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between bg-blue-900 text-white p-5 rounded-xl">
-            <div className="space-y-1">
-              <span className="rounded bg-emerald-400 text-slate-900 text-[10px] font-black px-2 py-0.5 uppercase">
-                Slide 5 DPI-Ready
-              </span>
-              <h3 className="text-base font-bold text-white">Enterprise MoSPI Data Warehouse REST API</h3>
-              <p className="text-xs text-blue-200">
-                Built as a low-latency digital public infrastructure bridge (&lt;50ms SLA) for national statistical integration
-              </p>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-blue-200 block">Observed Latency</span>
-              <span className="text-2xl font-black text-emerald-300">38ms</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Endpoints List */}
-            <div className="lg:col-span-5 space-y-2.5">
-              <p className="text-xs font-bold text-slate-700">Available Public Infrastructure Endpoints:</p>
-              {dpiEndpoints.map((ep) => (
-                <div
-                  key={ep.path}
-                  onClick={() => setSelectedEndpoint(ep)}
-                  className={`p-3.5 rounded-xl border transition cursor-pointer space-y-1.5 ${
-                    selectedEndpoint.path === ep.path
-                      ? 'border-blue-600 bg-blue-50/50 shadow-xs'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-blue-700">{ep.method}</span>
-                    <span className="font-mono text-[10px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold border border-emerald-200">
-                      {ep.latency}
-                    </span>
-                  </div>
-                  <p className="font-mono text-xs font-semibold text-slate-900 truncate">{ep.path}</p>
-                  <p className="text-[11px] text-slate-500 leading-tight">{ep.desc}</p>
-                </div>
-              ))}
-            </div>
-
-            {/* Interactive Response Inspector */}
-            <div className="lg:col-span-7">
-              <Card className="p-5 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-                  <div>
-                    <span className="font-mono text-xs font-bold text-blue-600">{selectedEndpoint.method}</span>
-                    <h4 className="font-mono text-sm font-bold text-slate-900">{selectedEndpoint.path}</h4>
-                  </div>
-                  <button
-                    onClick={() => copyCurl(selectedEndpoint.path)}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#0B2545] px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-900 transition cursor-pointer"
-                  >
-                    {copiedApiSnippet ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                    <span>{copiedApiSnippet ? 'cURL Copied' : 'Copy cURL'}</span>
-                  </button>
-                </div>
-
-                <div className="space-y-1">
-                  <span className="text-[11px] font-bold text-slate-500">Live JSON Payload Response (200 OK):</span>
-                  <pre className="rounded-xl bg-slate-950 p-4 font-mono text-xs text-emerald-400 overflow-x-auto max-h-72">
-                    {JSON.stringify(selectedEndpoint.sampleResponse, null, 2)}
-                  </pre>
-                </div>
-              </Card>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Record Inspection Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020817]/75 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg space-y-4 rounded-2xl border border-[#31445d] bg-gradient-to-br from-[#101d2e] to-[#081321] p-6 text-slate-200 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
+            <div className="flex items-center justify-between border-b border-[#26364c] pb-3">
               <div>
-                <h4 className="text-base font-bold text-slate-900">Record Provenance: {selectedRecord.id}</h4>
-                <p className="text-xs text-slate-500">{selectedRecord.scrapedTimestamp}</p>
+                <h4 className="text-base font-bold text-slate-100">Record Provenance: {selectedRecord.id}</h4>
+                <p className="text-xs text-slate-400">{selectedRecord.scrapedTimestamp}</p>
               </div>
               <button
                 onClick={() => setSelectedRecord(null)}
@@ -523,28 +315,28 @@ export function IngestionAuditView() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <span className="text-slate-400 block font-semibold">Route Sector:</span>
-                <span className="font-bold text-slate-800 text-sm">
+              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
+                <span className="text-slate-500 block font-semibold">Route Sector:</span>
+                <span className="font-bold text-slate-200 text-sm text-slate-100">
                   {selectedRecord.origin} → {selectedRecord.destination}
                 </span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <span className="text-slate-400 block font-semibold">Operating Carrier:</span>
-                <span className="font-bold text-slate-800 text-sm">{selectedRecord.carrier}</span>
+              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
+                <span className="text-slate-500 block font-semibold">Operating Carrier:</span>
+                <span className="font-bold text-slate-200 text-sm">{selectedRecord.carrier}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <span className="text-slate-400 block font-semibold">Advance Horizon:</span>
-                <span className="font-bold text-blue-700 text-sm">{selectedRecord.horizon}</span>
+              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
+                <span className="text-slate-500 block font-semibold">Advance Horizon:</span>
+                <span className="font-bold text-cyan-300 text-sm">{selectedRecord.horizon}</span>
               </div>
-              <div className="p-3 bg-slate-50 rounded-lg">
-                <span className="text-slate-400 block font-semibold">Pydantic Schema:</span>
-                <span className="font-bold text-emerald-700 text-sm">Validated Clean</span>
+              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
+                <span className="text-slate-500 block font-semibold">Schema Validation:</span>
+                <span className="font-bold text-emerald-300 text-sm">Validated Clean</span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <span className="text-[11px] font-bold text-slate-600">SHA-256 Signature:</span>
+              <span className="text-[11px] font-bold text-slate-400">SHA-256 Signature:</span>
               <div className="flex items-center gap-2 rounded-lg bg-slate-900 p-2 text-white font-mono text-[10px] break-all">
                 <span className="flex-1">{selectedRecord.sha256Hash}</span>
                 <button
@@ -562,7 +354,7 @@ export function IngestionAuditView() {
                 type="button"
                 disabled={isVerifying}
                 onClick={() => handleVerify(selectedRecord)}
-                className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50"
               >
                 {isVerifying ? (
                   <>
@@ -581,21 +373,21 @@ export function IngestionAuditView() {
                 <div
                   className={`rounded-lg p-3 text-xs flex items-start gap-2 border ${
                     verificationResult.valid
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                      : 'bg-red-50 text-red-800 border-red-200'
+                      ? 'bg-emerald-400/10 text-emerald-200 border-emerald-400/30'
+                      : 'bg-red-400/10 text-red-200 border-red-400/30'
                   }`}
                 >
                   {verificationResult.valid ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-300 shrink-0 mt-0.5" />
                   ) : (
-                    <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
+                    <AlertTriangle className="h-4 w-4 text-red-300 shrink-0 mt-0.5" />
                   )}
                   <div>
                     <p className="font-bold">
                       {verificationResult.valid ? 'Signature Authenticated & Unaltered' : 'Tamper Detected'}
                     </p>
                     <p className="text-[11px] mt-0.5">{verificationResult.message}</p>
-                    <span className="text-[10px] text-slate-500 mt-1 block">
+                    <span className="text-[10px] text-slate-400 mt-1 block">
                       {verificationResult.isLive ? 'Validated via backend POST /api/v1/logs/verify-hash' : 'Validated via deterministic client verification'}
                     </span>
                   </div>
@@ -608,7 +400,7 @@ export function IngestionAuditView() {
                 setSelectedRecord(null)
                 setVerificationResult(null)
               }}
-              className="w-full py-2 bg-[#0B2545] hover:bg-blue-900 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold transition cursor-pointer"
             >
               Close Record Audit
             </button>

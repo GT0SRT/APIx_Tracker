@@ -26,39 +26,196 @@
   --font-mono: 'IBM Plex Mono', 'IBM Plex Mono Fallback';
 }
 
+/* =========================================================
+   LIGHT THEME — FROM ZIP FRONTEND
+   ========================================================= */
+
 :root {
   color-scheme: light;
+
   --background: oklch(0.975 0.008 246);
   --foreground: oklch(0.22 0.035 247);
+
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.22 0.035 247);
+
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.22 0.035 247);
+
   --primary: oklch(0.52 0.18 238);
   --primary-foreground: oklch(1 0 0);
+
   --secondary: oklch(0.95 0.018 242);
   --secondary-foreground: oklch(0.3 0.06 247);
+
   --muted: oklch(0.95 0.012 246);
   --muted-foreground: oklch(0.52 0.035 247);
+
   --accent: oklch(0.94 0.04 232);
   --accent-foreground: oklch(0.3 0.08 238);
+
   --destructive: oklch(0.6 0.2 25);
+
   --border: oklch(0.9 0.025 246);
   --input: oklch(0.9 0.025 246);
   --ring: oklch(0.52 0.18 238);
+
   --radius: 0.7rem;
 }
 
-@layer base {
-  * { @apply border-border outline-ring/50; }
-  html { background: var(--background); }
-  body { @apply bg-background text-foreground font-sans; }
-  button, select { font: inherit; }
+/* =========================================================
+   DARK THEME — KEEP YOUR EXISTING DARK DESIGN
+   ========================================================= */
+
+.dark {
+  color-scheme: dark;
+
+  --background: #07111f;
+  --foreground: #f3f7fa;
+
+  --card: #111b2b;
+  --card-foreground: #f3f7fa;
+
+  --popover: #0b1220;
+  --popover-foreground: #f3f7fa;
+
+  --primary: #20d6c7;
+  --primary-foreground: #07151a;
+
+  --secondary: #162235;
+  --secondary-foreground: #d7e3ea;
+
+  --muted: #162235;
+  --muted-foreground: #8ea4b5;
+
+  --accent: #17343d;
+  --accent-foreground: #5ee7df;
+
+  --destructive: #ff6b6b;
+
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
+  --ring: #20d6c7;
+
+  --radius: 0.7rem;
 }
 
-.recharts-tooltip-cursor { fill: oklch(0.96 0.02 246); }
-.recharts-default-tooltip { border-radius: 0.5rem; }
+/* =========================================================
+   BASE
+   ========================================================= */
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    background: var(--background);
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+
+  button,
+  select {
+    font: inherit;
+  }
+}
+
+/* =========================================================
+   CHARTS
+   ========================================================= */
+
+.recharts-tooltip-cursor {
+  fill: oklch(0.96 0.02 246);
+}
+
+.recharts-default-tooltip {
+  border-radius: 0.5rem;
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* =========================================================
+   APIx KPI VISUAL SYSTEM
+   ========================================================= */
+
+.apix-kpi {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--card);
+  color: var(--card-foreground);
+  transition: all 0.25s ease;
+}
+
+.apix-kpi:hover {
+  transform: translateY(-4px);
+  border-color: color-mix(
+    in srgb,
+    var(--primary) 28%,
+    transparent
+  );
+  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12);
+}
+
+.apix-kpi::after {
+  content: '';
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--primary) 70%, transparent),
+    transparent
+  );
+}
+
+.apix-kpi-label {
+  color: var(--muted-foreground);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.apix-kpi-value {
+  margin-top: 10px;
+  color: var(--card-foreground);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.apix-kpi-change {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  background: color-mix(
+    in srgb,
+    var(--primary) 8%,
+    transparent
+  );
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 700;
 }

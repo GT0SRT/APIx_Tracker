@@ -41,7 +41,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-      <div className="my-8 w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+      <div className="my-6 w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl space-y-6 max-h-[80vh] overflow-y-auto">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
           <div className="flex items-center gap-3">
@@ -51,7 +51,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black tracking-tight text-slate-900">
-                  Agentic RAG: Policy &amp; Compliance Q&amp;A
+                  Policy &amp; Regulatory Intelligence
                 </h2>
                 <span className="rounded-full bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 border border-blue-200">
                   MoSPI &amp; DGCA Verified
@@ -107,7 +107,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs text-slate-800 leading-relaxed space-y-2">
-            <p className="font-semibold text-slate-900">RAG Synthesis Answer:</p>
+            <p className="font-semibold text-slate-900">Verified Summary:</p>
             <p>{activeItem.answer}</p>
           </div>
 
@@ -118,7 +118,7 @@ export function PolicyRagModal({ onClose }: PolicyRagProps) {
                 <FileCheck className="h-4 w-4 text-emerald-600" />
                 Verified Ground-Truth Source Citations ({activeItem.citations.length})
               </p>
-              <span className="text-[11px] text-slate-400">Cosine Similarity Ranked</span>
+              <span className="text-[11px] text-slate-400">Ranked by Relevance</span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

@@ -471,7 +471,7 @@ export function FloatingChatBot() {
             <XIcon className="h-6 w-6 text-white transition-transform duration-200 group-hover:rotate-90 drop-shadow" />
           </div>
         ) : (
-          <div className="relative flex h-18 w-18 items-center justify-center transition-transform duration-300 group-hover:scale-110 active:scale-95">
+          <div className="relative flex h-22 w-22 items-center justify-center transition-transform duration-300 group-hover:scale-110 active:scale-95">
             <img
               src={botAvatar}
               alt="APIx AI Copilot"

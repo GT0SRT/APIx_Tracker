@@ -33,7 +33,7 @@ export const policyRagKnowledgeBase: RagQaItem[] = [
     category: 'Ancillary Rules',
     question: 'How does deterministic fare decomposition isolate pure base airfare inflation from passenger add-ons?',
     answer:
-      'Under MoSPI CPI guidelines, voluntary optional add-ons such as pre-booked hot meals, extra baggage allowances, and preferred seat selection fees represent changes in service consumption quantity or quality rather than pure transport price inflation. AndroMatrix APIx utilizes deterministic Pydantic schemas to decompose every fare quote into Base Fare, Fuel Surcharge (ATF), and Airport Development Fees (UDF/PSF). All optional ancillary add-ons are completely stripped prior to index calculation.',
+      'Under MoSPI CPI guidelines, voluntary optional add-ons such as pre-booked hot meals, extra baggage allowances, and preferred seat selection fees represent changes in service consumption quantity or quality rather than pure transport price inflation. APIx utilizes deterministic schema validation to decompose every fare quote into Base Fare, Fuel Surcharge (ATF), and Airport Development Fees (UDF/PSF). All optional ancillary add-ons are completely stripped prior to index calculation.',
     citations: [
       {
         id: 'CIT-MOSPI-02',
@@ -87,7 +87,7 @@ export const policyRagKnowledgeBase: RagQaItem[] = [
     category: 'Compliance',
     question: 'How does the synthetic constant-horizon basket (T+1 to T+45) address advance purchase blindness?',
     answer:
-      'Airline dynamic pricing yields 200%–400% price differences between a flight booked for tomorrow (T+1) versus one booked 45 days in advance (T+45). Measuring prices on inconsistent booking horizons introduces severe temporal sampling bias. AndroMatrix samples five fixed lead-time windows (T+1, T+7, T+15, T+30, T+45) every 6 hours, maintaining matched-model price constancy across time in accordance with UK ONS and Eurostat multilateral airfare guidelines.',
+      'Airline dynamic pricing yields 200%–400% price differences between a flight booked for tomorrow (T+1) versus one booked 45 days in advance (T+45). Measuring prices on inconsistent booking horizons introduces severe temporal sampling bias. APIx samples five fixed lead-time windows (T+1, T+7, T+15, T+30, T+45) every 6 hours, maintaining matched-model price constancy across time in accordance with UK ONS and Eurostat multilateral airfare guidelines.',
     citations: [
       {
         id: 'CIT-UK-ONS-01',

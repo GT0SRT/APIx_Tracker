@@ -5,6 +5,7 @@ import {
   Database,
   Sliders,
   Sparkles,
+  HelpCircle,
 } from 'lucide-react'
 import type { TabType } from '../types/apix'
 
@@ -19,9 +20,16 @@ export interface NavItemConfig {
 export const navItems: NavItemConfig[] = [
   {
     id: 'overview',
-    label: 'Overview',
+    label: 'National Overview',
     icon: LayoutDashboard,
-    desc: 'Executive inflation dashboard and macroeconomic key indicators',
+    desc: 'Executive inflation dashboard and national macroeconomic key indicators',
+  },
+  {
+    id: 'routes-horizons',
+    label: 'Route Analysis & Horizons',
+    icon: Map,
+    desc: 'Sector-specific deep dive, advance elasticity (T+1 to T+45), and airline price parity',
+    badge: 'T+1 to T+45',
   },
   {
     id: 'index-series',
@@ -31,29 +39,29 @@ export const navItems: NavItemConfig[] = [
     badge: 'Core Trimmed',
   },
   {
-    id: 'routes-horizons',
-    label: 'Routes & Horizons',
-    icon: Map,
-    desc: 'Advance elasticity (T+1 to T+45) and CCI/DGCA regulator price parity',
-  },
-  {
     id: 'ai-intelligence',
-    label: 'AI Intelligence Hub',
+    label: 'Price Forecasting',
     icon: Sparkles,
-    desc: 'Horizon Trend ML (92%+ Acc), 24/7 Anomaly Agent & Policy Compliance RAG',
-    badge: '3 AI Models',
+    desc: '45-Day lead-time predictive forecasting across constant purchase horizons (T+1 to T+45)',
+    badge: 'Predictive',
   },
   {
     id: 'audit-logs',
     label: 'Ingestion & Audit',
     icon: Database,
-    desc: 'Playwright telemetry, Hampel/IQR outlier rejection & MoSPI DPI Gateway',
+    desc: 'Automated price ingestion telemetry, Hampel/IQR outlier rejection & SHA-256 audit logs',
     badge: 'SHA-256',
   },
   {
     id: 'methodology',
-    label: 'Methodology & Impact',
+    label: 'Methodology & Formulas',
     icon: Sliders,
     desc: 'Two-tier IMF Jevons & Laspeyres formulas and multi-stakeholder dividends',
+  },
+  {
+    id: 'help-support',
+    label: 'Help & Support',
+    icon: HelpCircle,
+    desc: 'MoSPI regulatory documentation, CPI methodology guidelines, and support desk',
   },
 ]

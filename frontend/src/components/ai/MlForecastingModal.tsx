@@ -40,14 +40,14 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black tracking-tight text-slate-900">
-                  Horizon Trend ML Forecasting
+                  Price Horizon Trend Forecasting
                 </h2>
                 <span className="rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-0.5 border border-emerald-300">
                   92.4% Accuracy
                 </span>
               </div>
               <p className="text-xs text-slate-500">
-                Time-series deep learning predicting airfare trajectories &amp; price surge volatility ($T+1$ to $T+45$)
+                Predictive forecasting of airfare trajectories and price surge volatility (T+1 to T+45)
               </p>
             </div>
           </div>
@@ -66,9 +66,9 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
       {/* Model Benchmark Performance Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-3.5 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Model Accuracy</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Forecast Accuracy</p>
           <p className="text-2xl font-black text-blue-950">{modelEvaluationMetrics.overallAccuracy}</p>
-          <p className="text-[11px] text-blue-700/80 font-medium">Temporal Fusion Transformer</p>
+          <p className="text-[11px] text-blue-700/80 font-medium">Multi-Horizon Time-Series</p>
         </div>
 
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-3.5 space-y-1">
@@ -78,13 +78,13 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
         </div>
 
         <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-3.5 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Mean Abs % Error (MAPE)</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-purple-700">Margin of Error (MAPE)</p>
           <p className="text-2xl font-black text-purple-950">{modelEvaluationMetrics.meanAbsolutePercentageError}</p>
-          <p className="text-[11px] text-purple-700/80 font-medium">Supervised backtest</p>
+          <p className="text-[11px] text-purple-700/80 font-medium">Historical Backtest</p>
         </div>
 
         <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Training Samples</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Historical Coverage</p>
           <p className="text-2xl font-black text-amber-950">1.2M+</p>
           <p className="text-[11px] text-amber-700/80 font-medium">Historical observations</p>
         </div>
@@ -170,8 +170,8 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
         {/* Feature Importance */}
         <Card className="p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-sm">Key Predictor Feature Weights</h3>
-            <span className="text-[11px] font-semibold text-slate-400">SHAP Value Weights</span>
+            <h3 className="font-bold text-slate-900 text-sm">Key Price Determinants</h3>
+            <span className="text-[11px] font-semibold text-slate-400">Factor Contribution</span>
           </div>
           <div className="space-y-3">
             {featureImportance.map((feat) => (
@@ -191,7 +191,7 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
         {/* Micro-Trend Signals */}
         <Card className="p-5">
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="font-bold text-slate-900 text-sm">AI Dynamic Micro-Trend Briefs</h3>
+            <h3 className="font-bold text-slate-900 text-sm">Dynamic Price Trend Insights</h3>
             <Sparkles className="h-4 w-4 text-amber-500" />
           </div>
           <div className="space-y-3">
@@ -215,7 +215,7 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
   if (isModal) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
-        <div className="my-8 w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="my-6 w-full max-w-4xl rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-2xl max-h-[80vh] overflow-y-auto">
           {content}
         </div>
       </div>

@@ -1,32 +1,31 @@
-# React + TypeScript + Vite
+# APIx Tracker - Analytics & Reporting Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The executive analytics dashboard for the **AndroMatrix APIx Platform** (Smart India Hackathon 2026, Problem Statement SIH26056).
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Key Modules
 
-## React Compiler
+* **National Overview:** Consolidated macroeconomic airfare price index across 150+ domestic flight corridors.
+* **Sector Deep-Dive & Horizons:** Advance-purchase lead-time elasticity curves ($T+1$ to $T+45$) and cross-airline price parity matrix.
+* **Index Series:** High-frequency real-time index trajectory vs. Core Trimmed series and MoSPI traditional 45-day survey reporting.
+* **Price Forecasting:** Multi-horizon predictive modeling and dynamic price trend insights.
+* **Ingestion & Cryptographic Audit:** Production telemetry and immutable SHA-256 provenance explorer.
+* **Methodology & Mathematical Formulas:** Interactive Jevons Geometric Mean and DGCA traffic-weighted Laspeyres formulation.
+* **Policy Intelligence:** Grounded regulatory knowledge base answering queries based on official MoSPI CPI manuals, DGCA circulars, and IMF standards.
+* **One-Click Executive Brief:** Instant export of inflation briefs to formatted Markdown and print-ready executive summaries.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the Oxlint configuration
+## Development & Build
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+```bash
+# Install dependencies
+npm install
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+# Start Vite development server
+npm run dev
+
+# Build for production
+npm run build
 ```
-
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

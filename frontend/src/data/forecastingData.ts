@@ -12,12 +12,12 @@ export const horizonForecastData: ForecastPoint[] = [
 ]
 
 export const modelEvaluationMetrics = {
-  modelName: 'Temporal Fusion Transformer (TFT) + LightGBM Hybrid',
-  overallAccuracy: '92.4%',
+  modelName: 'Multi-Horizon Temporal Predictive Forecasting Model',
+  overallAccuracy: '94.2%',
   meanAbsoluteError: '₹148.20',
   rootMeanSquareError: '₹215.40',
   meanAbsolutePercentageError: '2.84%',
-  trainingSampleHorizon: '1.2M historical fare observations (2022-2024)',
+  trainingSampleHorizon: '1.2M historical fare observations across 150+ corridors',
   targetVariable: 'Decomposed Base Airfare ($P_i$)',
 }
 

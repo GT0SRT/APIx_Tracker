@@ -2,12 +2,40 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRo2bEpL97VtjFm6oPQRPBvS9mxVoZYQrXdeBSswj5Hcw&s=10" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>APIx Tracker</title>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <script>
+      (function() {
+        const favicon = document.querySelector('link[rel="icon"]');
+        if (!favicon) return;
+
+        const img = new Image();
+        img.crossOrigin = "anonymous"; 
+        img.src = favicon.href;
+
+        img.onload = function () {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          
+          const size = 64;
+          canvas.width = size;
+          canvas.height = size;
+
+          ctx.beginPath();
+          ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+          ctx.clip();
+
+          ctx.drawImage(img, 0, 0, size, size);
+
+          favicon.href = canvas.toDataURL('image/png');
+        };
+      })();
+    </script>
   </body>
 </html>

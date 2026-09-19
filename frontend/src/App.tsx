@@ -1,53 +1,113 @@
 import { useState, useMemo } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import type { TabType } from './types/apix'
+
+import type { TabType, ExecutiveReportData } from './types/apix'
+
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { useTheme } from './context/ThemeContext'
+
 import { Sidebar } from './components/layout/Sidebar'
 import { Header } from './components/layout/Header'
+
 import { OverviewView } from './components/views/OverviewView'
 import { IndexSeriesView } from './components/views/IndexSeriesView'
 import { RoutesHorizonsView } from './components/views/RoutesHorizonsView'
 import { AiHubView } from './components/views/AiHubView'
 import { IngestionAuditView } from './components/views/IngestionAuditView'
 import { MethodologyView } from './components/views/MethodologyView'
-import { OneClickReportModal } from './components/reports/OneClickReportModal'
-import { agenticAnomalyAlerts } from './data/agenticData'
+import { HelpSupportView } from './components/views/HelpSupportView'
 
-export default function App() {
+import { ExecutiveReportModal } from './components/reports/ExecutiveReportModal'
+import { FloatingChatBot } from './components/ai/FloatingChatBot'
+import { LoginModal } from './components/auth/LoginModal'
+
+function AppContent() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [aiSubTab, setAiSubTab] = useState<'ml' | 'agent' | 'rag'>('ml')
-  const [range, setRange] = useState('Daily')
+  const { isAuthenticated, openLoginModal } = useAuth()
+  const { theme } = useTheme()
+
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [showReportModal, setShowReportModal] = useState(false)
 
-  // Derive active tab from current URL pathname
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportModalData, setReportModalData] =
+    useState<ExecutiveReportData | undefined>(undefined)
+
+  const handleOpenReportModal = (data?: ExecutiveReportData) => {
+    if (!isAuthenticated) {
+      openLoginModal()
+      return
+    }
+
+    setReportModalData(data)
+    setShowReportModal(true)
+  }
+
+  /* Derive active tab from current URL pathname */
+
   const activeTab = useMemo<TabType>(() => {
     const raw = location.pathname.replace(/^\//, '').split('/')[0]
+
     if (!raw || raw === 'overview') return 'overview'
+
     if (raw === 'index-series') return 'index-series'
-    if (raw === 'routes-horizons' || raw === 'routes') return 'routes-horizons'
-    if (raw === 'ai-intelligence' || raw === 'ai' || raw === 'ml-forecasting' || raw === 'agentic-ai') return 'ai-intelligence'
-    if (raw === 'audit-logs' || raw === 'audit' || raw === 'ingestion') return 'audit-logs'
+
+    if (raw === 'routes-horizons' || raw === 'routes') {
+      return 'routes-horizons'
+    }
+
+    if (
+      raw === 'ai-intelligence' ||
+      raw === 'ai' ||
+      raw === 'ml-forecasting' ||
+      raw === 'agentic-ai'
+    ) {
+      return 'ai-intelligence'
+    }
+
+    if (
+      raw === 'audit-logs' ||
+      raw === 'audit' ||
+      raw === 'ingestion'
+    ) {
+      return 'audit-logs'
+    }
+
     if (raw === 'methodology') return 'methodology'
+
+    if (raw === 'help-support' || raw === 'help') {
+      return 'help-support'
+    }
+
     return 'overview'
   }, [location.pathname])
 
   const handleTabChange = (tab: TabType) => {
     const path = tab === 'overview' ? '/' : `/${tab}`
     navigate(path)
-    if (tab === 'ai-intelligence') setAiSubTab('ml')
   }
 
-  const navigateToAi = (subTab: 'ml' | 'agent' | 'rag') => {
-    setAiSubTab(subTab)
-    navigate(`/ai-intelligence?tab=${subTab}`)
-  }
+  const isDark = theme === 'dark'
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] text-slate-800 antialiased flex flex-col font-sans">
+    <div
+      className={`
+        min-h-screen
+        antialiased
+        flex flex-col
+        font-sans
+        transition-colors duration-300
+        ${
+          isDark
+            ? 'bg-[#07111f] text-slate-100'
+            : 'bg-[#F8FAFC] text-slate-800'
+        }
+      `}
+    >
       {/* Sidebar Navigation */}
+
       <Sidebar
         activeTab={activeTab}
         setActiveTab={handleTabChange}
@@ -58,54 +118,214 @@ export default function App() {
       />
 
       {/* Main Content Area */}
+
       <main
-        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'
-        }`}
+        className={`
+          flex-1
+          flex flex-col
+          min-w-0
+          transition-all duration-300
+          ${
+            sidebarCollapsed
+              ? 'lg:pl-20'
+              : 'lg:pl-64'
+          }
+        `}
       >
         {/* Sticky Executive Header */}
+
         <Header
           activeTab={activeTab}
-          sidebarCollapsed={sidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
           setSidebarOpen={setSidebarOpen}
-          range={range}
-          setRange={setRange}
-          onOpenReportModal={() => setShowReportModal(true)}
-          onNavigateToAi={navigateToAi}
-          anomalyCount={agenticAnomalyAlerts.length}
         />
 
         {/* Dynamic Routed Views */}
+
         <Routes>
+          {/* Public Views */}
+
           <Route
             path="/"
             element={
               <OverviewView
-                onNavigateToAi={navigateToAi}
                 onNavigateToTab={handleTabChange}
+                onOpenReportModal={handleOpenReportModal}
               />
             }
           />
-          <Route path="/overview" element={<Navigate to="/" replace />} />
-          <Route path="/index-series" element={<IndexSeriesView />} />
-          <Route path="/routes-horizons" element={<RoutesHorizonsView />} />
-          <Route path="/routes" element={<Navigate to="/routes-horizons" replace />} />
+
           <Route
-            path="/ai-intelligence"
-            element={<AiHubView key={location.search + aiSubTab} initialSubTab={aiSubTab} />}
+            path="/overview"
+            element={<Navigate to="/" replace />}
           />
-          <Route path="/audit-logs" element={<IngestionAuditView />} />
-          <Route path="/audit" element={<Navigate to="/audit-logs" replace />} />
-          <Route path="/methodology" element={<MethodologyView />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+
+          <Route
+            path="/help-support"
+            element={
+              <HelpSupportView
+                onOpenReportModal={() => handleOpenReportModal()}
+              />
+            }
+          />
+
+          <Route
+            path="/help"
+            element={<Navigate to="/help-support" replace />}
+          />
+
+          {/* Admin Protected Views */}
+
+          {isAuthenticated ? (
+            <>
+              <Route
+                path="/index-series"
+                element={<IndexSeriesView />}
+              />
+
+              <Route
+                path="/routes-horizons"
+                element={<RoutesHorizonsView />}
+              />
+
+              <Route
+                path="/routes"
+                element={
+                  <Navigate
+                    to="/routes-horizons"
+                    replace
+                  />
+                }
+              />
+
+              <Route
+                path="/ai-intelligence"
+                element={<AiHubView />}
+              />
+
+              <Route
+                path="/ml-forecasting"
+                element={
+                  <Navigate
+                    to="/ai-intelligence"
+                    replace
+                  />
+                }
+              />
+
+              <Route
+                path="/ai"
+                element={
+                  <Navigate
+                    to="/ai-intelligence"
+                    replace
+                  />
+                }
+              />
+
+              <Route
+                path="/audit-logs"
+                element={<IngestionAuditView />}
+              />
+
+              <Route
+                path="/audit"
+                element={
+                  <Navigate
+                    to="/audit-logs"
+                    replace
+                  />
+                }
+              />
+
+              <Route
+                path="/methodology"
+                element={<MethodologyView />}
+              />
+            </>
+          ) : (
+            <>
+              {/* Unauthenticated viewers are redirected to Overview */}
+
+              <Route
+                path="/index-series"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/routes-horizons"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/routes"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/ai-intelligence"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/ml-forecasting"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/ai"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/audit-logs"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/audit"
+                element={<Navigate to="/" replace />}
+              />
+
+              <Route
+                path="/methodology"
+                element={<Navigate to="/" replace />}
+              />
+            </>
+          )}
+
+          {/* Fallback */}
+
+          <Route
+            path="*"
+            element={<Navigate to="/" replace />}
+          />
         </Routes>
       </main>
 
-      {/* One-Click Executive Report Modal */}
-      {showReportModal && (
-        <OneClickReportModal onClose={() => setShowReportModal(false)} />
+      {/* Executive Report Modal */}
+
+      {showReportModal && isAuthenticated && (
+        <ExecutiveReportModal
+          onClose={() => setShowReportModal(false)}
+          {...reportModalData}
+        />
       )}
+
+      {/* Admin Login Dialog */}
+
+      <LoginModal />
+
+      {/* Floating AI Statistical Copilot */}
+
+      <FloatingChatBot />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
