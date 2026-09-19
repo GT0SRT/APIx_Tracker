@@ -17,8 +17,8 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts'
-import { elasticityData, dgcaRoutesData, airlineParityData } from '../../data/mockData'
 import { Card, ChartTooltip } from '../common/CommonUI'
+import { MathFormula } from '../common/MathFormula'
 import { Pagination } from '../common/Pagination'
 import { paginateData } from '../../services/api'
 import { useElasticityQuery, useRoutesQuery, useRouteParityQuery } from '../../hooks/useApixQueries'
@@ -35,24 +35,25 @@ export function RoutesHorizonsView() {
   const elasticityQuery = useElasticityQuery(selectedRoute)
   const parityQuery = useRouteParityQuery()
 
-  const routesList: RouteTrafficWeight[] = routesQuery.data?.data || dgcaRoutesData
-  const elasticity: ElasticityPoint[] = elasticityQuery.data?.data || elasticityData
-  const parityData = parityQuery.data?.data || airlineParityData
+  const routesList: RouteTrafficWeight[] = routesQuery.data?.data || []
+  const elasticity: ElasticityPoint[] = elasticityQuery.data?.data || []
+  const parityData = parityQuery.data?.data || []
 
   const t1 = elasticity.find((e) => e.window === 'T+1')
   const t45 = elasticity.find((e) => e.window === 'T+45')
-  const surgeVal = t1 && t45 && t45.fare > 0 ? Math.round(((t1.fare - t45.fare) / t45.fare) * 100) : 63
-  const dynamicSurgePercent = `${surgeVal >= 0 ? '+' : ''}${surgeVal}%`
+  const surgeVal = t1 && t45 && t45.fare > 0 ? Math.round(((t1.fare - t45.fare) / t45.fare) * 100) : null
+  const dynamicSurgePercent = elasticityQuery.isLoading ? '...' : surgeVal !== null ? `${surgeVal >= 0 ? '+' : ''}${surgeVal}%` : 'N/A'
   const dynamicSurgeDesc =
     t1 && t45
       ? `Average price ₹${t1.fare.toLocaleString('en-IN')} vs ₹${t45.fare.toLocaleString('en-IN')} at T+45`
-      : 'Average price ₹8,650 vs ₹5,320 at T+45 (200%–400% surge gap)'
+      : 'Constant-horizon price variance unavailable'
 
   const topParitySpread = useMemo(() => {
-    if (!parityData || parityData.length === 0) return '10.8%'
+    if (parityQuery.isLoading) return '...'
+    if (!parityData || parityData.length === 0) return 'N/A'
     const target = parityData.find((p) => p.route.includes(selectedRoute)) || parityData[0]
-    return `${target.priceSpreadPercent}%`
-  }, [parityData, selectedRoute])
+    return target && target.priceSpreadPercent !== undefined ? `${target.priceSpreadPercent}%` : 'N/A'
+  }, [parityData, selectedRoute, parityQuery.isLoading])
 
   const filteredParityData = useMemo(() => {
     return parityData.filter((item) =>
@@ -65,40 +66,39 @@ export function RoutesHorizonsView() {
   }, [filteredParityData, parityPage, parityPageSize])
 
   return (
-    <div className="relative min-h-full flex-1 space-y-6 overflow-hidden bg-[#08111f] p-4 text-slate-100 md:p-8">
-      <div className="pointer-events-none absolute -top-32 left-1/3 h-72 w-72 rounded-full bg-cyan-400/5 blur-3xl" />
+    <div className="space-y-6 p-4 md:p-8 flex-1">
       {/* View Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
               Routes, Horizons &amp; Competition Parity
             </h2>
-            <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2.5 py-0.5 text-xs font-bold text-cyan-300">
+            <span className="rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-800 border border-orange-200">
               T+1 to T+45 Horizons
             </span>
             {routesQuery.data?.isLive && !routesQuery.data?.isDemoData ? (
-              <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-bold text-emerald-300">
+              <span className="rounded-full bg-emerald-100 border border-emerald-300 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
                 Live Data
               </span>
             ) : (
-              <span className="rounded-full border border-amber-400/25 bg-amber-400/10 px-2.5 py-0.5 text-xs font-bold text-amber-300">
+              <span className="rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-xs font-bold text-amber-800">
                 Demo Data
               </span>
             )}
           </div>
-          <p className="mt-1 max-w-3xl text-xs text-slate-400">
+          <p className="text-xs text-slate-500 mt-1">
             Analyzing advance booking elasticity curves, DGCA passenger weights, and cross-airline pricing spreads
           </p>
         </div>
 
         {/* Route Selector */}
         <div className="flex items-center gap-2">
-          <label className="text-xs font-bold text-slate-400">Active Sector:</label>
+          <label className="text-xs font-bold text-slate-600">Active Sector:</label>
           <select
             value={selectedRoute}
             onChange={(e) => setSelectedRoute(e.target.value)}
-            className="cursor-pointer rounded-xl border border-[#26364c] bg-[#101b2b] px-3 py-2 text-xs font-bold text-slate-200 shadow-[0_8px_25px_rgba(0,0,0,0.18)] outline-none transition focus:border-cyan-400"
+            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-800 outline-none focus:border-blue-600 shadow-xs cursor-pointer"
           >
             {routesList.map((r) => {
               const rawWeight = Number(r.dgcaWeight)
@@ -116,60 +116,60 @@ export function RoutesHorizonsView() {
 
       {/* Advance Purchase Curve Highlights */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#26364c] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.3)]">
+        <Card className="p-5 border-l-4 border-l-orange-600">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">T+1 Last-Minute Premium</p>
-              <p className="mt-2 text-2xl font-black text-orange-300">{dynamicSurgePercent}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">T+1 Last-Minute Premium</p>
+              <p className="mt-2 text-2xl font-black text-orange-600">{dynamicSurgePercent}</p>
             </div>
-            <span className="rounded-lg border border-orange-400/20 bg-orange-400/10 p-2 text-orange-300">
+            <span className="rounded-lg bg-orange-50 p-2 text-orange-600">
               <Clock className="h-5 w-5" />
             </span>
           </div>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-slate-500">
             {dynamicSurgeDesc}
           </p>
         </Card>
 
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#26364c] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.3)]">
+        <Card className="p-5 border-l-4 border-l-blue-600">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">DGCA Basket Coverage</p>
-              <p className="mt-2 text-2xl font-black text-cyan-300">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">DGCA Basket Coverage</p>
+              <p className="mt-2 text-2xl font-black text-blue-700">
                 {routesList.length > 0 ? `${routesList.length} Corridors` : '150 Corridors'}
               </p>
             </div>
-            <span className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-2 text-cyan-300">
+            <span className="rounded-lg bg-blue-50 p-2 text-blue-600">
               <Map className="h-5 w-5" />
             </span>
           </div>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-slate-500">
             Quarterly traffic-weighted city pairs covering 88.4% of total domestic passenger traffic
           </p>
         </Card>
 
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#26364c] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.3)]">
+        <Card className="p-5 border-l-4 border-l-emerald-600">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Competitive Parity Spread</p>
-              <p className="mt-2 text-2xl font-black text-emerald-300">{topParitySpread}</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Competitive Parity Spread</p>
+              <p className="mt-2 text-2xl font-black text-emerald-700">{topParitySpread}</p>
             </div>
-            <span className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-2 text-emerald-300">
+            <span className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
               <Scale className="h-5 w-5" />
             </span>
           </div>
-          <p className="mt-3 text-xs text-slate-400">
+          <p className="mt-3 text-xs text-slate-500">
             Trunk route {selectedRoute} carrier dispersion within fair competition threshold
           </p>
         </Card>
       </div>
 
       {/* Chart: The 5 Standard Advance-Purchase Booking Curves */}
-      <Card className="group relative overflow-hidden rounded-2xl !border-[#26364c] !bg-[#101b2b] p-6 text-white shadow-[0_14px_35px_rgba(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.3)]">
+      <Card className="p-6">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-white text-base">
+              <h3 className="font-bold text-slate-900 text-base">
                 Constant-Horizon Price Curve (T+1 to T+45)
               </h3>
               {elasticityQuery.data?.isLive && !elasticityQuery.data?.isDemoData ? (
@@ -182,71 +182,81 @@ export function RoutesHorizonsView() {
                 </span>
               )}
             </div>
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-slate-500">
               Synthetic basket tracking strictly defined fixed lead times to prevent sampling bias (ILO &amp; Eurostat standard)
             </p>
           </div>
           <div className="flex items-center gap-3 text-xs font-semibold">
-            <span className="flex items-center gap-1.5 text-orange-300 bg-orange-400/10 px-2 py-1 rounded border border-orange-400/20">
-              <span className="h-2 w-2 rounded-full bg-orange-400" />
+            <span className="flex items-center gap-1.5 text-orange-700 bg-orange-50 px-2 py-1 rounded border border-orange-200">
+              <span className="h-2 w-2 rounded-full bg-orange-600" />
               T+1 Surge Window
             </span>
-            <span className="flex items-center gap-1.5 text-cyan-300 bg-cyan-400/10 px-2 py-1 rounded border border-cyan-400/20">
-              <span className="h-2 w-2 rounded-full bg-cyan-400" />
+            <span className="flex items-center gap-1.5 text-blue-700 bg-blue-50 px-2 py-1 rounded border border-blue-200">
+              <span className="h-2 w-2 rounded-full bg-blue-600" />
               T+7 to T+45 Baseline
             </span>
           </div>
         </div>
 
-        <div className="h-72 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={elasticity} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
-              <CartesianGrid stroke="#26364c" vertical={false} />
-              <XAxis dataKey="window" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
-              <YAxis
-                tick={{ fontSize: 11, fill: '#94A3B8' }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(val) => `₹${Math.round(val / 1000)}k`}
-              />
-              <Tooltip content={<ChartTooltip />} />
-              <Bar dataKey="baseFare" name="Base Fare" fill="#2563EB" radius={[0, 0, 0, 0]} stackId="a" />
-              <Bar dataKey="taxes" name="Taxes & Fees" fill="#93C5FD" radius={[6, 6, 0, 0]} stackId="a">
-                {elasticity.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.isHighSurge ? '#EA580C' : '#93C5FD'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
-          {elasticity.map((item) => (
-            <div key={item.window} className="rounded-xl border border-[#26364c] bg-[#0c1727] p-2.5 transition-all duration-200 hover:border-cyan-400/30 hover:bg-[#122035]">
-              <p className="font-bold text-white">{item.window}</p>
-              <p className="mt-0.5 text-[11px] text-slate-400">{item.days} Day{item.days > 1 ? 's' : ''} out</p>
-              <p className="mt-1 text-sm font-extrabold text-cyan-300">₹{item.fare.toLocaleString()}</p>
-              <span
-                className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                  item.isHighSurge ? 'bg-orange-400/10 text-orange-300 border border-orange-400/20' : 'bg-emerald-400/10 text-emerald-300 border border-emerald-400/20'
-                }`}
-              >
-                {item.change}
-              </span>
+        {elasticity.length > 0 ? (
+          <>
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={elasticity} margin={{ top: 10, right: 15, left: -15, bottom: 0 }}>
+                  <CartesianGrid stroke="#F1F5F9" vertical={false} />
+                  <XAxis dataKey="window" tick={{ fontSize: 11, fill: '#64748B' }} tickLine={false} axisLine={false} />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#64748B' }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(val) => `₹${Math.round(val / 1000)}k`}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="baseFare" name="Base Fare" fill="#2563EB" radius={[0, 0, 0, 0]} stackId="a" />
+                  <Bar dataKey="taxes" name="Taxes & Fees" fill="#93C5FD" radius={[6, 6, 0, 0]} stackId="a">
+                    {elasticity.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.isHighSurge ? '#EA580C' : '#93C5FD'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-          ))}
-        </div>
+
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-2 text-center text-xs">
+              {elasticity.map((item) => (
+                <div key={item.window} className="rounded-lg border border-slate-200 bg-slate-50/50 p-2.5">
+                  <p className="font-bold text-slate-900">{item.window}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{item.days} Day{item.days > 1 ? 's' : ''} out</p>
+                  <p className="text-sm font-extrabold text-blue-700 mt-1">₹{item.fare.toLocaleString()}</p>
+                  <span
+                    className={`inline-block mt-1 text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                      item.isHighSurge ? 'bg-orange-100 text-orange-800' : 'bg-emerald-100 text-emerald-800'
+                    }`}
+                  >
+                    {item.change}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="h-72 w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+            <Clock className="h-8 w-8 text-slate-400 mb-2" />
+            <p className="text-xs font-bold text-slate-700">No Constant-Horizon Observations</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Awaiting advance booking window telemetry for sector {selectedRoute}.</p>
+          </div>
+        )}
       </Card>
 
       {/* Slide 5: Market Competition Regulators (CCI / DGCA) Cross-Airline Parity */}
-      <Card className="overflow-hidden rounded-2xl !border-[#26364c] !bg-[#101b2b] text-white shadow-[0_14px_35px_rgba(0,0,0,0.2)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#26364c] bg-[#0c1727] p-5">
+      <Card className="overflow-hidden border border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-5">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-bold text-white text-base">
+              <h3 className="font-bold text-slate-900 text-base">
                 Cross-Airline Pricing Parity Analytics (CCI &amp; DGCA Module)
               </h3>
-              <span className="rounded bg-violet-400/10 text-violet-300 border border-violet-400/20 text-[10px] font-bold px-2 py-0.5">
+              <span className="rounded bg-indigo-100 text-indigo-800 text-[10px] font-bold px-2 py-0.5">
                 Regulator Mode
               </span>
               {parityQuery.data?.isLive && !parityQuery.data?.isDemoData ? (
@@ -274,14 +284,14 @@ export function RoutesHorizonsView() {
                 setParitySearch(e.target.value)
                 setParityPage(1)
               }}
-              className="rounded-lg w-48 rounded-xl border border-[#26364c] bg-[#0c1727] py-2 pl-8 pr-3 text-xs text-slate-200 outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
+              className="rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-600 w-48"
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-xs">
-            <thead className="bg-[#0B2545] text-white text-[11px] uppercase tracking-wider font-semibold">
+            <thead className="bg-[#0F4C81] text-white text-[11px] uppercase tracking-wider font-semibold sticky top-0 z-10">
               <tr>
                 <th className="px-5 py-3.5 font-bold">Route Sector</th>
                 <th className="px-5 py-3.5 font-bold">IndiGo</th>
@@ -291,36 +301,36 @@ export function RoutesHorizonsView() {
                 <th className="px-5 py-3.5 font-bold">Competition Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#26364c] bg-[#101b2b]">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {paginatedParity.data.map((row) => (
-                <tr key={row.route} className="transition-colors hover:bg-cyan-400/5">
-                  <td className="whitespace-nowrap px-5 py-3.5 font-bold text-white">{row.route}</td>
-                  <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-200">
+                <tr key={row.route} className="hover:bg-blue-50/40 transition-colors">
+                  <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-900">{row.route}</td>
+                  <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-800 tabular-nums">
                     ₹{row.indigoFare.toLocaleString()}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-200">
+                  <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-800 tabular-nums">
                     ₹{row.airIndiaFare.toLocaleString()}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-200">
+                  <td className="whitespace-nowrap px-5 py-3.5 font-semibold text-slate-800 tabular-nums">
                     {row.akasaFare > 0 ? `₹${row.akasaFare.toLocaleString()}` : 'N/A (No Slot)'}
                   </td>
-                  <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-cyan-300">
+                  <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-blue-700 tabular-nums">
                     {row.priceSpreadPercent}%
                   </td>
                   <td className="whitespace-nowrap px-5 py-3.5">
                     {row.monopolyRisk === 'Competitive' && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-bold text-emerald-300">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
                         <ShieldCheck className="h-3 w-3 text-emerald-600" />
                         Competitive
                       </span>
                     )}
                     {row.monopolyRisk === 'Moderate Variance' && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/20 bg-amber-400/10 px-2.5 py-1 text-[11px] font-bold text-amber-300">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 border border-amber-200">
                         Moderate Spread
                       </span>
                     )}
                     {row.monopolyRisk === 'Monopolistic Warning' && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-red-400/20 bg-red-400/10 px-2.5 py-1 text-[11px] font-bold text-red-300">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 border border-red-200">
                         <AlertTriangle className="h-3 w-3 text-red-600" />
                         Monopolistic Warning
                       </span>
@@ -348,15 +358,21 @@ export function RoutesHorizonsView() {
       </Card>
 
       {/* DGCA Quarterly Route Weight Table */}
-      <Card className="group relative overflow-hidden rounded-2xl !border-[#26364c] !bg-[#101b2b] p-6 text-white shadow-[0_14px_35px_rgba(0,0,0,0.2)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.3)]">
-        <div className="mb-4 flex items-center justify-between">
+      <Card className="p-6">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="font-bold text-white text-base">DGCA Passenger Traffic Volume Shares ($w_r$)</h3>
+            <h3 className="font-bold text-slate-900 text-base flex items-center gap-1.5">
+              <span>DGCA Passenger Traffic Volume Shares</span>
+              <span className="text-slate-600 font-semibold">(<MathFormula math="w_r" />)</span>
+            </h3>
             <p className="mt-1 text-xs text-slate-500">
               City-pair passenger volume distribution determining weights in the Modified Laspeyres Index formulation
             </p>
           </div>
-          <span className="text-xs font-semibold text-slate-400">Source: DGCA Q3 2024 Traffic Bulletin</span>
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 border border-slate-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#0F4C81]" />
+            Source: DGCA Q3 2024 Traffic Bulletin (Base Year Weights)
+          </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -367,24 +383,24 @@ export function RoutesHorizonsView() {
             const weight = isNaN(rawWeight) || rawWeight <= 0 ? 5.0 : rawWeight
             const weightDisplay = weight < 1 && weight > 0 ? (weight * 100).toFixed(1) : weight.toFixed(1)
             return (
-              <div key={route.route} className="space-y-2 rounded-xl border border-[#26364c] bg-[#0c1727] p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-400/30 hover:bg-[#122035]">
+              <div key={route.route} className="rounded-xl border border-slate-200 bg-slate-50/50 p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="font-extrabold text-white text-sm">{route.route}</span>
-                  <span className="rounded bg-cyan-400/10 text-cyan-300 border border-cyan-400/20 text-[11px] font-bold px-2 py-0.5">
+                  <span className="font-extrabold text-slate-900 text-sm">{route.route}</span>
+                  <span className="rounded bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5">
                     w = {weightDisplay}%
                   </span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400">
+                <div className="flex justify-between text-xs text-slate-600">
                   <span>Monthly Pax:</span>
-                  <span className="font-semibold text-slate-200">{paxDisplay}</span>
+                  <span className="font-semibold text-slate-800">{paxDisplay}</span>
                 </div>
-                <div className="flex justify-between text-xs text-slate-400">
+                <div className="flex justify-between text-xs text-slate-600">
                   <span>Top Carrier:</span>
-                  <span className="font-semibold text-slate-200">{route.topCarrier || 'IndiGo'}</span>
+                  <span className="font-semibold text-slate-800">{route.topCarrier || 'IndiGo'}</span>
                 </div>
-                <div className="w-full bg-[#26364c] h-1.5 rounded-full overflow-hidden">
+                <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
                   <div
-                    className="bg-cyan-400 h-full rounded-full"
+                    className="bg-blue-600 h-full rounded-full"
                     style={{ width: `${Math.min(100, Math.max(5, weight * 5))}%` }}
                   />
                 </div>

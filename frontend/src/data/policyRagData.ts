@@ -83,6 +83,33 @@ export const policyRagKnowledgeBase: RagQaItem[] = [
     ],
   },
   {
+    id: 'RAG-005',
+    category: 'Traffic Weighting',
+    question: 'Why does APIx use DGCA Q3 2024 Bulletin weights instead of 2026 weights?',
+    answer:
+      'Under international index standards (IMF CPI Manual 2020, Chapter 8), macroeconomic indices require a fixed reference basket corresponding to the official Base Year (Base 2024 = 100). Calibrating against the audited DGCA Q3 2024 bulletin isolates pure price inflation from consumer volume substitution. If dynamic 2026 weights were used without chained linking, shifts in passenger travel habits would distort the index even if ticket prices remained unchanged.',
+    citations: [
+      {
+        id: 'CIT-IMF-03',
+        organization: 'IMF',
+        title: 'Consumer Price Index Manual: Concepts and Methods (2020)',
+        reference: 'Chapter 8: Fixed Basket Axiom in Laspeyres Price Indices',
+        excerpt:
+          'A pure price index holds the quantities of goods and services fixed at the base period to isolate price movements from demand substitution.',
+        relevanceScore: 0.98,
+      },
+      {
+        id: 'CIT-DGCA-03',
+        organization: 'DGCA',
+        title: 'DGCA Q3 2024 Domestic Air Transport Statistics Bulletin',
+        reference: 'Table 4: City-Pair Passenger Volume Census (Base Year Reference)',
+        excerpt:
+          'Official benchmark dataset establishing domestic route passenger shares for macroeconomic statistical surveillance.',
+        relevanceScore: 0.95,
+      },
+    ],
+  },
+  {
     id: 'RAG-004',
     category: 'Compliance',
     question: 'How does the synthetic constant-horizon basket (T+1 to T+45) address advance purchase blindness?',

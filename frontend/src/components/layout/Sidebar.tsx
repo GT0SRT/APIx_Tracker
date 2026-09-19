@@ -1,13 +1,16 @@
+import { useRef, useState } from 'react'
 import {
-  Plane,
+  PlaneTakeoff,
   X,
   PanelLeftClose,
   PanelLeftOpen,
   Lock,
-  ShieldCheck,
   LogIn,
-  Sparkles,
+  LogOut,
+  ShieldCheck,
+  SlidersHorizontal,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { TabType } from '../../types/apix'
 import { navItems } from '../../data/navigation'
 import { useAuth } from '../../context/AuthContext'
@@ -19,6 +22,8 @@ interface SidebarProps {
   setSidebarOpen: (open: boolean) => void
   sidebarCollapsed: boolean
   setSidebarCollapsed: (collapsed: boolean) => void
+  sidebarWidth?: number
+  setSidebarWidth?: (width: number) => void
 }
 
 export function Sidebar({
@@ -28,18 +33,76 @@ export function Sidebar({
   setSidebarOpen,
   sidebarCollapsed,
   setSidebarCollapsed,
+  sidebarWidth = 260,
+  setSidebarWidth,
 }: SidebarProps) {
-  const { isAuthenticated, user, openLoginModal } = useAuth()
+  const navigate = useNavigate()
+  const { isAuthenticated, user, openLoginModal, logout } = useAuth()
 
-  const visibleNavItems = isAuthenticated
-    ? navItems
-    : navItems.filter(
-        (item) => item.id === 'overview' || item.id === 'help-support'
-      )
+  const isDraggingRef = useRef(false)
+  const [isResizing, setIsResizing] = useState(false)
+
+  // Drag handler for interactive sidebar width resizing
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault()
+    isDraggingRef.current = true
+    setIsResizing(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isDraggingRef.current) return
+      const clampedWidth = Math.min(Math.max(event.clientX, 200), 420)
+      setSidebarWidth?.(clampedWidth)
+    }
+
+    const handleMouseUp = () => {
+      isDraggingRef.current = false
+      setIsResizing(false)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+  }
+
+  // Cycle through presets: Compact (220px) -> Standard (260px) -> Wide (340px)
+  const cycleWidthPreset = () => {
+    if (!setSidebarWidth) return
+    if (sidebarWidth < 240) {
+      setSidebarWidth(260)
+    } else if (sidebarWidth < 300) {
+      setSidebarWidth(340)
+    } else {
+      setSidebarWidth(220)
+    }
+  }
+
+  const getWidthPresetName = (w: number) => {
+    if (w <= 235) return 'Compact (220px)'
+    if (w >= 310) return 'Wide (340px)'
+    return 'Standard (260px)'
+  }
+
+  // Public tabs accessible to all citizens; all other tabs require administrator authorization
+  const publicTabIds: TabType[] = ['overview', 'help-support']
+
+  const handleNavClick = (id: TabType) => {
+    const isProtected = !publicTabIds.includes(id)
+    if (!isAuthenticated && isProtected) {
+      openLoginModal()
+      return
+    }
+    setActiveTab(id)
+    setSidebarOpen(false)
+  }
 
   return (
     <>
-      {/* Mobile backdrop */}
+      {/* Mobile Backdrop */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
@@ -47,442 +110,294 @@ export function Sidebar({
         />
       )}
 
-      {/* =====================================================
-          SIDEBAR
-          ===================================================== */}
+      {/* Sidebar - Sovereign Ashoka Navy (#0A1628) with Bento Minimalism */}
       <aside
-        className={`
-          fixed inset-y-0 left-0 z-50
-          flex flex-col
-          overflow-hidden
-          border-r border-white/[0.07]
-          bg-[#0B1220]
-          text-white
-          shadow-[12px_0_40px_rgba(0,0,0,0.12)]
-          transition-all duration-300 ease-out
-
-          ${sidebarCollapsed ? 'lg:w-20' : 'lg:w-64'}
-
-          ${
-            sidebarOpen
-              ? 'w-64 translate-x-0'
-              : '-translate-x-full lg:translate-x-0'
-          }
-        `}
+        style={{
+          width: sidebarCollapsed ? undefined : `${sidebarWidth}px`,
+        }}
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#15253D] bg-[#0A1628] text-slate-100 ${
+          isResizing ? 'transition-none select-none' : 'transition-[width] duration-200 ease-out'
+        } shadow-2xl lg:shadow-none ${
+          sidebarCollapsed ? 'lg:w-20' : ''
+        } ${sidebarOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
       >
-        {/* =====================================================
-            BRAND
-            ===================================================== */}
+        {/* Brand Header */}
         <div
-          className={`
-            relative flex h-20 shrink-0 items-center
-            border-b border-white/[0.07]
-            ${sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'}
-          `}
+          className={`flex h-20 items-center border-b border-[#15253D] transition-all ${
+            sidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'
+          }`}
         >
-          {/* subtle teal glow */}
-          <div className="pointer-events-none absolute -left-8 -top-12 h-28 w-28 rounded-full bg-[#20D6C7]/10 blur-3xl" />
-
           {sidebarCollapsed ? (
+            /* Collapsed State Toggle */
             <button
               onClick={() => setSidebarCollapsed(false)}
-              className="
-                group relative flex h-11 w-11 items-center justify-center
-                rounded-xl
-                border border-[#20D6C7]/20
-                bg-[#111B2B]
-                text-[#5EE7DF]
-                shadow-lg shadow-black/10
-                transition-all duration-200
-                hover:border-[#20D6C7]/50
-                hover:bg-[#162235]
-                hover:shadow-[0_0_24px_rgba(32,214,199,0.12)]
-              "
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#13233A] text-blue-400 hover:bg-blue-600 hover:text-white border border-[#1E3658] transition-all cursor-pointer group shadow-sm hover:scale-105 active:scale-95"
               title="Expand sidebar panel"
               aria-label="Expand sidebar panel"
             >
-              <PanelLeftOpen className="h-5 w-5 transition-transform duration-200 group-hover:scale-110" />
+              <PanelLeftOpen className="h-5 w-5 transition-transform group-hover:scale-110" />
             </button>
           ) : (
+            /* Expanded Brand State */
             <>
-              <div className="flex min-w-0 items-center gap-3">
-                {/* Logo */}
-                <div
-                  className="
-                    relative flex h-10 w-10 shrink-0
-                    items-center justify-center
-                    rounded-xl
-                    border border-[#20D6C7]/25
-                    bg-gradient-to-br from-[#20D6C7] to-[#2bc1bc]
-                    text-[#07151A]
-                    shadow-[0_0_24px_rgba(32,214,199,0.18)]
-                  "
-                >
-                  <Plane className="h-5 w-5 text-white rotate-45" />
-
-                  {/* live dot */}
-                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full border-2 border-[#0B1220] bg-[#20D6C7]" />
+              <div className="flex items-center gap-3 overflow-hidden min-w-0">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md shadow-blue-600/30">
+                  <PlaneTakeoff className="h-5.5 w-5.5 text-white" />
                 </div>
-
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-[15px] font-bold tracking-tight text-white">
-                      APIx Tracker
-                    </p>
-                  </div>
-
-                  <p className="mt-1 truncate text-[9px] font-medium uppercase tracking-[0.16em] text-[#7F9BAE]">
+                <div className="transition-opacity duration-200 min-w-0">
+                  <p className="text-base font-extrabold tracking-tight text-white leading-none truncate">
+                    APIx Tracker
+                  </p>
+                  <p className="text-[10px] uppercase tracking-widest text-blue-300/80 font-bold mt-1.5 truncate">
                     Airfare Price Index
                   </p>
                 </div>
               </div>
 
-              {/* Mobile close */}
+              {/* Close on mobile */}
               <button
-                className="
-                  rounded-lg p-1.5
-                  text-slate-500
-                  transition
-                  hover:bg-white/[0.06]
-                  hover:text-white
-                  lg:hidden
-                "
+                className="text-slate-400 hover:text-white lg:hidden cursor-pointer p-1.5 rounded-lg hover:bg-white/10 transition-colors"
                 onClick={() => setSidebarOpen(false)}
                 aria-label="Close navigation"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              {/* Desktop collapse */}
-              <button
-                onClick={() => setSidebarCollapsed(true)}
-                className="
-                  hidden rounded-lg p-2
-                  text-slate-500
-                  transition
-                  hover:bg-white/[0.06]
-                  hover:text-[#5EE7DF]
-                  lg:flex
-                "
-                title="Collapse sidebar panel"
-                aria-label="Collapse sidebar panel"
-              >
-                <PanelLeftClose className="h-4.5 w-4.5" />
-              </button>
+              {/* Actions on desktop */}
+              <div className="hidden lg:flex items-center gap-1 shrink-0">
+                {/* Width Preset Cycle Button */}
+                {/* <button
+                  onClick={cycleWidthPreset}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                  title={`Sidebar Width: ${sidebarWidth}px (${getWidthPresetName(sidebarWidth)})\nClick to cycle: Compact (220px) → Standard (260px) → Wide (340px)\nOr drag right edge to adjust`}
+                  aria-label="Manage sidebar width"
+                >
+                  <SlidersHorizontal className="h-4 w-4 text-blue-300" />
+                </button> */}
+
+                {/* Collapse button on desktop */}
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                  title="Collapse sidebar panel"
+                  aria-label="Collapse sidebar panel"
+                >
+                  <PanelLeftClose className="h-4.5 w-4.5 text-blue-300" />
+                </button>
+              </div>
             </>
           )}
         </div>
 
-        {/* =====================================================
-            NAVIGATION
-            ===================================================== */}
-        <div className="flex-1 space-y-5 overflow-y-auto px-3 py-5">
+        {/* Navigation Items - Scrollbar hidden cross-browser while keeping scrolling functional */}
+        <div className="px-3.5 py-5 flex-1 overflow-y-auto scrollbar-none no-scrollbar space-y-4">
           {!sidebarCollapsed && (
-            <div className="flex items-center justify-between px-2">
-              <p className="text-[9px] font-bold uppercase tracking-[0.22em] text-[#61798B]">
-                {isAuthenticated ? 'Platform' : 'Public Views'}
+            <div className="flex items-center justify-between px-2 mb-1.5">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-slate-400/90">
+                {isAuthenticated ? 'Platform Modules' : 'Public & Protected'}
               </p>
-
               {!isAuthenticated && (
-                <span
-                  className="
-                    inline-flex items-center gap-1
-                    rounded-md
-                    border border-white/[0.07]
-                    bg-white/[0.035]
-                    px-1.5 py-0.5
-                    text-[8px] font-bold uppercase tracking-wide
-                    text-[#70879A]
-                  "
-                >
-                  <Lock className="h-2.5 w-2.5" />
-                  Restricted
+                <span className="inline-flex items-center gap-1 rounded-md bg-[#13233A] px-2 py-0.5 text-[9px] font-bold text-slate-400 border border-[#1E3658]">
+                  <Lock className="h-2.5 w-2.5 text-amber-400" /> 5 Locked
                 </span>
               )}
             </div>
           )}
 
-          <nav className="space-y-1">
-            {visibleNavItems.map(({ id, label, icon: Icon, badge }) => {
+          <nav className="space-y-1.5">
+            {navItems.map(({ id, label, icon: Icon, badge }) => {
               const active = activeTab === id
               const isAi = id === 'ai-intelligence'
+              const isProtected = !publicTabIds.includes(id)
+              const isLocked = !isAuthenticated && isProtected
 
               return (
                 <button
                   key={id}
-                  onClick={() => {
-                    setActiveTab(id)
-                    setSidebarOpen(false)
-                  }}
-                  title={sidebarCollapsed ? label : undefined}
-                  className={`
-                    group relative flex w-full items-center
-                    justify-between gap-3
-                    rounded-xl
-                    px-3 py-2.5
-                    text-xs font-semibold
-                    transition-all duration-200
-                    cursor-pointer
-
-                    ${sidebarCollapsed ? 'justify-center px-2' : ''}
-
-                    ${
-                      active
-                        ? `
-                          border border-[#20D6C7]/15
-                          bg-[#20D6C7]/10
-                          text-white
-                          shadow-[inset_0_0_20px_rgba(32,214,199,0.035)]
-                        `
-                        : `
-                          border border-transparent
-                          text-[#9AAFC0]
-                          hover:border-white/[0.05]
-                          hover:bg-white/[0.045]
-                          hover:text-white
-                        `
-                    }
-                  `}
+                  onClick={() => handleNavClick(id)}
+                  title={
+                    sidebarCollapsed
+                      ? isLocked
+                        ? `${label} (Admin Required)`
+                        : label
+                      : undefined
+                  }
+                  className={`group flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                    active
+                      ? isAi
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-indigo-500/25'
+                        : 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                      : isLocked
+                      ? 'text-slate-400 hover:bg-[#112035] hover:text-slate-200'
+                      : 'text-slate-300 hover:bg-[#13233A] hover:text-white hover:translate-x-0.5'
+                  } ${sidebarCollapsed ? 'justify-center px-2' : ''}`}
                 >
-                  {/* Active indicator */}
-                  {active && (
-                    <span
-                      className="
-                        absolute left-0 top-1/2
-                        h-6 w-[3px]
-                        -translate-y-1/2
-                        rounded-r-full
-                        bg-[#20D6C7]
-                        shadow-[0_0_12px_rgba(32,214,199,0.7)]
-                      "
-                    />
-                  )}
-
-                  <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex items-center gap-3 truncate">
                     <Icon
-                      className={`
-                        h-4 w-4 shrink-0
-                        transition-all duration-200
-                        ${
-                          active
-                            ? 'text-[#20D6C7]'
-                            : isAi
-                              ? 'text-[#A78BFA]'
-                              : 'text-[#6F8799] group-hover:text-[#B9CBD7]'
-                        }
-                      `}
+                      className={`h-4.5 w-4.5 shrink-0 transition-transform group-hover:scale-105 ${
+                        isAi && !active ? 'text-amber-400' : ''
+                      } ${isLocked ? 'text-slate-500 group-hover:text-slate-400' : ''}`}
                     />
-
-                    {!sidebarCollapsed && (
-                      <span className="truncate">{label}</span>
-                    )}
+                    {!sidebarCollapsed && <span className="truncate">{label}</span>}
                   </div>
 
-                  {!sidebarCollapsed && badge && (
-                    <span
-                      className={`
-                        rounded-md px-1.5 py-0.5
-                        text-[8px] font-bold
-                        ${
+                  {!sidebarCollapsed && (
+                    isLocked ? (
+                      <span className="flex items-center gap-1 text-[9px] font-bold text-amber-300/80 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                        <Lock className="h-2.5 w-2.5 text-amber-400" />
+                        <span>Locked</span>
+                      </span>
+                    ) : badge ? (
+                      <span
+                        className={`text-[9px] px-2 py-0.5 rounded-full font-bold transition-colors ${
                           active
-                            ? 'bg-[#20D6C7]/15 text-[#5EE7DF]'
+                            ? 'bg-white/20 text-white'
                             : isAi
-                              ? 'border border-[#A78BFA]/20 bg-[#A78BFA]/10 text-[#C4B5FD]'
-                              : 'border border-white/[0.07] bg-white/[0.035] text-[#71899B]'
-                        }
-                      `}
-                    >
-                      {badge}
-                    </span>
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                            : 'bg-[#192E4C] text-blue-200 border border-blue-500/20'
+                        }`}
+                      >
+                        {badge}
+                      </span>
+                    ) : null
                   )}
                 </button>
               )
             })}
           </nav>
+        </div>
 
-          {/* =====================================================
-              AI PROMOTION
-              ===================================================== */}
-          {isAuthenticated && !sidebarCollapsed && (
-            <div
-              className="
-                relative overflow-hidden
-                rounded-xl
-                border border-[#A78BFA]/15
-                bg-gradient-to-br from-[#A78BFA]/10 via-[#111B2B] to-[#20D6C7]/5
-                p-3
-              "
-            >
-              <div className="absolute -right-5 -top-5 h-16 w-16 rounded-full bg-[#A78BFA]/10 blur-2xl" />
+        {/* =====================================================
+            INSTITUTIONAL ACCOUNT & AUTHENTICATION MODULE
+            ===================================================== */}
+        <div className="border-t border-slate-800/80 bg-[#07101D] p-3.5 space-y-2.5">
+          {isAuthenticated ? (
+            !sidebarCollapsed ? (
+              <div className="space-y-2.5">
+                {/* Account Status Info Card */}
+                <div
+                  className="w-full flex items-center gap-3 p-2 rounded-xl bg-[#0D1B2D]/80 border border-blue-900/30 text-left"
+                >
+                  <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-600/20 border border-blue-500/30 text-blue-400">
+                    <ShieldCheck className="h-5 w-5 text-blue-400" />
+                    {/* Live active indicator pulse */}
+                    <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 border border-[#07101D]" />
+                    </span>
+                  </div>
 
-              <div className="relative flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#A78BFA]/10 text-[#C4B5FD]">
-                  <Sparkles className="h-3.5 w-3.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-white tracking-tight truncate">
+                        Admin Session
+                      </p>
+                      <span className="text-[9px] px-1.5 py-0.2 rounded font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Active
+                      </span>
+                    </div>
+                    <p
+                      className="text-[11px] text-slate-400 font-mono tracking-tight truncate select-all mt-0.5"
+                      title={user?.email || 'admin@mospi.gov.in'}
+                    >
+                      {user?.email || 'admin@mospi.gov.in'}
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <p className="text-[10px] font-bold text-[#DDD6FE]">
-                    APIx Intelligence
-                  </p>
-                  <p className="text-[9px] text-[#7E829B]">
-                    Explore market signals
-                  </p>
+                {/* Redesigned Full-Width Logout Button */}
+                <button
+                  onClick={() => {
+                    logout()
+                    navigate('/')
+                  }}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-900/40 bg-red-950/20 hover:bg-red-950/50 text-red-400 hover:text-red-300 px-3 py-2 text-xs font-semibold transition-all duration-200 cursor-pointer group active:scale-[0.98]"
+                  title="Logout and lock protected platform modules"
+                >
+                  <LogOut className="h-3.5 w-3.5 text-red-400 group-hover:text-red-300 transition-transform group-hover:-translate-x-0.5" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              /* Collapsed Authenticated Mode */
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  onClick={() => {
+                    logout()
+                    navigate('/')
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-red-900/40 bg-red-950/20 hover:bg-red-950/40 text-red-400 hover:text-red-300 transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm"
+                  title="Logout"
+                >
+                  <LogOut className="h-4.5 w-4.5" />
+                </button>
+              </div>
+            )
+          ) : (
+            !sidebarCollapsed ? (
+              /* Unauthenticated / Logged Out State */
+              <div className="space-y-2.5">
+                {/* Guest Session Status Info */}
+                <div className="flex items-center gap-2.5 p-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-slate-400">
+                    <Lock className="h-4 w-4 text-amber-400" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-200 tracking-tight">
+                      Public Session
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate">
+                      Guest / Unauthenticated
+                    </p>
+                  </div>
                 </div>
+
+                {/* Direct Admin Login Button */}
+                <button
+                  onClick={openLoginModal}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-2.5 text-xs font-bold transition-all cursor-pointer active:scale-[0.98] shadow-sm shadow-blue-600/25"
+                  title="Authenticate with official MoSPI credentials"
+                >
+                  <LogIn className="h-3.5 w-3.5" />
+                  <span>Admin Login</span>
+                </button>
               </div>
-            </div>
-          )}
-
-          {/* =====================================================
-              UNAUTHENTICATED NOTICE
-              ===================================================== */}
-          {!isAuthenticated && !sidebarCollapsed && (
-            <div
-              className="
-                rounded-xl
-                border border-[#F4B942]/15
-                bg-[#F4B942]/[0.045]
-                p-3
-              "
-            >
-              <div className="flex items-center gap-1.5 text-[#F4B942]">
-                <Lock className="h-3.5 w-3.5" />
-                <span className="text-[10px] font-bold">
-                  Admin Access Required
-                </span>
+            ) : (
+              /* Collapsed Unauthenticated Mode */
+              <div className="flex justify-center">
+                <button
+                  onClick={openLoginModal}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white hover:bg-blue-700 transition-all cursor-pointer active:scale-95 shadow-sm shadow-blue-600/30"
+                  title="Admin Login (Protected Modules)"
+                >
+                  <LogIn className="h-4 w-4" />
+                </button>
               </div>
-
-              <p className="mt-2 text-[9px] leading-relaxed text-[#8496A5]">
-                Corridor analysis, price forecasting, ingestion telemetry, and
-                formulas are restricted to authorized administrators.
-              </p>
-
-              <button
-                onClick={() => {
-                  setSidebarOpen(false)
-                  openLoginModal()
-                }}
-                className="
-                  mt-3 flex w-full items-center justify-center gap-1.5
-                  rounded-lg
-                  border border-[#F4B942]/20
-                  bg-[#F4B942]/10
-                  py-1.5
-                  text-[10px] font-bold
-                  text-[#F7CA69]
-                  transition
-                  hover:bg-[#F4B942]/15
-                "
-              >
-                <LogIn className="h-3 w-3" />
-                Admin Login
-              </button>
-            </div>
-          )}
-
-          {/* Collapsed login */}
-          {!isAuthenticated && sidebarCollapsed && (
-            <div className="flex justify-center pt-2">
-              <button
-                onClick={openLoginModal}
-                title="Admin Sign In"
-                className="
-                  flex h-10 w-10 items-center justify-center
-                  rounded-xl
-                  border border-[#F4B942]/20
-                  bg-[#F4B942]/[0.07]
-                  text-[#F4B942]
-                  transition
-                  hover:bg-[#F4B942]/15
-                "
-              >
-                <Lock className="h-4 w-4" />
-              </button>
-            </div>
-          )}
-
-          {/* =====================================================
-              AUTHENTICATED ADMIN
-              ===================================================== */}
-          {isAuthenticated && !sidebarCollapsed && (
-            <div
-              className="
-                flex items-center gap-2.5
-                rounded-xl
-                border border-[#20D6C7]/15
-                bg-[#20D6C7]/[0.045]
-                p-2.5
-              "
-            >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#20D6C7]/10 text-[#5EE7DF]">
-                <ShieldCheck className="h-4 w-4" />
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-[10px] font-bold text-[#73E7DF]">
-                  Admin Active
-                </p>
-                <p className="truncate text-[9px] text-[#71899B]">
-                  {user?.email}
-                </p>
-              </div>
-
-              <span className="ml-auto h-1.5 w-1.5 rounded-full bg-[#20D6C7] shadow-[0_0_8px_rgba(32,214,199,0.7)]" />
-            </div>
+            )
           )}
         </div>
 
         {/* =====================================================
-            FOOTER
+            DRAGGABLE RESIZE HANDLE (Right Border on Desktop)
             ===================================================== */}
-        <div
-          className="
-            shrink-0
-            border-t border-white/[0.07]
-            bg-[#08101C]
-            p-4
-          "
-        >
-          {!sidebarCollapsed ? (
-            <div className="flex items-center gap-3">
-              <div
-                className="
-                  flex h-8 w-8 shrink-0 items-center justify-center
-                  rounded-lg
-                  border border-[#20D6C7]/15
-                  bg-[#20D6C7]/10
-                  text-[10px] font-bold
-                  text-[#5EE7DF]
-                "
-              >
-                GOI
-              </div>
-
-              <div className="min-w-0">
-                <p className="truncate text-[10px] font-bold text-[#D7E2E9]">
-                  MoSPI Analytics
-                </p>
-                <p className="truncate text-[9px] text-[#607789]">
-                  Team AndroMatrix · SIH26056
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center">
-              <div
-                className="
-                  flex h-8 w-8 items-center justify-center
-                  rounded-lg
-                  border border-[#20D6C7]/15
-                  bg-[#20D6C7]/10
-                  text-[10px] font-bold
-                  text-[#5EE7DF]
-                "
-              >
-                GOI
-              </div>
-            </div>
-          )}
-        </div>
+        {!sidebarCollapsed && (
+          <div
+            onMouseDown={handleMouseDown}
+            onDoubleClick={() => setSidebarWidth?.(260)}
+            title="Drag horizontally to adjust sidebar width (Double-click to reset to 260px)"
+            className={`hidden lg:flex absolute top-0 -right-1.5 w-3 h-full cursor-col-resize z-50 items-center justify-center group ${
+              isResizing ? 'bg-blue-500/20' : 'hover:bg-blue-500/10'
+            } transition-colors`}
+          >
+            <div
+              className={`w-1 h-12 rounded-full transition-colors ${
+                isResizing
+                  ? 'bg-blue-400 shadow-sm shadow-blue-400/50'
+                  : 'bg-slate-700/60 group-hover:bg-blue-400 group-hover:h-16'
+              }`}
+            />
+          </div>
+        )}
       </aside>
     </>
   )

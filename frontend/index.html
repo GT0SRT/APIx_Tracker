@@ -5,6 +5,13 @@
     <link rel="icon" type="image/svg+xml" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRo2bEpL97VtjFm6oPQRPBvS9mxVoZYQrXdeBSswj5Hcw&s=10" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>APIx Tracker</title>
+    <script>
+      try {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+        localStorage.removeItem('apix_theme');
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

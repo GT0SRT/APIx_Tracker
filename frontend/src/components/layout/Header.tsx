@@ -2,287 +2,113 @@ import {
   PanelLeft,
   HelpCircle,
   Lock,
+  Bot,
   LogOut,
-  ShieldCheck,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { TabType } from '../../types/apix'
 import { navItems } from '../../data/navigation'
 import { useAuth } from '../../context/AuthContext'
+import { Badge } from '../common/CommonUI'
 
 interface HeaderProps {
   activeTab: TabType
   setSidebarOpen: (open: boolean) => void
+  onToggleAiCopilot?: () => void
+  isAiCopilotOpen?: boolean
 }
 
 export function Header({
   activeTab,
   setSidebarOpen,
+  onToggleAiCopilot,
+  isAiCopilotOpen = false,
 }: HeaderProps) {
   const navigate = useNavigate()
-  const { isAuthenticated, logout, openLoginModal } = useAuth()
+  const { isAuthenticated, openLoginModal, logout } = useAuth()
 
-  const currentTabMeta =
-    navItems.find((item) => item.id === activeTab) || navItems[0]
+  const currentTabMeta = navItems.find((item) => item.id === activeTab) || navItems[0]
 
   return (
-    <header
-      className="
-        sticky top-0 z-30
-        flex min-h-20 items-center justify-between
-        border-b border-white/[0.07]
-        bg-[#0B1220]/95
-        px-4 md:px-8
-        backdrop-blur-xl
-        shadow-[0_8px_30px_rgba(0,0,0,0.12)]
-      "
-    >
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-200/90 bg-white px-4 sm:px-6 lg:px-8 shadow-2xs transition-all">
       {/* =====================================================
-          LEFT — PAGE TITLE
+          LEFT — INSTITUTIONAL BRANDING & BREADCRUMB LOCKUP
           ===================================================== */}
-      <div className="flex min-w-0 items-center gap-3">
-        {/* Mobile sidebar */}
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        {/* Mobile sidebar toggle */}
         <button
-          className="
-            flex h-9 w-9 shrink-0 items-center justify-center
-            rounded-xl
-            border border-white/[0.08]
-            bg-white/[0.035]
-            text-[#8EA4B5]
-            transition-all duration-200
-            hover:border-[#20D6C7]/25
-            hover:bg-[#20D6C7]/[0.08]
-            hover:text-[#5EE7DF]
-            active:scale-95
-            cursor-pointer
-            lg:hidden
-          "
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-xs lg:hidden"
           onClick={() => setSidebarOpen(true)}
           aria-label="Toggle navigation panel"
           title="Open navigation panel"
         >
-          <PanelLeft className="h-4.5 w-4.5" />
+          <PanelLeft className="h-4.5 w-4.5 text-slate-700" />
         </button>
 
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h1
-              className="
-                truncate
-                text-base sm:text-lg md:text-xl
-                font-bold tracking-tight
-                text-white
-              "
-            >
-              {activeTab === 'overview'
-                ? 'Airfare Price Index (APIx) Dashboard'
-                : currentTabMeta.label}
-            </h1>
+        {/* Contextual Route Breadcrumb */}
+        <div className="min-w-0 flex items-center gap-2">
+          <span className="text-xs font-medium text-slate-400 hidden sm:inline">Platform</span>
+          <span className="text-slate-300 hidden sm:inline">/</span>
+          <span className="text-sm font-bold text-slate-900 truncate">
+            {currentTabMeta.label}
+          </span>
 
-            {currentTabMeta.badge && (
-              <span
-                className="
-                  hidden sm:inline-flex
-                  items-center
-                  rounded-md
-                  border border-[#20D6C7]/20
-                  bg-[#20D6C7]/[0.08]
-                  px-2 py-0.5
-                  text-[9px]
-                  font-bold uppercase tracking-wide
-                  text-[#5EE7DF]
-                "
-              >
-                {currentTabMeta.badge}
-              </span>
-            )}
-          </div>
-
-          <p
-            className="
-              hidden sm:block
-              mt-0.5
-              truncate
-              text-xs
-              text-[#71899B]
-            "
-          >
-            {currentTabMeta.desc}
-          </p>
+          {currentTabMeta.badge && (
+            <Badge variant="blue" className="hidden lg:inline-flex ml-0.5">
+              {currentTabMeta.badge}
+            </Badge>
+          )}
         </div>
       </div>
 
       {/* =====================================================
-          RIGHT — STATUS + ACTIONS
+          RIGHT — PIPELINE HEARTBEAT & COPILOT
           ===================================================== */}
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-
-        {/* -------------------------------------------------
-            LIVE PIPELINE
-            ------------------------------------------------- */}
-        <div
-          className="
-            hidden sm:flex
-            items-center gap-2
-            rounded-xl
-            border border-[#20D6C7]/15
-            bg-[#20D6C7]/[0.055]
-            px-3 py-1.5
-            text-xs font-semibold
-            text-[#7CE9E0]
-            shadow-[inset_0_0_18px_rgba(32,214,199,0.025)]
-          "
-        >
+        {/* Live Ingestion Heartbeat */}
+        <div className="flex items-center gap-1.5 sm:gap-2 rounded-full border border-emerald-200 bg-emerald-50/90 px-2.5 sm:px-3 py-1 text-xs font-medium text-emerald-800 shadow-2xs">
           <span className="relative flex h-2 w-2">
-            <span
-              className="
-                absolute
-                inline-flex h-full w-full
-                animate-ping
-                rounded-full
-                bg-[#20D6C7]
-                opacity-50
-              "
-            />
-
-            <span
-              className="
-                relative
-                inline-flex h-2 w-2
-                rounded-full
-                bg-[#20D6C7]
-                shadow-[0_0_9px_rgba(32,214,199,0.8)]
-              "
-            />
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
           </span>
-
-          <span>Pipeline Active</span>
+          <span className="font-bold">Pipeline: Active</span>
         </div>
 
-        {/* -------------------------------------------------
-            HELP
-            ------------------------------------------------- */}
+        {/* Dockable AI Copilot Drawer Trigger */}
+        {onToggleAiCopilot && (
+          <button
+            onClick={onToggleAiCopilot}
+            title="Toggle APIx AI Intelligence Copilot"
+            className={`flex items-center gap-1.5 rounded-lg border px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              isAiCopilotOpen
+                ? 'bg-[#0A1628] text-white border-[#15253D]'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-[#0A1628]/5 hover:text-[#0A1628] hover:border-[#15253D]/30'
+            }`}
+          >
+            <Bot className={`h-4 w-4 ${isAiCopilotOpen ? 'text-blue-300' : 'text-[#0A1628]'}`} />
+            <span className="hidden sm:inline">AI Copilot</span>
+            <span
+              className={`hidden md:inline-flex text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                isAiCopilotOpen
+                  ? 'bg-white/20 text-white'
+                  : 'bg-blue-50 text-blue-700 border border-blue-200/60'
+              }`}
+            >
+              RAG
+            </span>
+          </button>
+        )}
+
+        {/* Help & Support Link */}
         <button
           onClick={() => navigate('/help-support')}
           title="Help & Support / MoSPI Documentation"
           aria-label="Help and Support"
-          className="
-            group
-            flex h-9 w-9
-            items-center justify-center
-            rounded-xl
-            border border-white/[0.08]
-            bg-white/[0.035]
-            text-[#8197A8]
-            transition-all duration-200
-            hover:border-[#20D6C7]/25
-            hover:bg-[#20D6C7]/[0.07]
-            hover:text-[#5EE7DF]
-            hover:shadow-[0_0_18px_rgba(32,214,199,0.08)]
-            active:scale-95
-            cursor-pointer
-          "
+          className="flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-2xs"
         >
-          <HelpCircle className="h-4 w-4 transition-transform duration-200 group-hover:scale-110" />
+          <HelpCircle className="h-4 w-4" />
         </button>
 
-        {/* -------------------------------------------------
-            AUTHENTICATED ADMIN
-            ------------------------------------------------- */}
-        {isAuthenticated ? (
-          <div
-            className="
-              flex items-center gap-2
-              border-l border-white/[0.08]
-              pl-1 sm:pl-2
-            "
-          >
-            {/* Admin status */}
-            <span
-              className="
-                hidden md:inline-flex
-                items-center gap-1.5
-                rounded-xl
-                border border-[#20D6C7]/15
-                bg-[#20D6C7]/[0.055]
-                px-2.5 py-1
-                text-[11px]
-                font-bold
-                text-[#73E7DF]
-              "
-            >
-              <ShieldCheck className="h-3.5 w-3.5 text-[#20D6C7]" />
-              Admin
-              <span className="ml-0.5 h-1.5 w-1.5 rounded-full bg-[#20D6C7] shadow-[0_0_7px_rgba(32,214,199,0.8)]" />
-            </span>
-
-            {/* Logout */}
-            <button
-              onClick={() => {
-                logout()
-                navigate('/')
-              }}
-              className="
-                group
-                flex items-center gap-1.5
-                rounded-xl
-                border border-[#FF6B6B]/15
-                bg-[#FF6B6B]/[0.045]
-                px-3 py-1.5
-                text-xs font-bold
-                text-[#FF8A8A]
-                transition-all duration-200
-                hover:border-[#FF6B6B]/30
-                hover:bg-[#FF6B6B]/10
-                hover:text-[#FFAAAA]
-                active:scale-[0.98]
-                cursor-pointer
-              "
-              title="End admin session"
-            >
-              <LogOut className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-          </div>
-        ) : (
-          /* -------------------------------------------------
-             ADMIN LOGIN
-             ------------------------------------------------- */
-          <div
-            className="
-              flex items-center
-              border-l border-white/[0.08]
-              pl-1 sm:pl-2
-            "
-          >
-            <button
-              onClick={openLoginModal}
-              className="
-                group
-                relative
-                flex items-center gap-1.5
-                overflow-hidden
-                rounded-xl
-                border border-[#20D6C7]/20
-                bg-[#20D6C7]
-                px-3.5 py-1.5
-                text-xs font-bold
-                text-[#07151A]
-                shadow-[0_0_18px_rgba(32,214,199,0.12)]
-                transition-all duration-200
-                hover:bg-[#5EE7DF]
-                hover:shadow-[0_0_24px_rgba(32,214,199,0.20)]
-                active:scale-[0.98]
-                cursor-pointer
-              "
-              title="Authenticate with Admin credentials"
-            >
-              <Lock className="h-3.5 w-3.5" />
-
-              <span>Admin Login</span>
-            </button>
-          </div>
-        )}
       </div>
     </header>
   )

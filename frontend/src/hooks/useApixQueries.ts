@@ -44,10 +44,10 @@ export function useFareDecompositionQuery() {
 }
 
 /** 3. 30-Day Index Trend Series */
-export function useTrendSeriesQuery(horizon: string = '30d') {
+export function useTrendSeriesQuery(horizon: string = '30d', origin?: string, destination?: string) {
   return useQuery<ApiResponse<TrendPoint[]>>({
-    queryKey: ['trendSeries', horizon],
-    queryFn: () => fetchTrendSeries(horizon),
+    queryKey: ['trendSeries', horizon, origin || 'ALL', destination || 'ALL'],
+    queryFn: () => fetchTrendSeries(horizon, origin, destination),
     staleTime: 60 * 1000,
   })
 }

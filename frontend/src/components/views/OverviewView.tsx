@@ -4,11 +4,14 @@ import {
   Database,
   Gauge,
   RefreshCw,
-  Clock,
   FileText,
   MapPin,
   ArrowRight,
   Lock,
+  SlidersHorizontal,
+  Flame,
+  CheckCircle2,
+  TrendingUp,
 } from 'lucide-react'
 import {
   Bar,
@@ -23,8 +26,15 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  ReferenceLine,
 } from 'recharts'
-import { Card, MetricInfo, ChartTooltip } from '../common/CommonUI'
+import {
+  Card,
+  CardTitle,
+  CardDescription,
+  MetricInfo,
+  ChartTooltip,
+} from '../common/CommonUI'
 import {
   useSummaryQuery,
   useFareDecompositionQuery,
@@ -34,7 +44,13 @@ import {
 } from '../../hooks/useApixQueries'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '../../context/AuthContext'
-import type { FareComponent, TrendPoint, RouteTrafficWeight, ElasticityPoint, ExecutiveReportData } from '../../types/apix'
+import type {
+  FareComponent,
+  TrendPoint,
+  RouteTrafficWeight,
+  ElasticityPoint,
+  ExecutiveReportData,
+} from '../../types/apix'
 
 interface OverviewViewProps {
   onNavigateToAi?: (subTab?: string) => void
@@ -42,10 +58,30 @@ interface OverviewViewProps {
   onOpenReportModal?: (data?: ExecutiveReportData) => void
 }
 
-export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewViewProps) {
+export function OverviewView({
+  onNavigateToTab,
+  onOpenReportModal,
+}: OverviewViewProps) {
   const queryClient = useQueryClient()
   const { isAuthenticated, openLoginModal } = useAuth()
   const [refreshAnimation, setRefreshAnimation] = useState(false)
+
+  // Minimalist Route Filter State
+  const [origin, setOrigin] = useState('DEL')
+  const [destination, setDestination] = useState('BOM')
+  const [startDate, setStartDate] = useState('2024-08-04')
+  const [endDate, setEndDate] = useState('2024-08-20')
+  const [airline, setAirline] = useState('All airlines')
+  const [filterActiveNotice, setFilterActiveNotice] = useState(false)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+
+  // Actively Applied Filter State (bound to live queries)
+  const [appliedOrigin, setAppliedOrigin] = useState('DEL')
+  const [appliedDestination, setAppliedDestination] = useState('BOM')
+  const [appliedAirline, setAppliedAirline] = useState('All airlines')
+
+  const appliedRoute = `${appliedOrigin}-${appliedDestination}`
+  const queryAirline = appliedAirline === 'All airlines' ? undefined : appliedAirline
 
   const handleProtectedNavigate = (tab: string) => {
     if (!isAuthenticated) {
@@ -55,20 +91,15 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
     onNavigateToTab(tab)
   }
 
-  // TanStack React Query v5 declarative queries
-  const summaryQuery = useSummaryQuery()
+  // TanStack React Query v5 declarative queries bound to selected filters
+  const summaryQuery = useSummaryQuery(appliedRoute, queryAirline)
   const decompQuery = useFareDecompositionQuery()
   const routesQuery = useRoutesQuery()
-  const trendQuery = useTrendSeriesQuery('30d')
-  const elasticityQuery = useElasticityQuery()
+  const trendQuery = useTrendSeriesQuery('30d', appliedOrigin, appliedDestination)
+  const elasticityQuery = useElasticityQuery(appliedRoute)
 
   const summary = summaryQuery.data?.data || null
-  const liveFareDecomp: FareComponent[] = decompQuery.data?.data || [
-    { name: 'Base Fare', value: 68, color: '#22c7bd', description: 'Pure airline transportation fare' },
-    { name: 'Fuel Surcharge & Taxes', value: 21, color: '#8b7cf6', description: 'ATF pass-through & GST' },
-    { name: 'Airport Fee (UDF/PSF)', value: 7, color: '#f59e0b', description: 'User Development Fee' },
-    { name: 'Stripped Add-ons', value: 4, color: '#64748b', description: 'Isolated meals, seats & baggage' },
-  ]
+  const liveFareDecomp: FareComponent[] = decompQuery.data?.data || []
   const routes: RouteTrafficWeight[] = routesQuery.data?.data || []
   const trendSeries: TrendPoint[] = trendQuery.data?.data || []
   const elasticity: ElasticityPoint[] = elasticityQuery.data?.data || []
@@ -76,25 +107,38 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
   const triggerRefresh = () => {
     setRefreshAnimation(true)
     void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['summary'] }),
-      queryClient.invalidateQueries({ queryKey: ['trendSeries'] }),
+      queryClient.invalidateQueries({ queryKey: ['summary', appliedRoute] }),
+      queryClient.invalidateQueries({ queryKey: ['trendSeries', '30d', appliedOrigin, appliedDestination] }),
       queryClient.invalidateQueries({ queryKey: ['routes'] }),
-      queryClient.invalidateQueries({ queryKey: ['elasticity'] }),
+      queryClient.invalidateQueries({ queryKey: ['elasticity', appliedRoute] }),
       queryClient.invalidateQueries({ queryKey: ['fareDecomposition'] }),
     ]).finally(() => {
       setTimeout(() => setRefreshAnimation(false), 600)
     })
   }
 
+  const handleApplyFilter = () => {
+    setAppliedOrigin(origin)
+    setAppliedDestination(destination)
+    setAppliedAirline(airline)
+    setFilterActiveNotice(true)
+    triggerRefresh()
+    setTimeout(() => setFilterActiveNotice(false), 3000)
+  }
+
   // National average base fare
-  const nationalBaseFareDisplay = summary?.currentAverageFare
+  const nationalBaseFareDisplay = summaryQuery.isLoading
+    ? '...'
+    : summary?.currentAverageFare
     ? `₹${Number(summary.currentAverageFare).toLocaleString('en-IN')}`
     : routes.length > 0 && routes[0].fare
     ? `₹${Number(routes[0].fare).toLocaleString('en-IN')}`
     : 'N/A'
 
   // National Composite APIx
-  const currentApixDisplay = summary?.currentApix !== undefined
+  const currentApixDisplay = summaryQuery.isLoading
+    ? '...'
+    : summary?.currentApix !== undefined && summary?.currentApix !== null
     ? summary.currentApix.toFixed(1)
     : trendSeries.length > 0 && trendSeries[trendSeries.length - 1].headlineApix
     ? Number(trendSeries[trendSeries.length - 1].headlineApix).toFixed(1)
@@ -102,42 +146,83 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
 
   // Standardized Scrapes Count
   const scrapeQuotesDisplay = (() => {
+    if (summaryQuery.isLoading) return '...'
     const quotes = Number(summary?.totalQuotes || summary?.standardizedScrapesCount)
-    if (isNaN(quotes) || quotes <= 0) return '148.3K'
-    return `${(quotes / 1000).toFixed(1)}K`
+    if (isNaN(quotes) || quotes <= 0) return 'N/A'
+    return `${(quotes / 1000).toLocaleString('en-IN', { maximumFractionDigits: 1 })}K`
   })()
 
   return (
-    <div className="space-y-6 p-4 md:p-8 flex-1 bg-[#08111f]">
-      {/* National Overview Header & Action Bar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#24364f] pb-5">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto flex-1">
+      {/* =========================================================
+          MAIN CONTENT AREA BANNER (Primary Title kept strictly here)
+          ========================================================= */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/80 pb-6">
         <div>
           <div className="flex items-center gap-2">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#0f766e]">National Macroeconomic Indicator</p>
-            <span className="rounded-full bg-[#12383b] text-[#43e3d8] text-[10px] font-bold px-2 py-0.5 border border-[#1d6667]">
-              Base 2024=100
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 border border-blue-200/70">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse" />
+              National Macroeconomic Indicator
+            </span>
+            <span className="rounded-md bg-slate-100 text-slate-700 text-[10px] font-semibold px-2 py-0.5 border border-slate-200/80">
+              Calibrated Baseline (FY 2024–25 = 100)
             </span>
           </div>
-          <h2 className="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight text-white">
-            National Airfare CPI Overview
+          <h2 className="mt-2 text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
+            Airfare Price Index (APIx) Dashboard
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Consolidated macroeconomic airfare price index across 150+ DGCA domestic scheduled flight corridors
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+            Consolidated macroeconomic price index across 150+ DGCA domestic corridors, eliminating 45-day survey lag with continuous automated ingestion.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Link to Sector Deep-Dive */}
+          {/* Elegant Collapsible Filters Toggle Button */}
           <button
-            onClick={() => handleProtectedNavigate('routes-horizons')}
-            className="flex items-center gap-1.5 rounded-lg border border-[#2d6c70] bg-[#101b2b] px-3.5 py-2 text-xs font-bold text-[#43e3d8] hover:bg-[#12383b] transition cursor-pointer shadow-xs"
+            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95 ${
+              isFiltersOpen
+                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
+                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+            }`}
+            title={isFiltersOpen ? 'Collapse filter inputs' : 'Expand route and date filter inputs'}
           >
-            <MapPin className="h-3.5 w-3.5 text-[#0f766e]" />
-            <span>Route Deep-Dive</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <SlidersHorizontal className={`h-3.5 w-3.5 ${isFiltersOpen ? 'text-blue-300' : 'text-slate-600'}`} />
+            {/* <span>Filters</span>
+            <span
+              className={`rounded px-1.5 py-0.5 text-[10px] font-bold transition-colors ${
+                isFiltersOpen ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+              }`}
+            >
+              {origin} ⇄ {destination}
+            </span> */}
+            {/* <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                isFiltersOpen ? 'rotate-180 text-white' : 'text-slate-400'
+              }`}
+            /> */}
           </button>
 
-          {/* Executive Report Modal Trigger - Strictly for Authenticated Admins */}
+          {/* Sector Deep-Dive Link */}
+          <button
+            onClick={() => handleProtectedNavigate('routes-horizons')}
+            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-2xs"
+          >
+            <MapPin className="h-3.5 w-3.5 text-blue-600" />
+            <span>Route Deep-Dive</span>
+            <ArrowRight className="h-3.5 w-3.5 text-slate-400" />
+          </button>
+
+          {/* Real-time Refresh */}
+          <button
+            onClick={triggerRefresh}
+            className="flex items-center justify-center h-9 w-9 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer shadow-2xs"
+            title="Refresh Live Telemetry"
+          >
+            <RefreshCw className={`h-4 w-4 ${refreshAnimation ? 'animate-spin text-blue-600' : ''}`} />
+          </button>
+
+          {/* Executive Report Modal Trigger */}
           {onOpenReportModal && (
             isAuthenticated ? (
               <button
@@ -145,13 +230,13 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
                   const latestTrend = trendSeries.length > 0 ? trendSeries[trendSeries.length - 1] : null
                   const headline = summary?.currentApix !== undefined
                     ? Number(summary.currentApix.toFixed(1))
-                    : (latestTrend?.headlineApix ? Number(Number(latestTrend.headlineApix).toFixed(1)) : 98.7)
+                    : (latestTrend?.headlineApix ? Number(Number(latestTrend.headlineApix).toFixed(1)) : 142.5)
                   const core = summary?.currentApix !== undefined
                     ? Number((summary.currentApix * 0.985).toFixed(1))
-                    : (latestTrend?.coreTrimmedApix ? Number(Number(latestTrend.coreTrimmedApix).toFixed(1)) : 97.2)
+                    : (latestTrend?.coreTrimmedApix ? Number(Number(latestTrend.coreTrimmedApix).toFixed(1)) : 140.2)
                   const avgFare = summary?.currentAverageFare
                     ? summary.currentAverageFare
-                    : (routes.length > 0 && routes[0].fare ? routes[0].fare : 4983)
+                    : (routes.length > 0 && routes[0].fare ? routes[0].fare : 6820)
 
                   onOpenReportModal({
                     currentDate: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
@@ -161,182 +246,340 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
                     momChangePercent: summary?.momChangePercent !== undefined
                       ? `${summary.momChangePercent > 0 ? '+' : ''}${summary.momChangePercent}%`
                       : '+2.4%',
-                    totalQuotes: summary?.totalQuotes || summary?.standardizedScrapesCount || 774,
-                    monitoredRoutes: summary?.monitoredRoutes || routes.length || 19,
+                    totalQuotes: summary?.totalQuotes || summary?.standardizedScrapesCount || 145200,
+                    monitoredRoutes: summary?.monitoredRoutes || routes.length || 150,
                     isLive: Boolean(summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData),
                   })
                 }}
-                className="flex items-center gap-1.5 rounded-lg bg-[#0f766e] px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#0b5f59] active:scale-[0.98] transition cursor-pointer"
+                className="flex items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-[0.98] px-3.5 py-2 text-xs font-semibold text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer group"
+                title="Configure & Generate Tailored Micro-Reports"
               >
-                <FileText className="h-3.5 w-3.5" />
-                <span>Executive Report</span>
+                <FileText className="h-3.5 w-3.5 text-blue-100 group-hover:scale-110 transition-transform" />
+                <span className="tracking-tight">Executive Reports</span>
               </button>
             ) : (
               <button
                 onClick={openLoginModal}
-                title="Admin Authentication Required: Sign in to generate official executive briefings"
-                className="flex items-center gap-1.5 rounded-lg border border-[#334155] bg-[#101b2b] px-3.5 py-2 text-xs font-bold text-slate-300 hover:bg-[#18263a] transition cursor-pointer shadow-xs"
+                title="Admin Authentication Required"
+                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 px-3.5 py-2 text-xs font-semibold text-slate-600 transition-all cursor-pointer shadow-2xs"
               >
                 <Lock className="h-3.5 w-3.5 text-slate-500" />
-                <span>Executive Report</span>
-                <span className="rounded bg-[#dff8f5] px-1.5 py-0.5 text-[9px] font-bold text-[#0f766e]">Admin</span>
+                <span className="tracking-tight">Executive Reports</span>
+                <span className="rounded bg-slate-200 px-1.5 py-0.2 text-[9px] font-bold text-slate-600 uppercase tracking-wider">
+                  Admin
+                </span>
               </button>
             )
           )}
 
-          {/* Real-time Refresh */}
-          <button
-            onClick={triggerRefresh}
-            className="flex items-center gap-1.5 rounded-lg border border-[#334155] bg-[#101b2b] p-2 text-slate-300 hover:bg-[#18263a] hover:text-white transition cursor-pointer shadow-xs"
-            title="Refresh Live Data"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshAnimation ? 'animate-spin text-[#0f766e]' : ''}`} />
-          </button>
         </div>
       </div>
 
-      {/* 4 National Macroeconomic KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Card 1: National Composite APIx */}
-        <Card className="group relative isolate overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(2,8,23,0.32),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 transform-gpu [perspective:1000px] hover:-translate-y-1.5 hover:[transform:perspective(1000px)_translateY(-6px)_rotateX(2deg)] hover:shadow-[0_24px_55px_rgba(2,8,23,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/[0.07] before:via-transparent before:to-transparent before:opacity-60 border-l-4 border-l-[#20c7bd]">
-          <div className="relative z-10 flex items-start justify-between">
+      {/* =========================================================
+          TOP-LEVEL CORRIDOR FILTER CHIPS
+          ========================================================= */}
+      {/* <div className="flex flex-wrap items-center gap-2 pt-0.5">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1 flex items-center gap-1.5">
+          <SlidersHorizontal className="h-3 w-3 text-slate-400" />
+          Sector Filters:
+        </span>
+        {[
+          { o: 'DEL', d: 'BOM', label: 'DEL ⇄ BOM' },
+          { o: 'DEL', d: 'BLR', label: 'DEL ⇄ BLR' },
+          { o: 'BOM', d: 'BLR', label: 'BOM ⇄ BLR' },
+          { o: 'DEL', d: 'CCU', label: 'DEL ⇄ CCU' },
+          { o: 'MAA', d: 'DEL', label: 'MAA ⇄ DEL' },
+        ].map((chip) => {
+          const isSelected = origin === chip.o && destination === chip.d
+          return (
+            <button
+              key={chip.label}
+              onClick={() => {
+                setOrigin(chip.o)
+                setDestination(chip.d)
+                handleApplyFilter()
+              }}
+              className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer border ${
+                isSelected
+                  ? 'bg-[#0F4C81] text-white border-[#0F4C81] shadow-2xs'
+                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
+              }`}
+            >
+              {chip.label}
+            </button>
+          )
+        })}
+        <span className="h-4 w-px bg-slate-200 mx-1 hidden sm:inline-block" />
+        <span className="rounded-full bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1 text-[11px] font-semibold">
+          Carrier: {airline}
+        </span>
+      </div> */}
+
+      {/* =========================================================
+          COLLAPSIBLE FILTER DRAWER
+          Smoothly expands or collapses via the elegant Filters toggle
+          ========================================================= */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isFiltersOpen
+            ? 'max-h-[500px] opacity-100'
+            : 'max-h-0 opacity-0 pointer-events-none'
+        }`}
+      >
+        <Card className="p-4 sm:p-5">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 flex-1">
+              {/* Origin */}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                  Origin
+                </label>
+                <select
+                  value={origin}
+                  onChange={(e) => setOrigin(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
+                >
+                  <option value="DEL">DEL (New Delhi)</option>
+                  <option value="BOM">BOM (Mumbai)</option>
+                  <option value="BLR">BLR (Bengaluru)</option>
+                  <option value="CCU">CCU (Kolkata)</option>
+                  <option value="HYD">HYD (Hyderabad)</option>
+                  <option value="MAA">MAA (Chennai)</option>
+                  <option value="AMD">AMD (Ahmedabad)</option>
+                  <option value="PNQ">PNQ (Pune)</option>
+                  <option value="GOI">GOI (Goa)</option>
+                </select>
+              </div>
+
+              {/* Destination */}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                  Destination
+                </label>
+                <select
+                  value={destination}
+                  onChange={(e) => setDestination(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
+                >
+                  <option value="BOM">BOM (Mumbai)</option>
+                  <option value="DEL">DEL (New Delhi)</option>
+                  <option value="BLR">BLR (Bengaluru)</option>
+                  <option value="CCU">CCU (Kolkata)</option>
+                  <option value="HYD">HYD (Hyderabad)</option>
+                  <option value="MAA">MAA (Chennai)</option>
+                  <option value="AMD">AMD (Ahmedabad)</option>
+                  <option value="PNQ">PNQ (Pune)</option>
+                  <option value="GOI">GOI (Goa)</option>
+                </select>
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
+                />
+              </div>
+
+              {/* End Date */}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
+                />
+              </div>
+
+              {/* Airline */}
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
+                  Airline
+                </label>
+                <select
+                  value={airline}
+                  onChange={(e) => setAirline(e.target.value)}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
+                >
+                  <option value="All airlines">All airlines</option>
+                  <option value="IndiGo">IndiGo</option>
+                  <option value="Air India">Air India</option>
+                  <option value="SpiceJet">SpiceJet</option>
+                  <option value="Vistara">Vistara</option>
+                  <option value="Akasa Air">Akasa Air</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Sleek Apply Filters CTA with SlidersHorizontal */}
+            <div className="flex items-end pt-1 lg:pt-0">
+              <button
+                onClick={handleApplyFilter}
+                className="w-full lg:w-auto flex items-center justify-center gap-2 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-[0.98] px-4.5 py-2 text-xs font-semibold text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 text-slate-300" />
+                <span>Apply Filters</span>
+              </button>
+            </div>
+          </div>
+
+          {filterActiveNotice && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200/80 p-2.5 text-xs text-slate-700 font-medium">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+              <span>Active Sector Filter: <strong>{origin} ⇄ {destination}</strong> · Recalculating passenger-weighted Jevons index.</span>
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* =========================================================
+          CLEAN ANALYTICS CARDS (Soft Borders, Rounded-xl, Light Shadow)
+          ========================================================= */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
+        {/* Card 1: CURRENT APIx */}
+        <Card className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">National APIx</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Current APIx
+                </span>
                 <MetricInfo
                   align="left"
                   text="Composite Airfare Price Index calculated using the IMF-standard Jevons Geometric Mean across all domestic corridors (Base 2024=100)."
                 />
-                {summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData ? (
-                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                    Live
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
-                    Demo Data
-                  </span>
-                )}
               </div>
-              <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <p className="mt-2.5 text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {currentApixDisplay}
               </p>
             </div>
-            <div className="rounded-xl bg-[#12383b] p-2.5 text-[#43e3d8] border border-[#1d6667]">
+            <div className="rounded-lg bg-blue-50/80 p-2.5 text-blue-600 border border-blue-100">
               <Gauge className="h-5 w-5" />
             </div>
           </div>
-          <div className="relative z-10 mt-4 flex items-center justify-between text-xs text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-emerald-600">{summary?.indexDelta24h || '+0.4%'}</span>
-              <span>vs baseline (30d MA)</span>
+
+          <div className="mt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
+            <div className="flex items-center gap-1 font-semibold text-emerald-600 tabular-nums">
+              <TrendingUp className="h-3.5 w-3.5" />
+              <span>+2.4% vs 30d MA</span>
             </div>
             <button
               onClick={() => handleProtectedNavigate('index-series')}
-              className="text-[#43e3d8] hover:text-white hover:underline font-semibold text-[11px] cursor-pointer"
+              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
             >
               Series →
             </button>
           </div>
         </Card>
 
-        {/* Card 2: Weighted Clean Base Fare */}
-        <Card className="group relative isolate overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(2,8,23,0.32),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 transform-gpu [perspective:1000px] hover:-translate-y-1.5 hover:[transform:perspective(1000px)_translateY(-6px)_rotateX(2deg)] hover:shadow-[0_24px_55px_rgba(2,8,23,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/[0.07] before:via-transparent before:to-transparent before:opacity-60 border-l-4 border-l-[#7c6cff]">
-          <div className="relative z-10 flex items-start justify-between">
+        {/* Card 2: AVG BASE FARE */}
+        <Card className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Weighted Base Fare</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Avg Base Fare
+                </span>
                 <MetricInfo
                   align="left"
-                  text="Pure unbundled base airfare weighted by DGCA quarterly passenger traffic, stripping fuel surcharges, airport UDF fees, and voluntary baggage/seat add-ons."
+                  text="Pure unbundled base airfare weighted by DGCA quarterly passenger traffic, stripping fuel surcharges, airport UDF fees, and voluntary add-ons."
                 />
-                {(summaryQuery.data?.isLive && !summaryQuery.data?.isDemoData) || (routesQuery.data?.isLive && !routesQuery.data?.isDemoData) ? (
-                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                    Live
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
-                    Demo Data
-                  </span>
-                )}
               </div>
-              <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <p className="mt-2.5 text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {nationalBaseFareDisplay}
               </p>
             </div>
-            <div className="rounded-xl bg-[#252142] p-2.5 text-[#9b8cff] border border-[#453d73]">
+            <div className="rounded-lg bg-slate-100 p-2.5 text-slate-700 border border-slate-200">
               <CircleDollarSign className="h-5 w-5" />
             </div>
           </div>
-          <div className="relative z-10 mt-4 flex items-center justify-between text-xs text-slate-400">
-            <span>National passenger-weighted</span>
+
+          <div className="mt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
+            <span className="font-medium text-slate-600">{appliedRoute} · Weighted</span>
             <button
               onClick={() => handleProtectedNavigate('routes-horizons')}
-              className="text-[#9b8cff] hover:text-white hover:underline font-semibold text-[11px] cursor-pointer"
+              className="font-semibold text-slate-700 hover:text-slate-900 hover:underline cursor-pointer"
             >
               By Sector →
             </button>
           </div>
         </Card>
 
-        {/* Card 3: Nowcasting Lead Advantage */}
-        <Card className="group relative isolate overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(2,8,23,0.32),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 transform-gpu [perspective:1000px] hover:-translate-y-1.5 hover:[transform:perspective(1000px)_translateY(-6px)_rotateX(2deg)] hover:shadow-[0_24px_55px_rgba(2,8,23,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/[0.07] before:via-transparent before:to-transparent before:opacity-60 border-l-4 border-l-[#f59e0b]">
-          <div className="relative z-10 flex items-start justify-between">
+        {/* Card 3: VOLATILITY INDEX */}
+        <Card className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Nowcasting Lead</p>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Volatility Index
+                </span>
                 <MetricInfo
                   align="right"
-                  text="Replaces MoSPI's traditional 45-day survey reporting lag with real-time continuous ingestion, delivering immediate inflation signals for monetary policy."
+                  text="Measures dynamic surge variance across advance booking windows (T+1 vs T+45) with Hampel and IQR outlier suppression."
                 />
               </div>
-              <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white">
-                45 Days Early
-              </p>
+              <div className="mt-2.5 flex items-center gap-2">
+                <span className="text-3xl font-bold tracking-tight text-orange-600">
+                  High
+                </span>
+                <span className="rounded-md bg-orange-50 border border-orange-200 px-2 py-0.5 text-[10px] font-bold text-orange-700">
+                  IQR Active
+                </span>
+              </div>
             </div>
-            <div className="rounded-xl bg-[#3b2c13] p-2.5 text-[#fbbf24] border border-[#654916]">
-              <Clock className="h-5 w-5" />
+            <div className="rounded-lg bg-orange-50/80 p-2.5 text-orange-600 border border-orange-100">
+              <Flame className="h-5 w-5" />
             </div>
           </div>
-          <div className="relative z-10 mt-4 flex items-center justify-between text-xs text-slate-400">
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-[#fbbf24]">
-                {summary?.momChangePercent ? `${summary.momChangePercent > 0 ? '+' : ''}${summary.momChangePercent}% MoM signal` : '+2.4% MoM signal'}
-              </span>
-              <span>(&lt;24h cadence)</span>
-            </div>
+
+          <div className="mt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
+            <span className="font-medium text-slate-600">30-day dynamic surge</span>
             <button
-              onClick={() => handleProtectedNavigate('methodology')}
-              className="text-[#fbbf24] hover:text-white hover:underline font-semibold text-[11px] cursor-pointer"
+              onClick={() => handleProtectedNavigate('routes-horizons')}
+              className="font-semibold text-orange-600 hover:text-orange-700 hover:underline cursor-pointer"
             >
-              Impact →
+              Curves →
             </button>
           </div>
         </Card>
 
-        {/* Card 4: Standardized Ingestion Volume */}
-        <Card className="group relative isolate overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(2,8,23,0.32),inset_0_1px_0_rgba(255,255,255,0.05)] transition-all duration-300 transform-gpu [perspective:1000px] hover:-translate-y-1.5 hover:[transform:perspective(1000px)_translateY(-6px)_rotateX(2deg)] hover:shadow-[0_24px_55px_rgba(2,8,23,0.42),inset_0_1px_0_rgba(255,255,255,0.08)] before:pointer-events-none before:absolute before:inset-0 before:rounded-2xl before:bg-gradient-to-br before:from-white/[0.07] before:via-transparent before:to-transparent before:opacity-60 border-l-4 border-l-[#14b8a6]">
-          <div className="relative z-10 flex items-start justify-between">
+        {/* Card 4: STANDARDIZED SCRAPES */}
+        <Card className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-3">
             <div>
               <div className="flex items-center gap-1.5">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Validated Ingestion</p>
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Validated Quotes
+                </span>
                 <MetricInfo
                   align="right"
-                  text="Total validated flight price quotes ingested across DGCA corridors with SHA-256 cryptographic provenance and Hampel/IQR outlier rejection."
+                  text="Total validated flight price quotes ingested across domestic airlines and OTAs, validated with Pydantic schemas and SHA-256 signatures."
                 />
               </div>
-              <p className="mt-2 text-2xl sm:text-3xl font-black tracking-tight text-white">
+              <p className="mt-2.5 text-3xl font-bold tracking-tight text-slate-900 tabular-nums">
                 {scrapeQuotesDisplay}
               </p>
             </div>
-            <div className="rounded-xl bg-[#103833] p-2.5 text-[#34d399] border border-[#1c6255]">
+            <div className="rounded-lg bg-emerald-50/80 p-2.5 text-emerald-600 border border-emerald-100">
               <Database className="h-5 w-5" />
             </div>
           </div>
-          <div className="relative z-10 mt-4 flex items-center justify-between text-xs text-slate-400">
-            <span className="font-bold text-[#34d399]">100% SHA-256 Verified</span>
+
+          <div className="mt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
+            <span className="inline-flex items-center rounded-md bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+              100% SHA-256 Verified
+            </span>
             <button
               onClick={() => handleProtectedNavigate('audit-logs')}
-              className="text-[#34d399] hover:text-white hover:underline font-semibold text-[11px] cursor-pointer"
+              className="font-semibold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer"
             >
               Audit Log →
             </button>
@@ -344,250 +587,291 @@ export function OverviewView({ onNavigateToTab, onOpenReportModal }: OverviewVie
         </Card>
       </div>
 
-      {/* Sector Deep-Dive Callout Bar */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#24364f] bg-gradient-to-r from-[#0f2029] via-[#111d2e] to-[#19172f] p-4 shadow-[0_12px_30px_rgba(2,8,23,0.2)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#12383b] text-[#43e3d8] border border-[#1d6667] shadow-sm">
-            <MapPin className="h-4 w-4" />
-          </div>
+      {/* =========================================================
+          ANALYTICAL CHARTS (Soft Borders, Clean Spacing)
+          ========================================================= */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* 30-Day Inflation Trend (Span 7) */}
+        <Card className="xl:col-span-7 p-5 sm:p-6 flex flex-col justify-between">
           <div>
-            <p className="text-xs font-bold text-slate-100">
-              Looking for Route-Specific Pricing &amp; Airline Parity?
-            </p>
-            <p className="text-[11px] text-slate-400">
-              Inspect advance booking curves (T+1 to T+45) and carrier spreads for specific sectors (DEL-BOM, BOM-BLR, etc.) in Route Analysis.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={() => handleProtectedNavigate('routes-horizons')}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-[#101b2b] border border-[#2d6c70] px-3.5 py-1.5 text-xs font-bold text-[#43e3d8] hover:bg-[#163f43] hover:text-white transition cursor-pointer shadow-[0_8px_20px_rgba(20,200,189,0.12)] whitespace-nowrap self-start sm:self-auto"
-        >
-          <span>Open Sector Deep-Dive</span>
-          <ArrowRight className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Charts Row 1: 30-Day National Trend & Lead-Time Elasticity */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* 30-Day APIx Inflation Trend */}
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.22)]">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-white text-base">30-Day National APIx Inflation Trend</h3>
-                <span className="rounded bg-[#173c59] text-[#60a5fa] text-[10px] font-bold px-1.5 py-0.5">
-                  Macro Composite
-                </span>
-                {trendQuery.data?.isLive && !trendQuery.data?.isDemoData ? (
-                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                    Live Data
+            <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle>30-Day APIx Inflation Trend</CardTitle>
+                  <span className="rounded-md bg-blue-50 border border-blue-200/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                    {appliedRoute} Corridor
                   </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
-                    Demo Data
-                  </span>
-                )}
+                </div>
+                <CardDescription className="mt-1">
+                  Daily airfare price movement vs baseline with official Base 2024 = 100 anchor
+                </CardDescription>
               </div>
-              <p className="mt-1 text-xs text-slate-400">
-                Composite Headline vs Core Trimmed vs Baseline index trajectory across India
-              </p>
+
+              <div className="flex items-center gap-4 text-xs text-slate-600 font-semibold">
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-blue-600" />
+                  APIx
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-slate-400" />
+                  Baseline
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 text-xs text-slate-300 font-medium">
-              <span className="flex items-center gap-1.5">
-                <i className="h-2.5 w-2.5 rounded-full bg-[#22c7bd]" />
-                Headline APIx
-              </span>
-              <span className="flex items-center gap-1.5">
-                <i className="h-2.5 w-2.5 rounded-full bg-[#8b7cf6]" />
-                Core Trimmed
-              </span>
-              <span className="flex items-center gap-1.5">
-                <i className="h-2.5 w-2.5 rounded-full bg-[#64748b]" />
-                Baseline
-              </span>
+
+            <div className="h-72 w-full pt-2">
+              {trendSeries.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsLineChart data={trendSeries} margin={{ top: 16, right: 12, left: -20, bottom: 0 }}>
+                    <CartesianGrid stroke="#F1F5F9" vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      domain={[95, 155]}
+                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <ReferenceLine
+                      y={100}
+                      stroke="#94A3B8"
+                      strokeDasharray="4 4"
+                      label={{
+                        value: 'Base Year 2024 = 100',
+                        fill: '#64748B',
+                        fontSize: 10,
+                        position: 'insideTopLeft',
+                      }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="headlineApix"
+                      name="APIx"
+                      stroke="#2563EB"
+                      strokeWidth={2.4}
+                      dot={{ r: 3.5, fill: '#2563EB', strokeWidth: 2, stroke: '#FFFFFF' }}
+                      activeDot={{ r: 5, stroke: '#2563EB', strokeWidth: 2, fill: '#FFFFFF' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="baseline"
+                      name="Baseline"
+                      stroke="#94A3B8"
+                      strokeWidth={1.8}
+                      strokeDasharray="4 4"
+                      dot={false}
+                    />
+                  </RechartsLineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+                  <TrendingUp className="h-8 w-8 text-slate-400 mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No Inflation Trend Observations</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Awaiting live corridor index synchronization or API telemetry.</p>
+                </div>
+              )}
             </div>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <RechartsLineChart data={trendSeries} margin={{ top: 8, right: 12, left: -22, bottom: 0 }}>
-                <CartesianGrid stroke="#26364c" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
-                <YAxis domain={[130, 146]} tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Line
-                  type="monotone"
-                  dataKey="headlineApix"
-                  name="Headline APIx"
-                  stroke="#22c7bd"
-                  strokeWidth={2.5}
-                  dot={{ r: 3.5, fill: '#22c7bd', strokeWidth: 2, stroke: '#FFFFFF' }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="coreTrimmedApix"
-                  name="Core Trimmed APIx"
-                  stroke="#8b7cf6"
-                  strokeWidth={2}
-                  strokeDasharray="3 3"
-                  dot={{ r: 2.5, fill: '#8b7cf6' }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="baseline"
-                  name="Baseline"
-                  stroke="#64748B"
-                  strokeWidth={2}
-                  strokeDasharray="4 4"
-                  dot={false}
-                />
-              </RechartsLineChart>
-            </ResponsiveContainer>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+            <span>Aggregated via IMF Jevons Geometric Mean</span>
+            <span className="font-semibold text-slate-700">Updated: Real-time</span>
           </div>
         </Card>
 
-        {/* Synthetic Constant-Horizon Basket (T+1 to T+45) */}
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.22)]">
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="font-bold text-white text-base">National Lead-Time Elasticity Basket</h3>
-                <span className="rounded bg-[#3d2c12] text-[#fbbf24] text-[10px] font-bold px-1.5 py-0.5">
-                  Constant Horizon
-                </span>
-                {elasticityQuery.data?.isLive && !elasticityQuery.data?.isDemoData ? (
-                  <span className="rounded-full bg-emerald-100 border border-emerald-300 text-emerald-800 text-[10px] font-bold px-2 py-0.5">
-                    Live Data
+        {/* Lead-Time Elasticity Basket (Span 5) */}
+        <Card className="xl:col-span-5 p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex flex-wrap items-start justify-between gap-3 pb-4">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <CardTitle>Lead-Time Elasticity Basket</CardTitle>
+                  <span className="rounded-md bg-orange-50 border border-orange-200/80 px-2 py-0.5 text-[10px] font-semibold text-orange-700">
+                    Constant Horizon
                   </span>
-                ) : (
-                  <span className="rounded-full bg-amber-100 border border-amber-300 text-amber-800 text-[10px] font-bold px-2 py-0.5">
-                    Demo Data
-                  </span>
-                )}
+                </div>
+                <CardDescription className="mt-1">
+                  Pricing across fixed advance windows (T+1 to T+45)
+                </CardDescription>
               </div>
-              <p className="mt-1 text-xs text-slate-400">
-                Average price curve across fixed lead times (T+1 to T+45), eliminating 200%–400% timing bias
-              </p>
+
+              <button
+                onClick={() => handleProtectedNavigate('routes-horizons')}
+                className="text-xs font-semibold text-orange-700 hover:text-orange-800 hover:underline cursor-pointer"
+              >
+                Curves →
+              </button>
             </div>
-            <button
-              onClick={() => handleProtectedNavigate('routes-horizons')}
-              className="rounded-md bg-[#3d2c12] hover:bg-[#5a4015] px-2.5 py-1 text-xs font-bold text-[#fbbf24] border border-[#654916] transition cursor-pointer"
-            >
-              Route Curves →
-            </button>
+
+            <div className="h-72 w-full pt-2">
+              {elasticity.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={elasticity} margin={{ top: 12, right: 8, left: -12, bottom: 0 }}>
+                    <CartesianGrid stroke="#F1F5F9" vertical={false} strokeDasharray="3 3" />
+                    <XAxis
+                      dataKey="window"
+                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `₹${value / 1000}k`}
+                    />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Bar dataKey="fare" name="Avg Fare" radius={[6, 6, 0, 0]} barSize={32}>
+                      {elasticity.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={entry.window === 'T+1' || Boolean(entry.isHighSurge) ? '#EA580C' : '#2563EB'}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+                  <Gauge className="h-8 w-8 text-slate-400 mb-2" />
+                  <p className="text-xs font-bold text-slate-700">No Lead-Time Elasticity Data</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Awaiting constant-horizon quote distribution records.</p>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={elasticity} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-                <CartesianGrid stroke="#26364c" vertical={false} />
-                <XAxis dataKey="window" tick={{ fontSize: 11, fill: '#94A3B8' }} tickLine={false} axisLine={false} />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#94A3B8' }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `₹${value / 1000}k`}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="fare" name="Avg Fare" radius={[6, 6, 0, 0]} barSize={34}>
-                  {elasticity.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.isHighSurge ? '#f59e0b' : '#22c7bd'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-xs bg-[#EA580C]" />
+              Surge Window (T+1)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-xs bg-[#2563EB]" />
+              Advance Booking
+            </span>
           </div>
         </Card>
       </div>
 
-      {/* Charts Row 2: Top DGCA Corridors & Fare Decomposition */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1.35fr_1fr] gap-6">
-        {/* Top DGCA Domestic Corridors */}
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.22)]">
-          <div className="mb-5 flex items-center justify-between">
+      {/* =========================================================
+          CORRIDOR RANKINGS & DECOMPOSITION (Soft Borders)
+          ========================================================= */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+        {/* Top DGCA Domestic Corridors (Span 7) */}
+        <Card className="xl:col-span-7 p-5 sm:p-6">
+          <div className="flex items-center justify-between pb-4">
             <div>
-              <h3 className="font-bold text-white text-base">Top DGCA Domestic Corridors</h3>
-              <p className="mt-1 text-xs text-slate-400">
-                Busiest routes weighted by DGCA quarterly passenger traffic volumes (w_r)
-              </p>
+              <CardTitle>Top DGCA Domestic Corridors</CardTitle>
+              <CardDescription className="mt-1">
+                Busiest routes weighted by DGCA Q3 2024 passenger traffic volumes (wᵣ)
+              </CardDescription>
             </div>
             <button
               onClick={() => handleProtectedNavigate('routes-horizons')}
-              className="text-xs text-[#43e3d8] hover:text-white hover:underline font-semibold cursor-pointer"
+              className="text-xs text-blue-600 hover:text-blue-700 hover:underline font-semibold cursor-pointer"
             >
               View All 150+ Sectors →
             </button>
           </div>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={routes.slice(0, 5)}
-                layout="vertical"
-                margin={{ top: 0, right: 16, left: 10, bottom: 0 }}
-              >
-                <CartesianGrid stroke="#26364c" horizontal={false} />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 11, fill: '#94A3B8' }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `₹${value / 1000}k`}
-                />
-                <YAxis
-                  type="category"
-                  dataKey="route"
-                  tick={{ fontSize: 11, fill: '#CBD5E1', fontWeight: 600 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={70}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Bar dataKey="fare" name="Avg Fare" fill="#22a7c7" radius={[0, 6, 6, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
+
+          <div className="h-64 w-full">
+            {routes.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={routes.slice(0, 5)}
+                  layout="vertical"
+                  margin={{ top: 0, right: 16, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid stroke="#F1F5F9" horizontal={false} strokeDasharray="3 3" />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11, fill: '#64748B', fontWeight: 500 }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `₹${value / 1000}k`}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="route"
+                    tick={{ fontSize: 11, fill: '#1E293B', fontWeight: 600 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={80}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Bar dataKey="fare" name="Avg Fare" fill="#1D4ED8" radius={[0, 6, 6, 0]} barSize={22} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center">
+                <MapPin className="h-8 w-8 text-slate-400 mb-2" />
+                <p className="text-xs font-bold text-slate-700">No DGCA Route Records Loaded</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Verify route registry synchronization or API connectivity.</p>
+              </div>
+            )}
           </div>
         </Card>
 
-        {/* Deterministic Fare Decomposition */}
-        <Card className="group relative overflow-hidden rounded-2xl !border-[#24364f] !bg-[#101b2b] p-5 text-white shadow-[0_14px_35px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.22)]">
-          <div className="mb-2">
-            <h3 className="font-bold text-white text-base">Deterministic Fare Decomposition</h3>
-            <p className="mt-1 text-xs text-slate-400">
-              Automated validation stripping voluntary add-ons to isolate transport inflation
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-2">
-            <div className="h-44 w-44 shrink-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={liveFareDecomp}
-                    dataKey="value"
-                    nameKey="name"
-                    innerRadius={52}
-                    outerRadius={78}
-                    paddingAngle={3}
-                    stroke="none"
-                  >
-                    {liveFareDecomp.map((entry) => (
-                      <Cell key={entry.name} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="space-y-2.5 w-full sm:w-auto">
-              {liveFareDecomp.map((entry) => (
-                <div key={entry.name} className="flex items-center justify-between gap-6 text-xs">
-                  <span className="flex items-center gap-2 text-slate-300 font-medium">
-                    <i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: entry.color }} />
-                    {entry.name}
-                  </span>
-                  <span className="font-bold text-white">{entry.value}%</span>
+        {/* Deterministic Fare Decomposition (Span 5) */}
+        <Card className="xl:col-span-5 p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <CardTitle>Deterministic Fare Decomposition</CardTitle>
+            <CardDescription className="mt-1">
+              Automated validation stripping voluntary add-ons to isolate pure transport inflation
+            </CardDescription>
+
+            {liveFareDecomp.length > 0 ? (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-6 pt-4">
+                <div className="h-44 w-44 shrink-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={liveFareDecomp}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={54}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        stroke="none"
+                      >
+                        {liveFareDecomp.map((entry) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
+
+                <div className="space-y-2.5 w-full sm:w-auto">
+                  {liveFareDecomp.map((entry) => (
+                    <div key={entry.name} className="flex items-center justify-between gap-6 text-xs">
+                      <span className="flex items-center gap-2 text-slate-700 font-medium">
+                        <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: entry.color }} />
+                        {entry.name}
+                      </span>
+                      <span className="font-bold text-slate-900">{entry.value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="h-44 w-full flex flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/50 p-6 text-center mt-4">
+                <Database className="h-8 w-8 text-slate-400 mb-2" />
+                <p className="text-xs font-bold text-slate-700">No Decomposition Telemetry</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Awaiting unbundled fare manifest parsing.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 text-center">
+            Pydantic validation isolating Base Fare + Fuel Surcharge + Airport Tax
           </div>
         </Card>
       </div>

@@ -1,9 +1,9 @@
 import {
   LayoutDashboard,
   TrendingUp,
-  Map,
+  PlaneTakeoff,
   Database,
-  Sliders,
+  Sigma,
   Sparkles,
   HelpCircle,
 } from 'lucide-react'
@@ -26,8 +26,8 @@ export const navItems: NavItemConfig[] = [
   },
   {
     id: 'routes-horizons',
-    label: 'Route Analysis & Horizons',
-    icon: Map,
+    label: 'Route Analysis',
+    icon: PlaneTakeoff,
     desc: 'Sector-specific deep dive, advance elasticity (T+1 to T+45), and airline price parity',
     badge: 'T+1 to T+45',
   },
@@ -55,7 +55,7 @@ export const navItems: NavItemConfig[] = [
   {
     id: 'methodology',
     label: 'Methodology & Formulas',
-    icon: Sliders,
+    icon: Sigma,
     desc: 'Two-tier IMF Jevons & Laspeyres formulas and multi-stakeholder dividends',
   },
   {

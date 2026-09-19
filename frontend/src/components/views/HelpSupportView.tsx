@@ -2,20 +2,16 @@ import { useState } from 'react'
 import {
   HelpCircle,
   BookOpen,
-  FileText,
   ShieldCheck,
   PhoneCall,
   Mail,
   ChevronDown,
   ChevronUp,
-  Sparkles,
   CheckCircle2,
   MessageSquare,
   Send,
-  Lock,
 } from 'lucide-react'
 import { Card } from '../common/CommonUI'
-import { useAuth } from '../../context/AuthContext'
 
 interface FaqItem {
   question: string
@@ -62,12 +58,7 @@ const faqs: FaqItem[] = [
   },
 ]
 
-interface HelpSupportViewProps {
-  onOpenReportModal?: () => void
-}
-
-export function HelpSupportView({ onOpenReportModal }: HelpSupportViewProps) {
-  const { isAuthenticated, openLoginModal } = useAuth()
+export function HelpSupportView() {
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const [faqFilter, setFaqFilter] = useState<'all' | 'mospi' | 'methodology' | 'ingestion'>('all')
   const [ticketSubject, setTicketSubject] = useState('')
@@ -90,105 +81,82 @@ export function HelpSupportView({ onOpenReportModal }: HelpSupportViewProps) {
   }
 
   return (
-    <div className="space-y-6 p-4 md:p-8 flex-1 bg-[#07111f] text-slate-100 min-h-full">
+    <div className="space-y-6 p-4 md:p-8 flex-1">
       {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#26364c] pb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+            <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">
               Help, Support &amp; Regulatory Framework
             </h2>
-            <span className="rounded-full bg-cyan-400/10 text-cyan-300 text-xs font-bold px-2.5 py-0.5 border border-cyan-400/20">
+            <span className="rounded-full bg-blue-100 text-blue-800 text-xs font-bold px-2.5 py-0.5 border border-blue-200">
               MoSPI &amp; DGCA Desk
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Official guidelines, CPI augmentation methodology, statistical standards, and technical support
           </p>
         </div>
-
-        {onOpenReportModal && (
-          isAuthenticated ? (
-            <button
-              onClick={onOpenReportModal}
-              className="flex items-center gap-1.5 rounded-lg bg-cyan-500 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-400 active:scale-[0.98] transition cursor-pointer"
-            >
-              <FileText className="h-4 w-4" />
-              <span>Generate Executive Report</span>
-              <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-            </button>
-          ) : (
-            <button
-              onClick={openLoginModal}
-              title="Admin Authentication Required: Sign in to generate official executive briefings"
-              className="flex items-center gap-1.5 rounded-lg border border-[#33465f] bg-[#101d2e] px-3.5 py-2 text-xs font-bold text-slate-200 hover:bg-[#16263a] transition cursor-pointer shadow-xs"
-            >
-              <Lock className="h-3.5 w-3.5 text-slate-400" />
-              <span>Generate Executive Report</span>
-              <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[9px] font-bold text-blue-700">Admin</span>
-            </button>
-          )
-        )}
       </div>
 
       {/* Quick Documentation Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="p-4 !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] border-l-4 border-l-cyan-400 shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.38)]">
+        <Card className="p-4 border-l-4 border-l-blue-600">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-50 p-2 text-cyan-400">
+            <div className="rounded-lg bg-blue-50 p-2 text-blue-600">
               <BookOpen className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-white">IMF CPI Manual 2020</p>
-              <p className="text-[11px] text-slate-400">Ch. 10 Scanner Data &amp; Web Scraping</p>
+              <p className="text-xs font-bold text-slate-900">IMF CPI Manual 2020</p>
+              <p className="text-[11px] text-slate-500">Ch. 10 Scanner Data &amp; Web Scraping</p>
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-300 leading-relaxed">
+          <p className="mt-3 text-xs text-slate-600 leading-relaxed">
             Strict adherence to elementary aggregate standards using geometric formulation.
           </p>
         </Card>
 
-        <Card className="p-4 !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] border-l-4 border-l-violet-400 shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.38)]">
+        <Card className="p-4 border-l-4 border-l-indigo-600">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-indigo-50 p-2 text-violet-400">
+            <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-white">DGCA City-Pair Policy</p>
-              <p className="text-[11px] text-slate-400">Quarterly Scheduled Volumes</p>
+              <p className="text-xs font-bold text-slate-900">DGCA City-Pair Policy</p>
+              <p className="text-[11px] text-slate-500">Quarterly Scheduled Volumes</p>
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-300 leading-relaxed">
+          <p className="mt-3 text-xs text-slate-600 leading-relaxed">
             Dynamic weighting calibrated against actual domestic passenger seat distribution.
           </p>
         </Card>
 
-        <Card className="p-4 !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] border-l-4 border-l-emerald-400 shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.38)]">
+        <Card className="p-4 border-l-4 border-l-emerald-600">
           <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-400">
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
               <CheckCircle2 className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-white">Cryptographic Provenance</p>
-              <p className="text-[11px] text-slate-400">SHA-256 Audit Trail</p>
+              <p className="text-xs font-bold text-slate-900">Cryptographic Provenance</p>
+              <p className="text-[11px] text-slate-500">SHA-256 Audit Trail</p>
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-300 leading-relaxed">
+          <p className="mt-3 text-xs text-slate-600 leading-relaxed">
             100% immutable fare verification preventing retroactive survey adjustments.
           </p>
         </Card>
 
-        <Card className="p-4 !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] border-l-4 border-l-orange-400 shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.38)]">
+        <Card className="p-4 border-l-4 border-l-orange-500">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-orange-50 p-2 text-orange-600">
               <PhoneCall className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-xs font-bold text-white">Technical Desk</p>
-              <p className="text-[11px] text-slate-400">Team AndroMatrix</p>
+              <p className="text-xs font-bold text-slate-900">Technical Desk</p>
+              <p className="text-[11px] text-slate-500">Team AndroMatrix</p>
             </div>
           </div>
-          <p className="mt-3 text-xs text-slate-300 leading-relaxed">
+          <p className="mt-3 text-xs text-slate-600 leading-relaxed">
             24/7 SIH26056 automation cluster monitoring and pipeline telemetry support.
           </p>
         </Card>
@@ -199,21 +167,21 @@ export function HelpSupportView({ onOpenReportModal }: HelpSupportViewProps) {
         {/* FAQs Accordion */}
         <div className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-bold text-white text-base flex items-center gap-2">
-              <HelpCircle className="h-4 w-4 text-cyan-400" />
+            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+              <HelpCircle className="h-4 w-4 text-blue-600" />
               Frequently Asked Questions (FAQ)
             </h3>
 
             {/* Category Filter */}
-            <div className="flex items-center gap-1.5 rounded-lg border border-[#33465f] bg-[#0d192b] border-[#33465f] p-1 text-xs font-semibold">
+            <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-1 text-xs font-semibold">
               {(['all', 'mospi', 'methodology', 'ingestion'] as const).map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setFaqFilter(cat)}
                   className={`rounded-md px-2.5 py-1 capitalize transition cursor-pointer ${
                     faqFilter === cat
-                      ? 'bg-cyan-500 text-white shadow-xs'
-                      : 'text-slate-300 hover:text-white'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
                   {cat === 'mospi' ? 'MoSPI CPI' : cat === 'ingestion' ? 'Ingestion' : cat}
@@ -226,10 +194,10 @@ export function HelpSupportView({ onOpenReportModal }: HelpSupportViewProps) {
             {filteredFaqs.map((faq, index) => {
               const isOpen = openFaq === index
               return (
-                <Card key={index} className="overflow-hidden !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] shadow-[0_10px_28px_rgba(0,0,0,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_36px_rgba(0,0,0,0.32)]">
+                <Card key={index} className="overflow-hidden transition">
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : index)}
-                    className="flex w-full items-center justify-between p-4 text-left font-semibold text-slate-100 hover:text-cyan-400 transition cursor-pointer gap-3"
+                    className="flex w-full items-center justify-between p-4 text-left font-semibold text-slate-800 hover:text-blue-600 transition cursor-pointer gap-3"
                   >
                     <span className="text-xs sm:text-sm">{faq.question}</span>
                     {isOpen ? (
@@ -239,7 +207,7 @@ export function HelpSupportView({ onOpenReportModal }: HelpSupportViewProps) {
                     )}
                   </button>
                   {isOpen && (
-                    <div className="border-t border-[#26364c] bg-[#0b1728] p-4 text-xs text-slate-300 leading-relaxed">
+                    <div className="border-t border-slate-100 bg-slate-50/50 p-4 text-xs text-slate-600 leading-relaxed">
                       <p>{faq.answer}</p>
                     </div>
                   )}
@@ -251,73 +219,73 @@ export function HelpSupportView({ onOpenReportModal }: HelpSupportViewProps) {
 
         {/* Nodal Officer Contact & Direct Ticket Submission */}
         <div className="space-y-6">
-          <Card className="p-5 !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.38)]">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2 mb-3">
-              <Mail className="h-4 w-4 text-cyan-400" />
+          <Card className="p-5">
+            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2 mb-3">
+              <Mail className="h-4 w-4 text-blue-600" />
               Nodal Contact &amp; Coordination
             </h3>
-            <div className="space-y-3 text-xs text-slate-300">
-              <div className="rounded-lg bg-[#0b1728] p-3 border border-[#26364c] space-y-1">
-                <p className="font-bold text-slate-100">Ministry of Statistics and Programme Implementation (MoSPI)</p>
-                <p className="text-slate-400">National Statistical Office (NSO) · Economic Statistics Division</p>
-                <p className="text-[11px] text-cyan-400 font-mono">cpi-desk@mospi.gov.in</p>
+            <div className="space-y-3 text-xs text-slate-600">
+              <div className="rounded-lg bg-slate-50 p-3 border border-slate-100 space-y-1">
+                <p className="font-bold text-slate-800">Ministry of Statistics and Programme Implementation (MoSPI)</p>
+                <p className="text-slate-500">National Statistical Office (NSO) · Economic Statistics Division</p>
+                <p className="text-[11px] text-blue-600 font-mono">cpi-desk@mospi.gov.in</p>
               </div>
-              <div className="rounded-lg bg-[#0b1728] p-3 border border-[#26364c] space-y-1">
-                <p className="font-bold text-slate-100">Directorate General of Civil Aviation (DGCA)</p>
-                <p className="text-slate-400">Air Transport Directorate · Route Tariffs Division</p>
-                <p className="text-[11px] text-cyan-400 font-mono">tariffs.dgca@nic.in</p>
+              <div className="rounded-lg bg-slate-50 p-3 border border-slate-100 space-y-1">
+                <p className="font-bold text-slate-800">Directorate General of Civil Aviation (DGCA)</p>
+                <p className="text-slate-500">Air Transport Directorate · Route Tariffs Division</p>
+                <p className="text-[11px] text-blue-600 font-mono">tariffs.dgca@nic.in</p>
               </div>
-              <div className="rounded-lg bg-[#0b1728] p-3 border border-[#26364c] space-y-1">
-                <p className="font-bold text-slate-100">Smart India Hackathon 2026 Team</p>
-                <p className="text-slate-400">Team AndroMatrix · Problem Statement SIH26056</p>
-                <p className="text-[11px] text-emerald-400 font-mono">andromatrix.sih@gmail.com</p>
+              <div className="rounded-lg bg-slate-50 p-3 border border-slate-100 space-y-1">
+                <p className="font-bold text-slate-800">Smart India Hackathon 2026 Team</p>
+                <p className="text-slate-500">Team AndroMatrix · Problem Statement SIH26056</p>
+                <p className="text-[11px] text-emerald-600 font-mono">andromatrix.sih@gmail.com</p>
               </div>
             </div>
           </Card>
 
           {/* Direct Query Submission Form */}
-          <Card className="p-5 !bg-gradient-to-br !from-[#101d2e] !via-[#0e1a2a] !to-[#0a1524] !border-[#26364c] shadow-[0_14px_35px_rgba(0,0,0,0.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(0,0,0,0.38)]">
-            <h3 className="font-bold text-white text-sm flex items-center gap-2 mb-2">
-              <MessageSquare className="h-4 w-4 text-violet-400" />
+          <Card className="p-5">
+            <h3 className="font-bold text-slate-900 text-sm flex items-center gap-2 mb-2">
+              <MessageSquare className="h-4 w-4 text-indigo-600" />
               Statistical Inquiry Desk
             </h3>
-            <p className="text-xs text-slate-400 mb-4">
+            <p className="text-xs text-slate-500 mb-4">
               Submit requests for custom corridor datasets, API tokens, or methodology audits.
             </p>
 
             {ticketSubmitted ? (
-              <div className="rounded-xl bg-emerald-400/10 border border-emerald-400/20 p-4 text-center space-y-1 text-emerald-800">
-                <CheckCircle2 className="h-6 w-6 text-emerald-400 mx-auto" />
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center space-y-1 text-emerald-800">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600 mx-auto" />
                 <p className="text-xs font-bold">Inquiry Dispatched Successfully</p>
-                <p className="text-[11px] text-emerald-400">Reference Token: SIH26-INQ-{Math.floor(1000 + Math.random() * 9000)}</p>
+                <p className="text-[11px] text-emerald-600">Reference Token: SIH26-INQ-{Math.floor(1000 + Math.random() * 9000)}</p>
               </div>
             ) : (
               <form onSubmit={handleTicketSubmit} className="space-y-3">
                 <div>
-                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Inquiry Subject / Route</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Inquiry Subject / Route</label>
                   <input
                     type="text"
                     required
                     value={ticketSubject}
                     onChange={(e) => setTicketSubject(e.target.value)}
                     placeholder="e.g. Request historical raw quotes for DEL-BOM"
-                    className="w-full rounded-lg border border-[#33465f] bg-[#0d192b] px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600"
                   />
                 </div>
                 <div>
-                  <label className="text-[11px] font-bold text-slate-300 block mb-1">Details &amp; Specifications</label>
+                  <label className="text-[11px] font-bold text-slate-600 block mb-1">Details &amp; Specifications</label>
                   <textarea
                     required
                     rows={3}
                     value={ticketBody}
                     onChange={(e) => setTicketBody(e.target.value)}
                     placeholder="Provide details of the inquiry or analytical requirement..."
-                    className="w-full rounded-lg border border-[#33465f] bg-[#0d192b] px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400 resize-none"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none focus:border-blue-600 resize-none"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-cyan-500 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-400 transition cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-blue-700 transition cursor-pointer"
                 >
                   <Send className="h-3.5 w-3.5" />
                   Submit Inquiry

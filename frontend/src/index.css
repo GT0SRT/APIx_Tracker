@@ -12,6 +12,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-navy: #0F4C81;
+  --color-gov-blue: #1D4ED8;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
@@ -22,200 +24,87 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: 'Inter', 'Inter Fallback';
-  --font-mono: 'IBM Plex Mono', 'IBM Plex Mono Fallback';
+  --font-sans: 'Inter', 'Inter Fallback', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'IBM Plex Mono Fallback', monospace;
 }
-
-/* =========================================================
-   LIGHT THEME — FROM ZIP FRONTEND
-   ========================================================= */
 
 :root {
   color-scheme: light;
-
-  --background: oklch(0.975 0.008 246);
-  --foreground: oklch(0.22 0.035 247);
-
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.035 247);
-
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.035 247);
-
-  --primary: oklch(0.52 0.18 238);
-  --primary-foreground: oklch(1 0 0);
-
-  --secondary: oklch(0.95 0.018 242);
-  --secondary-foreground: oklch(0.3 0.06 247);
-
-  --muted: oklch(0.95 0.012 246);
-  --muted-foreground: oklch(0.52 0.035 247);
-
-  --accent: oklch(0.94 0.04 232);
-  --accent-foreground: oklch(0.3 0.08 238);
-
-  --destructive: oklch(0.6 0.2 25);
-
-  --border: oklch(0.9 0.025 246);
-  --input: oklch(0.9 0.025 246);
-  --ring: oklch(0.52 0.18 238);
-
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
+  --primary: #0F4C81;
+  --primary-foreground: #FFFFFF;
+  --secondary: #F1F5F9;
+  --secondary-foreground: #1E293B;
+  --muted: #F8FAFC;
+  --muted-foreground: #64748B;
+  --accent: #EFF6FF;
+  --accent-foreground: #1D4ED8;
+  --destructive: #EF4444;
+  --border: #E2E8F0;
+  --input: #E2E8F0;
+  --ring: #1D4ED8;
   --radius: 0.7rem;
 }
-
-/* =========================================================
-   DARK THEME — KEEP YOUR EXISTING DARK DESIGN
-   ========================================================= */
-
-.dark {
-  color-scheme: dark;
-
-  --background: #07111f;
-  --foreground: #f3f7fa;
-
-  --card: #111b2b;
-  --card-foreground: #f3f7fa;
-
-  --popover: #0b1220;
-  --popover-foreground: #f3f7fa;
-
-  --primary: #20d6c7;
-  --primary-foreground: #07151a;
-
-  --secondary: #162235;
-  --secondary-foreground: #d7e3ea;
-
-  --muted: #162235;
-  --muted-foreground: #8ea4b5;
-
-  --accent: #17343d;
-  --accent-foreground: #5ee7df;
-
-  --destructive: #ff6b6b;
-
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: #20d6c7;
-
-  --radius: 0.7rem;
-}
-
-/* =========================================================
-   BASE
-   ========================================================= */
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-
-  html {
-    background: var(--background);
-  }
-
+  * { @apply border-border outline-ring/50; }
+  html { background: #F8FAFC; }
   body {
-    @apply bg-background text-foreground font-sans;
+    background-color: #F8FAFC;
+    color: #0F172A;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
   }
-
-  button,
-  select {
-    font: inherit;
+  button, select { font: inherit; }
+  .tabular-nums, table, [data-tabular] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
-/* =========================================================
-   CHARTS
-   ========================================================= */
-
-.recharts-tooltip-cursor {
-  fill: oklch(0.96 0.02 246);
-}
-
-.recharts-default-tooltip {
-  border-radius: 0.5rem;
-}
-
-/* =========================================================
-   REDUCED MOTION
-   ========================================================= */
+.recharts-tooltip-cursor { fill: oklch(0.96 0.02 246); }
+.recharts-default-tooltip { border-radius: 0.5rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}
+
+/* Cross-browser scrollbar hiding utilities (Chrome, Safari, Firefox, Edge) */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
   }
 }
 
-/* =========================================================
-   APIx KPI VISUAL SYSTEM
-   ========================================================= */
-
-.apix-kpi {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  background: var(--card);
-  color: var(--card-foreground);
-  transition: all 0.25s ease;
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
 }
 
-.apix-kpi:hover {
-  transform: translateY(-4px);
-  border-color: color-mix(
-    in srgb,
-    var(--primary) 28%,
-    transparent
-  );
-  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12);
+.scrollbar-none,
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
-.apix-kpi::after {
-  content: '';
-  position: absolute;
-  left: 20px;
-  right: 20px;
-  bottom: 0;
-  height: 2px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    color-mix(in srgb, var(--primary) 70%, transparent),
-    transparent
-  );
+.scrollbar-none::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-.apix-kpi-label {
-  color: var(--muted-foreground);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.apix-kpi-value {
-  margin-top: 10px;
-  color: var(--card-foreground);
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-}
-
-.apix-kpi-change {
-  display: inline-flex;
-  margin-top: 8px;
-  padding: 4px 7px;
-  border-radius: 7px;
-  background: color-mix(
-    in srgb,
-    var(--primary) 8%,
-    transparent
-  );
-  color: var(--primary);
-  font-size: 10px;
-  font-weight: 700;
-}

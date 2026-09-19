@@ -46,6 +46,25 @@ export function LoginModal() {
     }
   }
 
+  const handleQuickDemoLogin = async () => {
+    setError(null)
+    setEmail('admin@mospi.gov.in')
+    setPassword('Admin@mospi')
+    setLoading(true)
+    const result = await login('admin@mospi.gov.in', 'Admin@mospi')
+    setLoading(false)
+
+    if (!result.success) {
+      setError(result.error || 'Authentication failed. Please check credentials.')
+    } else {
+      setSuccess(true)
+      setTimeout(() => {
+        setSuccess(false)
+        closeLoginModal()
+      }, 700)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl border border-slate-200">
@@ -92,6 +111,27 @@ export function LoginModal() {
                 parity metrics, anomaly telemetry, and cryptographic audit logs.
               </p>
 
+              {/* Demo Credentials Helper Box */}
+              <div className="rounded-xl border border-blue-200/80 bg-blue-50/60 p-3 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-blue-900 text-[11px]">SIH 2026 Jury Evaluation Sandbox:</span>
+                  <span className="rounded bg-blue-100 text-blue-800 text-[9px] font-bold px-1.5 py-0.5 border border-blue-200">Jury Clearance</span>
+                </div>
+                <div className="text-[11px] font-mono text-slate-700 flex flex-col gap-0.5">
+                  <div>Evaluator ID: <strong className="text-blue-950 select-all">admin@mospi.gov.in</strong></div>
+                  <div>Security Pass: <strong className="text-blue-950 select-all">Admin@mospi</strong></div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleQuickDemoLogin}
+                  disabled={loading}
+                  className="w-full mt-1 flex items-center justify-center gap-1.5 rounded-lg bg-blue-700/10 hover:bg-blue-700/20 text-blue-800 text-[11px] font-bold py-1.5 border border-blue-300/50 transition cursor-pointer"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5 text-blue-700" />
+                  <span>One-Click Jury Evaluation Sign-In</span>
+                </button>
+              </div>
+
               {error && (
                 <div className="flex items-start gap-2.5 rounded-xl border border-red-200 bg-red-50/80 p-3 text-xs text-red-700">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -132,7 +172,7 @@ export function LoginModal() {
               </div>
 
               {/* Submit button */}
-              <div className="pt-3">
+              <div className="pt-2">
                 <button
                   type="submit"
                   disabled={loading}

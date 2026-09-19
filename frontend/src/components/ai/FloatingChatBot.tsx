@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import {
   Send,
-  Sparkles,
   RefreshCw,
   ExternalLink,
   X as XIcon,
-  Zap,
   Bot,
+  ShieldCheck,
+  Compass,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import botAvatar from '../../assets/bot-avatar.png'
 import { policyRagKnowledgeBase } from '../../data/policyRagData'
 import { API_BASE_URL, getAuthHeader } from '../../services/api'
 
@@ -72,10 +71,19 @@ function getLocalBotReply(query: string): { reply: string; actionLabel?: string;
     }
   }
 
+  if ((q.includes('2024') && q.includes('2026')) || (q.includes('why') && (q.includes('weight') || q.includes('dgca')))) {
+    return {
+      reply:
+        '**Why DGCA Q3 2024 Bulletin Weights instead of 2026?**\n\n1. **Base-Year Fixed Basket Axiom (IMF CPI Manual 2020, Ch. 8)**: The index is officially anchored to Base 2024 = 100. Under Modified Laspeyres index methodology, quantity weights (wᵣ) must remain fixed to the base reference period to measure *pure ticket price inflation* rather than consumer demand substitution.\n\n2. **Preventing Demand Distortion**: If dynamic 2026 passenger volumes were continuously mixed into the formula without annual chain-linking, the national index would shift whenever travelers change corridors, even if airfare prices stayed completely identical.\n\n3. **Official Audited Benchmark**: The DGCA Q3 2024 Domestic Air Transport Bulletin represents the published, audited passenger census benchmark approved for macroeconomic surveillance.',
+      actionLabel: 'Inspect DGCA Weights',
+      actionRoute: '/routes-horizons',
+    }
+  }
+
   if (q.includes('dgca') || q.includes('weight') || q.includes('passenger') || q.includes('volume') || q.includes('modified laspeyres')) {
     return {
       reply:
-        'The composite national Airfare Price Index is computed via the Modified Laspeyres formulation: P_L = [sum(I_r * w_r) / sum(w_r)] * 100. The route weight w_r is derived from the Directorate General of Civil Aviation (DGCA) Quarterly Domestic Air Transport Traffic Reports. High-density trunk routes like DEL-BOM (512k monthly pax) receive a 14.8% weight share, while regional UDAN corridors receive calibrated proportional shares, preventing regional flights from distorting national inflation trends.',
+        'The composite national Airfare Price Index is computed via the Modified Laspeyres formulation: P_L = [∑ (I_r · wᵣ) / ∑ wᵣ] · 100. The route weight wᵣ is derived from the official DGCA Q3 2024 Domestic Air Transport Traffic Bulletin. High-density trunk corridors like DEL-BOM (512k monthly pax) receive a 14.2% weight share, while regional connectivity corridors receive calibrated proportional shares, preventing regional flights from distorting national inflation trends.',
       actionLabel: 'View Route Weights & Parity',
       actionRoute: '/routes-horizons',
     }
@@ -171,8 +179,19 @@ function renderBoldParts(text: string) {
   })
 }
 
-export function FloatingChatBot() {
-  const [isOpen, setIsOpen] = useState(false)
+interface FloatingChatBotProps {
+  isOpen?: boolean
+  setIsOpen?: (open: boolean) => void
+}
+
+export function FloatingChatBot({
+  isOpen: controlledIsOpen,
+  setIsOpen: controlledSetIsOpen,
+}: FloatingChatBotProps = {}) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen
+  const setIsOpen = controlledSetIsOpen !== undefined ? controlledSetIsOpen : setInternalIsOpen
+
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const navigate = useNavigate()
@@ -181,7 +200,7 @@ export function FloatingChatBot() {
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: 'Namaste! I am your **APIx Assistant**. Connected to real-time official aviation data. Ask me to query current price indices, check surge anomalies, explore route trends, or review data verification logs.',
+      text: 'Namaste! I am your **APIx Intelligence Copilot**. Connected directly to MoSPI live scraping telemetry across 150+ corridors. Inquire about Macro APIx nowcasting, route elasticity ($T+1$ vs $T+45$), Jevons vs Carli bias proofs, or cryptographic SHA-256 provenance.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])
@@ -260,7 +279,7 @@ export function FloatingChatBot() {
       }
       setMessages((prev) => [...prev, botMsg])
       setIsTyping(false)
-    }, 450)
+    }, 400)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -271,215 +290,215 @@ export function FloatingChatBot() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end">
-      {/* Floating Chat Window */}
+    <>
+      {/* Mobile Backdrop */}
       {isOpen && (
-        <div className="mb-3 flex w-[92vw] max-w-[420px] sm:w-[430px] h-[480px] max-h-[75vh] flex-col rounded-2xl border border-slate-200 bg-white shadow-2xl backdrop-blur-lg overflow-hidden animate-in fade-in slide-in-from-bottom-6 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between bg-gradient-to-r from-[#0B2545] via-[#133A6B] to-[#0B2545] px-4 py-3 text-white">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 border border-blue-400/30 p-1 text-white shadow-inner overflow-hidden shrink-0"
-                title="APIx AI Agent"
-              >
-                <img
-                  src={botAvatar}
-                  alt="APIx Bot"
-                  className="h-full w-full object-contain drop-shadow"
-                />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold tracking-tight">APIx Assistant</p>
-                  <span className="flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300 border border-emerald-400/30">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Active
-                  </span>
-                </div>
-                <p className="text-[10px] text-blue-200/80">Aviation Price Intelligence &amp; Live Insights</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 text-slate-300">
-              <button
-                onClick={() => {
-                  setMessages([
-                    {
-                      id: 'welcome-reset',
-                      sender: 'bot',
-                      text: 'Conversation cleared. Ready to assist with price indices, route analytics, or anomaly reviews.',
-                      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    },
-                  ])
-                }}
-                className="p-1.5 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
-                title="Reset conversation"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
-                title="Close chat"
-              >
-                <XIcon className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Preset Queries Pill Bar */}
-          <div className="border-b border-slate-100 bg-slate-50/90 px-3 py-2 overflow-x-auto no-scrollbar flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 text-amber-500" /> Quick Inquiries:
-            </span>
-            {presetQueries.map((preset, idx) => (
-              <button
-                key={idx}
-                onClick={() => sendMessage(preset)}
-                className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 transition cursor-pointer shrink-0 shadow-2xs"
-              >
-                {preset}
-              </button>
-            ))}
-          </div>
-
-          {/* Messages Feed */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                {m.sender === 'bot' && (
-                  <div className="h-6 w-6 flex items-center justify-center shrink-0 mt-1">
-                    <img src={botAvatar} alt="Bot" className="h-full w-full object-contain filter drop-shadow-xs" />
-                  </div>
-                )}
-
-                <div className="flex flex-col max-w-[88%]">
-                  <div
-                    className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
-                      m.sender === 'user'
-                        ? 'bg-blue-600 text-white shadow-sm font-medium self-end'
-                        : 'bg-white text-slate-800 border border-slate-200/80 shadow-xs self-start'
-                    }`}
-                  >
-                    {/* Activity Badges */}
-                    {m.toolsUsed && m.toolsUsed.length > 0 && (
-                      <div className="mb-2 flex flex-wrap gap-1 border-b border-slate-100 pb-1.5">
-                        {m.toolsUsed.map((t, idx) => {
-                          const actionLabels: Record<string, string> = {
-                            get_live_macro_index: 'Live Index Verified',
-                            get_route_fare_stats: 'Route Data Retrieved',
-                            scan_anomalies_and_diagnose: 'Anomaly Scan Completed',
-                            audit_pipeline_provenance: 'Audit Provenance Verified',
-                          }
-                          const label = actionLabels[t.tool] || t.tool.replace(/_/g, ' ')
-                          return (
-                            <span
-                              key={idx}
-                              className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[9px] font-bold text-blue-700 shadow-2xs"
-                              title={t.summary}
-                            >
-                              <Zap className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
-                              <span>{label}</span>
-                            </span>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    <div>{renderFormattedText(m.text)}</div>
-
-                    {/* Contextual Action Link */}
-                    {m.actionRoute && m.actionLabel && (
-                      <button
-                        onClick={() => {
-                          navigate(m.actionRoute!)
-                          setIsOpen(false)
-                        }}
-                        className="mt-2.5 inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer border border-blue-200"
-                      >
-                        <span>{m.actionLabel}</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </button>
-                    )}
-                  </div>
-                  <span
-                    className={`mt-1 px-1 text-[9px] text-slate-400 ${
-                      m.sender === 'user' ? 'text-right' : 'text-left'
-                    }`}
-                  >
-                    {m.timestamp}
-                  </span>
-                </div>
-              </div>
-            ))}
-
-            {isTyping && (
-              <div className="flex items-center gap-2">
-                <div className="h-6 w-6 flex items-center justify-center shrink-0">
-                  <img src={botAvatar} alt="Bot" className="h-full w-full object-contain filter drop-shadow-xs" />
-                </div>
-                <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200/80 px-3 py-2 text-xs text-slate-500 w-fit shadow-xs">
-                  <span className="text-[11px] font-medium text-blue-600 flex items-center gap-1">
-                    <Bot className="h-3 w-3 animate-spin text-blue-600" /> Analyzing &amp; querying...
-                  </span>
-                  <div className="flex gap-1">
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce"></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.2s]"></span>
-                    <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-bounce [animation-delay:0.4s]"></span>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Input Box */}
-          <div className="border-t border-slate-200 bg-white p-2.5">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/50 px-3 py-1.5 focus-within:border-blue-600 focus-within:bg-white focus-within:ring-1 focus-within:ring-blue-600 transition">
-              <input
-                type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask about airfares, route trends, index values, or anomalies..."
-                className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none"
-              />
-              <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim()}
-                className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 transition cursor-pointer shrink-0 shadow-xs"
-              >
-                <Send className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          </div>
-        </div>
+        <div
+          onClick={() => setIsOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-xs lg:hidden transition-opacity"
+        />
       )}
 
-      {/* Floating Chat Bot Trigger Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center justify-center transition-all duration-300 cursor-pointer focus:outline-none"
-        aria-label={isOpen ? 'Close AI Assistant Chat' : 'Open AI Assistant Chat'}
-        title={isOpen ? 'Close AI Copilot' : 'Ask APIx AI Copilot'}
+      {/* Dockable Slide-Over Drawer on the Right Viewport Edge */}
+      <aside
+        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[440px] flex-col border-l border-slate-200/90 bg-white shadow-2xl transition-transform duration-200 ease-out ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+        aria-label="APIx AI Intelligence Copilot"
       >
-        {isOpen ? (
-          <div className="flex h-13 w-13 items-center justify-center rounded-full bg-[#0B2545] text-white shadow-xl hover:bg-[#133A6B] active:scale-95 transition-all border border-slate-700/50">
-            <XIcon className="h-6 w-6 text-white transition-transform duration-200 group-hover:rotate-90 drop-shadow" />
+        {/* Institutional Navy Header (Matches Sidebar Background #0A1628) */}
+        <div className="flex h-16 items-center justify-between bg-[#0A1628] border-b border-[#15253D] px-5 text-white shadow-xs shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#13233A] border border-[#1E3658] text-blue-400 shadow-inner shrink-0"
+              title="APIx Statistical Copilot"
+            >
+              <Bot className="h-5 w-5 text-blue-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-bold tracking-tight text-white">APIx Statistical Copilot</p>
+                <span className="flex items-center gap-1 rounded-full bg-emerald-400/20 px-2 py-0.5 text-[9px] font-bold text-emerald-300 border border-emerald-400/30">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Grounded
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400">MoSPI · Grounded Decision Intelligence (IMF / DGCA)</p>
+            </div>
           </div>
-        ) : (
-          <div className="relative flex h-22 w-22 items-center justify-center transition-transform duration-300 group-hover:scale-110 active:scale-95">
-            <img
-              src={botAvatar}
-              alt="APIx AI Copilot"
-              className="h-full w-full object-contain filter drop-shadow-xl select-none pointer-events-none"
+
+          <div className="flex items-center gap-1 text-white/80">
+            <button
+              onClick={() => {
+                setMessages([
+                  {
+                    id: 'welcome-reset',
+                    sender: 'bot',
+                    text: 'Conversation cleared. Ready to assist with price indices, route analytics, or anomaly reviews.',
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  },
+                ])
+              }}
+              className="p-1.5 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+              title="Reset conversation"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="p-1.5 hover:text-white rounded-lg hover:bg-white/10 transition cursor-pointer"
+              title="Dock / Close AI Copilot"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Quick Preset Queries Pill Bar */}
+        <div className="border-b border-slate-100 bg-slate-50 px-3.5 py-2.5 overflow-x-auto scrollbar-none flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider shrink-0 mr-1 flex items-center gap-1">
+            <Compass className="h-3 w-3 text-[#0A1628]" /> Inquiry Topics:
+          </span>
+          {presetQueries.map((preset, idx) => (
+            <button
+              key={idx}
+              onClick={() => sendMessage(preset)}
+              className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-medium text-slate-700 hover:border-blue-500 hover:bg-blue-50 hover:text-blue-800 transition cursor-pointer shrink-0 shadow-2xs active:scale-95"
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+
+        {/* Messages Feed */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50/50">
+          {messages.map((m) => (
+            <div
+              key={m.id}
+              className={`flex gap-2 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              {m.sender === 'bot' && (
+                <div className="h-6 w-6 flex items-center justify-center shrink-0 mt-1 rounded-lg bg-[#0A1628]/10 border border-[#0A1628]/20 text-[#0A1628]">
+                  <Bot className="h-3.5 w-3.5 text-[#0A1628]" />
+                </div>
+              )}
+
+              <div className="flex flex-col max-w-[88%]">
+                <div
+                  className={`rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                    m.sender === 'user'
+                      ? 'bg-[#0A1628] text-white shadow-sm font-medium self-end border border-[#15253D]'
+                      : 'bg-white text-slate-800 border border-slate-200 shadow-xs self-start'
+                  }`}
+                >
+                  {/* Activity Badges */}
+                  {m.toolsUsed && m.toolsUsed.length > 0 && (
+                    <div className="mb-2 flex flex-wrap gap-1 border-b border-slate-100 pb-1.5">
+                      {m.toolsUsed.map((t, idx) => {
+                        const actionLabels: Record<string, string> = {
+                          get_live_macro_index: 'Live Index Verified',
+                          get_route_fare_stats: 'Route Data Retrieved',
+                          scan_anomalies_and_diagnose: 'Anomaly Scan Completed',
+                          audit_pipeline_provenance: 'Audit Provenance Verified',
+                        }
+                        const label = actionLabels[t.tool] || t.tool.replace(/_/g, ' ')
+                        return (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 text-[9px] font-bold text-blue-800 shadow-2xs"
+                            title={t.summary}
+                          >
+                            <ShieldCheck className="h-2.5 w-2.5 text-blue-600" />
+                            <span>{label}</span>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  <div>{renderFormattedText(m.text)}</div>
+
+                  {/* Contextual Action Link */}
+                  {m.actionRoute && m.actionLabel && (
+                    <button
+                      onClick={() => {
+                        navigate(m.actionRoute!)
+                        setIsOpen(false)
+                      }}
+                      className="mt-2.5 inline-flex items-center gap-1 rounded-lg bg-blue-50 px-2 py-1 text-[10px] font-bold text-blue-700 hover:bg-blue-100 transition cursor-pointer border border-blue-200"
+                    >
+                      <span>{m.actionLabel}</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                <span
+                  className={`mt-1 px-1 text-[9px] text-slate-400 tabular-nums ${
+                    m.sender === 'user' ? 'text-right' : 'text-left'
+                  }`}
+                >
+                  {m.timestamp}
+                </span>
+              </div>
+            </div>
+          ))}
+
+          {isTyping && (
+            <div className="flex items-center gap-2">
+              <div className="h-6 w-6 flex items-center justify-center shrink-0 rounded-lg bg-[#0A1628]/10 border border-[#0A1628]/20 text-[#0A1628]">
+                <Bot className="h-3.5 w-3.5 text-[#0A1628]" />
+              </div>
+              <div className="flex items-center gap-2 rounded-2xl bg-white border border-slate-200 px-3 py-2 text-xs text-slate-500 w-fit shadow-xs">
+                <span className="text-[11px] font-medium text-[#0A1628] flex items-center gap-1">
+                  <Bot className="h-3 w-3 animate-spin text-[#0A1628]" /> Analyzing telemetry &amp; methodology...
+                </span>
+                <div className="flex gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#0A1628] animate-bounce"></span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#0A1628] animate-bounce [animation-delay:0.2s]"></span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#0A1628] animate-bounce [animation-delay:0.4s]"></span>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Input Box */}
+        <div className="border-t border-slate-200 bg-white p-3 shrink-0">
+          <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-2 focus-within:border-[#0A1628] focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-100 transition">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask about macro APIx, route trends, or index formulas..."
+              className="flex-1 bg-transparent text-xs text-slate-800 placeholder-slate-400 outline-none"
             />
+            <button
+              onClick={() => sendMessage()}
+              disabled={!input.trim()}
+              className="flex h-7.5 w-7.5 items-center justify-center rounded-lg bg-[#0A1628] text-white hover:bg-[#13233A] border border-[#15253D] disabled:opacity-40 disabled:hover:bg-[#0A1628] transition cursor-pointer shrink-0 shadow-xs"
+              title="Send Inquiry"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </button>
           </div>
-        )}
-      </button>
-    </div>
+        </div>
+      </aside>
+
+      {/* Dockable Trigger Tab on Right Viewport Edge (When Closed) */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-1/2 -translate-y-1/2 right-0 z-40 hidden sm:flex items-center gap-1.5 bg-[#0A1628] hover:bg-[#13233A] text-white py-3 px-2 rounded-l-xl shadow-xl border-l border-t border-b border-[#15253D] transition-all cursor-pointer font-bold text-xs group hover:pr-3"
+          title="Open APIx AI Intelligence Copilot"
+        >
+          <Bot className="h-4 w-4 text-blue-300" />
+          <span className="[writing-mode:vertical-rl] tracking-wider text-[11px] font-bold">
+            AI Copilot
+          </span>
+        </button>
+      )}
+    </>
   )
 }

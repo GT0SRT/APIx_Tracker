@@ -131,6 +131,8 @@ export interface SystemSummary {
   standardizedScrapesCount?: number
   avgBaseFare?: number
   appliedRoute?: string
+  sha256VerificationRate?: string
+  baseYear?: string
 }
 
 export interface MethodologyComparison {

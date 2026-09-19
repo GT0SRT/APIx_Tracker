@@ -85,29 +85,29 @@ export function IngestionAuditView() {
   }
 
   return (
-    <div className="min-h-full flex-1 space-y-6 bg-[#07111f] p-4 text-slate-200 md:p-8">
+    <div className="space-y-6 p-4 md:p-8 flex-1">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#24354a] pb-5">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">
               Ingestion Telemetry &amp; Cryptographic Audit
             </h2>
-            <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-bold text-cyan-300 border border-cyan-400/30">
+            <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200">
               SHA-256 Provenance
             </span>
             <span
               className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold border ${
                 isLiveBackend
-                  ? 'bg-emerald-400/10 text-emerald-300 border-emerald-400/30'
-                  : 'bg-amber-300/10 text-amber-300 border-amber-400/30'
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border-amber-300'
               }`}
             >
-              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-cyan-400 animate-pulse' : 'bg-amber-300'}`} />
+              <span className={`h-2 w-2 rounded-full ${isLiveBackend ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
               {isLiveBackend ? 'Status: Live Connected' : 'Status: Demo Audit Trail'}
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 mt-1">
             Automated price ingestion telemetry, statistical outlier suppression, and immutable SHA-256 provenance verification
           </p>
         </div>
@@ -115,96 +115,98 @@ export function IngestionAuditView() {
 
       {/* Production Telemetry Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-cyan-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-[0_20px_50px_rgba(34,211,238,0.10)]">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
-                <span>Ingestion Network</span>
-                <Lock className="h-4 w-4 text-cyan-300" />
-              </div>
-              <p className="mt-2 text-lg font-black text-white">
-                {telemetry?.activeWorkers ? `${telemetry.activeWorkers} Active Ingestion Nodes` : '16 Active Ingestion Nodes'}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                {telemetry?.throughputQuotesPerSec
-                  ? `Throughput: ${telemetry.throughputQuotesPerSec} quotes/sec`
-                  : 'Continuous collection across 150+ domestic sectors'}
-              </p>
-            </Card>
+        <Card className="p-4 border-l-4 border-l-blue-600">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
+            <span>Ingestion Network</span>
+            <Lock className="h-4 w-4 text-blue-600" />
+          </div>
+          <p className="mt-2 text-lg font-black text-slate-900 tabular-nums">
+            {telemetryQuery.isLoading
+              ? '...'
+              : telemetry?.activeWorkers !== undefined
+              ? `${telemetry.activeWorkers} Active Ingestion Nodes`
+              : 'N/A'}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">
+            {telemetry?.throughputQuotesPerSec !== undefined
+              ? `Throughput: ${telemetry.throughputQuotesPerSec} quotes/sec`
+              : 'Distributed multi-cluster scrape nodes (150+ corridors)'}
+          </p>
+        </Card>
 
-            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-violet-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-violet-400/40 hover:shadow-[0_20px_50px_rgba(139,92,246,0.10)]">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
-                <span>Data Validation</span>
-                <Server className="h-4 w-4 text-violet-300" />
-              </div>
-              <p className="mt-2 text-lg font-black text-white">Automated Normalization</p>
-              <p className="mt-1 text-xs text-slate-400">
-                Real-time schema verification &amp; fare unbundling
-              </p>
-            </Card>
+        <Card className="p-4 border-l-4 border-l-indigo-600">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
+            <span>Data Validation</span>
+            <Server className="h-4 w-4 text-indigo-600" />
+          </div>
+          <p className="mt-2 text-lg font-black text-slate-900">Automated Normalization</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Pydantic schema validation &amp; unbundling
+          </p>
+        </Card>
 
-            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-amber-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-amber-400/40 hover:shadow-[0_20px_50px_rgba(245,158,11,0.10)]">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
-                <span>Outlier Filter</span>
-                <AlertTriangle className="h-4 w-4 text-amber-300" />
-              </div>
-              <p className="mt-2 text-lg font-black text-white">
-                {telemetry?.outliersFilteredToday !== undefined
-                  ? `${telemetry.outliersFilteredToday} Quarantined`
-                  : telemetry?.hampelQuarantineRate
-                  ? `${telemetry.hampelQuarantineRate} Quarantined`
-                  : '0 Quarantined (All Passed)'}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">Statistical anomaly &amp; glitch rejection</p>
-            </Card>
+        <Card className="p-4 border-l-4 border-l-amber-500">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
+            <span>Outlier Filter</span>
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+          </div>
+          <p className="mt-2 text-lg font-black text-slate-900 tabular-nums">
+            {telemetryQuery.isLoading
+              ? '...'
+              : telemetry?.outliersFilteredToday !== undefined
+              ? `${telemetry.outliersFilteredToday} Quarantined`
+              : 'N/A'}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">Hampel median filter &amp; IQR outlier suppression</p>
+        </Card>
 
-            <Card className="group relative overflow-hidden rounded-2xl border border-[#26364c] border-l-4 border-l-emerald-400 bg-gradient-to-br from-[#101d2e] via-[#0e1a2a] to-[#0a1524] p-5 shadow-[0_16px_40px_rgba(0,0,0,0.18)] transition-all duration-300 hover:-translate-y-1 hover:border-emerald-400/40 hover:shadow-[0_20px_50px_rgba(16,185,129,0.10)]">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-bold uppercase tracking-wider">
-                <span>Time-Series Storage</span>
-                <Database className="h-4 w-4 text-emerald-300" />
-              </div>
-              <p className="mt-2 text-lg font-black text-white">
-                {telemetry?.averageLatencyMs !== undefined
-                  ? `${telemetry.averageLatencyMs}ms Latency`
-                  : telemetry?.p95LatencyMs !== undefined
-                  ? `${telemetry.p95LatencyMs}ms p95 Latency`
-                  : '38ms Latency'}
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                High-performance verified analytical data repository
-              </p>
-            </Card>
+        <Card className="p-4 border-l-4 border-l-emerald-600">
+          <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
+            <span>Time-Series Storage</span>
+            <Database className="h-4 w-4 text-emerald-600" />
+          </div>
+          <p className="mt-2 text-lg font-black text-slate-900 tabular-nums">
+            {telemetryQuery.isLoading
+              ? '...'
+              : telemetry?.averageLatencyMs !== undefined
+              ? `${telemetry.averageLatencyMs}ms Latency`
+              : 'N/A'}
+          </p>
+          <p className="mt-1 text-xs text-slate-500">TimescaleDB indexed time-series write throughput</p>
+        </Card>
+      </div>
+
+      {/* Slide 7: Cryptographic Provenance & Hash Trail Table */}
+      <Card className="overflow-hidden border border-slate-200">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white p-5">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base">Cryptographic Provenance Explorer</h3>
+              <Key className="h-4 w-4 text-amber-500" />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
+              Select any record to view its immutable SHA-256 seal, decomposed components, and schema validation
+            </p>
           </div>
 
-          {/* Searchable Cryptographic Audit Log Table */}
-          <Card className="overflow-hidden rounded-2xl border border-[#26364c] bg-gradient-to-br from-[#0f1b2b] to-[#0a1524] shadow-[0_18px_45px_rgba(0,0,0,0.18)]">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#26364c] bg-[#0d1929]/90 p-5">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-white text-base">Cryptographic Provenance Explorer</h3>
-                  <Key className="h-4 w-4 text-amber-300" />
-                </div>
-                <p className="mt-1 text-xs text-slate-400">
-                  Select any record to view its immutable SHA-256 seal, decomposed components, and schema validation
-                </p>
-              </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search record ID, sector, or hash..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setAuditPage(1)
+              }}
+              className="rounded-lg border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-blue-600 w-56"
+            />
+          </div>
+        </div>
 
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-2 h-3.5 w-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search record ID, sector, or hash..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value)
-                    setAuditPage(1)
-                  }}
-                  className="w-56 rounded-lg border border-[#31445d] bg-[#091523] py-2 pl-8 pr-3 text-xs text-slate-200 placeholder:text-slate-500 outline-none transition focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30"
-                />
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[780px] text-left text-xs">
-                <thead className="bg-[#0a1524] text-cyan-100 text-[11px] uppercase tracking-wider font-semibold">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[780px] text-left text-xs">
+            <thead className="bg-[#0F4C81] text-white text-[11px] uppercase tracking-wider font-semibold sticky top-0 z-10">
                   <tr>
                     <th className="px-5 py-3.5 font-bold">Quote ID</th>
                     <th className="px-5 py-3.5 font-bold">Sector</th>
@@ -216,10 +218,10 @@ export function IngestionAuditView() {
                     <th className="px-5 py-3.5 font-bold">Hampel/IQR Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#22334a] bg-[#0b1727]/80">
+                <tbody className="divide-y divide-slate-100 bg-white">
                   {isLoadingLogs && liveLogs.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-5 py-8 text-center text-slate-400 font-medium animate-pulse">
+                      <td colSpan={8} className="px-5 py-8 text-center text-slate-500 font-medium animate-pulse">
                         Loading verified audit observations from database...
                       </td>
                     </tr>
@@ -244,32 +246,32 @@ export function IngestionAuditView() {
                             setSelectedRecord(row)
                             setVerificationResult(null)
                           }}
-                          className="hover:bg-cyan-400/[0.06] transition-colors cursor-pointer"
+                          className="hover:bg-blue-50/60 transition-colors cursor-pointer"
                         >
-                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-cyan-300">{row.id}</td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-100">
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-blue-600">{row.id}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-900">
                             {row.origin}-{row.destination}
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-300">{row.carrier}</td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-200">{row.horizon}</td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-white">
+                          <td className="whitespace-nowrap px-5 py-3.5 font-medium text-slate-700">{row.carrier}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-bold text-slate-800">{row.horizon}</td>
+                          <td className="whitespace-nowrap px-5 py-3.5 font-extrabold text-slate-900">
                             ₹{Number(row.baseFare || 0).toLocaleString()}
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 text-slate-400 font-mono">
+                          <td className="whitespace-nowrap px-5 py-3.5 text-slate-500 font-mono">
                             ₹{Number(row.voluntaryAddonsStripped || 0).toLocaleString()}
                           </td>
-                          <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[10px] text-slate-400">
+                          <td className="whitespace-nowrap px-5 py-3.5 font-mono text-[10px] text-slate-600">
                             {(row.sha256Hash || '').substring(0, 16)}...
                           </td>
                           <td className="whitespace-nowrap px-5 py-3.5">
                             {isCleaned ? (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] font-bold text-emerald-300 border border-emerald-400/30">
-                                <CheckCircle2 className="h-3 w-3 text-emerald-300" />
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
                                 Passed
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-red-400/10 px-2.5 py-1 text-[11px] font-bold text-red-300 border border-red-400/30">
-                                <AlertTriangle className="h-3 w-3 text-red-300" />
+                              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 border border-red-200">
+                                <AlertTriangle className="h-3 w-3 text-red-600" />
                                 Quarantined
                               </span>
                             )}
@@ -299,12 +301,12 @@ export function IngestionAuditView() {
 
       {/* Record Inspection Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020817]/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg space-y-4 rounded-2xl border border-[#31445d] bg-gradient-to-br from-[#101d2e] to-[#081321] p-6 text-slate-200 shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-            <div className="flex items-center justify-between border-b border-[#26364c] pb-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h4 className="text-base font-bold text-slate-100">Record Provenance: {selectedRecord.id}</h4>
-                <p className="text-xs text-slate-400">{selectedRecord.scrapedTimestamp}</p>
+                <h4 className="text-base font-bold text-slate-900">Record Provenance: {selectedRecord.id}</h4>
+                <p className="text-xs text-slate-500">{selectedRecord.scrapedTimestamp}</p>
               </div>
               <button
                 onClick={() => setSelectedRecord(null)}
@@ -315,28 +317,28 @@ export function IngestionAuditView() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
-                <span className="text-slate-500 block font-semibold">Route Sector:</span>
-                <span className="font-bold text-slate-200 text-sm text-slate-100">
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-400 block font-semibold">Route Sector:</span>
+                <span className="font-bold text-slate-800 text-sm">
                   {selectedRecord.origin} → {selectedRecord.destination}
                 </span>
               </div>
-              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
-                <span className="text-slate-500 block font-semibold">Operating Carrier:</span>
-                <span className="font-bold text-slate-200 text-sm">{selectedRecord.carrier}</span>
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-400 block font-semibold">Operating Carrier:</span>
+                <span className="font-bold text-slate-800 text-sm">{selectedRecord.carrier}</span>
               </div>
-              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
-                <span className="text-slate-500 block font-semibold">Advance Horizon:</span>
-                <span className="font-bold text-cyan-300 text-sm">{selectedRecord.horizon}</span>
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-400 block font-semibold">Advance Horizon:</span>
+                <span className="font-bold text-blue-700 text-sm">{selectedRecord.horizon}</span>
               </div>
-              <div className="rounded-lg border border-[#26364c] bg-[#0b1727] p-3">
-                <span className="text-slate-500 block font-semibold">Schema Validation:</span>
-                <span className="font-bold text-emerald-300 text-sm">Validated Clean</span>
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-400 block font-semibold">Schema Validation:</span>
+                <span className="font-bold text-emerald-700 text-sm">Validated Clean</span>
               </div>
             </div>
 
             <div className="space-y-1">
-              <span className="text-[11px] font-bold text-slate-400">SHA-256 Signature:</span>
+              <span className="text-[11px] font-bold text-slate-600">SHA-256 Signature:</span>
               <div className="flex items-center gap-2 rounded-lg bg-slate-900 p-2 text-white font-mono text-[10px] break-all">
                 <span className="flex-1">{selectedRecord.sha256Hash}</span>
                 <button
@@ -354,7 +356,7 @@ export function IngestionAuditView() {
                 type="button"
                 disabled={isVerifying}
                 onClick={() => handleVerify(selectedRecord)}
-                className="w-full flex items-center justify-center gap-2 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50"
               >
                 {isVerifying ? (
                   <>
@@ -373,21 +375,21 @@ export function IngestionAuditView() {
                 <div
                   className={`rounded-lg p-3 text-xs flex items-start gap-2 border ${
                     verificationResult.valid
-                      ? 'bg-emerald-400/10 text-emerald-200 border-emerald-400/30'
-                      : 'bg-red-400/10 text-red-200 border-red-400/30'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : 'bg-red-50 text-red-800 border-red-200'
                   }`}
                 >
                   {verificationResult.valid ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-300 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
                   ) : (
-                    <AlertTriangle className="h-4 w-4 text-red-300 shrink-0 mt-0.5" />
+                    <AlertTriangle className="h-4 w-4 text-red-600 shrink-0 mt-0.5" />
                   )}
                   <div>
                     <p className="font-bold">
                       {verificationResult.valid ? 'Signature Authenticated & Unaltered' : 'Tamper Detected'}
                     </p>
                     <p className="text-[11px] mt-0.5">{verificationResult.message}</p>
-                    <span className="text-[10px] text-slate-400 mt-1 block">
+                    <span className="text-[10px] text-slate-500 mt-1 block">
                       {verificationResult.isLive ? 'Validated via backend POST /api/v1/logs/verify-hash' : 'Validated via deterministic client verification'}
                     </span>
                   </div>
@@ -400,7 +402,7 @@ export function IngestionAuditView() {
                 setSelectedRecord(null)
                 setVerificationResult(null)
               }}
-              className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-bold transition cursor-pointer"
+              className="w-full py-2 bg-[#0B2545] hover:bg-blue-900 text-white rounded-lg text-xs font-bold transition cursor-pointer"
             >
               Close Record Audit
             </button>
