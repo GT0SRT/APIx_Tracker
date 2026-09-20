@@ -2,8 +2,7 @@ name: APIx SARIMAX ML Forecast & Retraining Pipeline
 
 on:
   schedule:
-    # Run every 3rd month on the 1st at 00:00 UTC (Quarterly Retraining)
-    - cron: '0 0 1 */3 *'
+    - cron: '0 0 1 * *'
   workflow_dispatch: # Allows manual on-demand trigger from GitHub Actions tab
 
 jobs:
