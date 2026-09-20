@@ -426,7 +426,7 @@ During the reporting window, Indian domestic airfares exhibited a steady composi
             )}
             {reportType === 'route-analytics' && (
               <p>
-                Sector analysis indicates high dynamic sensitivity on the <strong>{targetScope === 'all' ? 'DEL-BOM trunk' : targetScope}</strong> corridor within 72 hours of departure ($T+1$ to $T+3$), recording an average price elasticity surge of <strong>+41.8%</strong> compared to advance purchase windows ($T+30$ to $T+45$). Unbundled geometric averaging isolates airfare from voluntary baggage and ancillary fees.
+                Sector analysis indicates high dynamic sensitivity on the <strong>{targetScope === 'all' ? 'DEL-BOM trunk' : targetScope}</strong> corridor within 72 hours of departure (T+1 to T+3), recording an average price elasticity surge of <strong>+41.8%</strong> compared to advance purchase windows (T+30 to T+45). Unbundled geometric averaging isolates airfare from voluntary baggage and ancillary fees.
               </p>
             )}
             {reportType === 'airline-inflation' && (

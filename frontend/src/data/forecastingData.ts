@@ -18,12 +18,12 @@ export const modelEvaluationMetrics = {
   rootMeanSquareError: '₹215.40',
   meanAbsolutePercentageError: '2.84%',
   trainingSampleHorizon: '1.2M historical fare observations across 150+ corridors',
-  targetVariable: 'Decomposed Base Airfare ($P_i$)',
+  targetVariable: 'Decomposed Base Airfare (P_i)',
 }
 
 export const featureImportance = [
   { feature: 'Aviation Turbine Fuel (ATF) Pass-Through', weight: 38, impact: 'Positive' },
-  { feature: 'Lead-Time Booking Velocity ($T+1$ vs $T+30$)', weight: 28, impact: 'Exponential' },
+  { feature: 'Lead-Time Booking Velocity (T+1 vs T+30)', weight: 28, impact: 'Exponential' },
   { feature: 'Seasonal Calendar & Long-Weekend Density', weight: 21, impact: 'Surge Factor' },
   { feature: 'Route Seat Capacity & Load Factor (LF)', weight: 13, impact: 'Inverse' },
 ]

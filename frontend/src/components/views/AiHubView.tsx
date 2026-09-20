@@ -523,7 +523,7 @@ export function AiHubView() {
               Quarterly Automated Retraining &amp; Transport Inflation Nowcasting
             </h4>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Traditional Consumer Price Index methodology records passenger airfares with a 45-day reporting lag. By automating SARIMAX time-series retraining every quarter via GitHub Actions and pairing it with high-frequency scraping, APIx Tracker forecasts transport subgroup inflation trajectories 6 months in advance with statistically validated 95% confidence bands ($CI_{0.95}$).
+              Traditional Consumer Price Index methodology records passenger airfares with a 45-day reporting lag. By automating SARIMAX time-series retraining every quarter via GitHub Actions and pairing it with high-frequency scraping, APIx Tracker forecasts transport subgroup inflation trajectories 6 months in advance with statistically validated 95% confidence bands (95% CI).
             </p>
           </div>
         </div>

@@ -101,7 +101,7 @@ export function MlForecastingModal({ isModal = false, onClose }: MlForecastingPr
               Predictive Price Horizon with 95% Confidence Interval
             </h3>
             <p className="mt-1 text-xs text-slate-500">
-              Shaded band indicates 95% confidence interval ($CI_{0.95}$) across advance booking days
+              Shaded band indicates 95% confidence interval (95% CI) across advance booking days
             </p>
           </div>
           <div className="flex items-center gap-4 text-xs font-semibold">

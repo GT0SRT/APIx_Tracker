@@ -193,15 +193,15 @@ export function MethodologyView() {
           {/* Parameter Chips */}
           <div className="grid grid-cols-3 gap-2 text-center text-xs">
             <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-              <span className="font-bold text-slate-900 block">P_i,t</span>
+              <span className="font-bold text-slate-900 block"><MathFormula math="P_{i,t}" /></span>
               <span className="text-[10px] text-slate-500">Current Base Fare</span>
             </div>
             <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-              <span className="font-bold text-slate-900 block">P_i,0</span>
+              <span className="font-bold text-slate-900 block"><MathFormula math="P_{i,0}" /></span>
               <span className="text-[10px] text-slate-500">Reference Base Fare</span>
             </div>
             <div className="p-2 rounded-lg bg-slate-50 border border-slate-200">
-              <span className="font-bold text-slate-900 block">n</span>
+              <span className="font-bold text-slate-900 block"><MathFormula math="n" /></span>
               <span className="text-[10px] text-slate-500">Validated Quotes</span>
             </div>
           </div>

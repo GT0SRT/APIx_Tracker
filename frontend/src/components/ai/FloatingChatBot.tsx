@@ -200,7 +200,7 @@ export function FloatingChatBot({
     {
       id: 'welcome-1',
       sender: 'bot',
-      text: 'Namaste! I am your **APIx Intelligence Copilot**. Connected directly to MoSPI live scraping telemetry across 150+ corridors. Inquire about Macro APIx nowcasting, route elasticity ($T+1$ vs $T+45$), Jevons vs Carli bias proofs, or cryptographic SHA-256 provenance.',
+      text: 'Namaste! I am your **APIx Intelligence Copilot**. Connected directly to MoSPI live scraping telemetry across 150+ corridors. Inquire about Macro APIx nowcasting, route elasticity (T+1 vs T+45), Jevons vs Carli bias proofs, or cryptographic SHA-256 provenance.',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     },
   ])
