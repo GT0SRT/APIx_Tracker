@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APIx Scraper Incident Alert · Team AndroMatrix</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f0f4f8;
+      margin: 0;
+      padding: 32px 16px;
+      color: #1e293b;
+    }
+    .email-container {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0;
+      border-top: 6px solid #ef4444;
+      overflow: hidden;
+    }
+    .header {
+      padding: 28px 32px 20px 32px;
+      background: #ffffff;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .header-text h2 {
+      margin: 0 0 6px 0;
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.02em;
+    }
+    .header-text p {
+      margin: 0;
+      font-size: 13px;
+      color: #64748b;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: #fef2f2;
+      border: 1px solid #fee2e2;
+      color: #dc2626;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 6px 12px;
+      border-radius: 9999px;
+    }
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: #dc2626;
+      animation: pulse 2s infinite;
+    }
+    .content {
+      padding: 32px;
+    }
+    .alert-banner {
+      background-color: #fff1f2;
+      border-left: 4px solid #e11d48;
+      border-radius: 0 8px 8px 0;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      color: #9f1239;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+    .alert-banner strong {
+      color: #881337;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #64748b;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    table.incident-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    table.incident-table th, table.incident-table td {
+      padding: 12px 18px;
+      text-align: left;
+      font-size: 13px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    table.incident-table tr:last-child th,
+    table.incident-table tr:last-child td {
+      border-bottom: none;
+    }
+    table.incident-table th {
+      background-color: #f8fafc;
+      color: #475569;
+      font-weight: 600;
+      width: 32%;
+    }
+    table.incident-table td {
+      color: #0f172a;
+      background-color: #ffffff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12.5px;
+    }
+    .code-tag {
+      background: #f1f5f9;
+      padding: 2px 7px;
+      border-radius: 4px;
+      color: #0f172a;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+    }
+    .status-tag {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+    .cooldown-box {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #166534;
+      line-height: 1.5;
+    }
+    .cooldown-box strong {
+      display: block;
+      color: #14532d;
+      margin-bottom: 4px;
+      font-size: 13.5px;
+    }
+    .action-steps {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 20px;
+      font-size: 13px;
+    }
+    .action-steps ol {
+      margin: 8px 0 0 16px;
+      padding: 0;
+      color: #334155;
+    }
+    .action-steps li {
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .footer {
+      padding: 20px 32px;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .footer a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <div class="header">
+      <div class="header-text">
+        <h2>APIx Flight Scraper: Circuit Breaker Alert</h2>
+        <p>Automated High-Availability Ingestion Incident · Smart India Hackathon 2026</p>
+      </div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        ANTI-BOT UPDATE SUSPECTED
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="alert-banner">
+        <strong>CRITICAL INCIDENT:</strong> Circuit breaker tripped to <strong>OPEN</strong> state for corridor 
+        <strong>DEL-CCU</strong> after <strong>3 consecutive multi-tier failures</strong>. 
+        Anti-bot defense modification or TLS fingerprint throttling detected on carrier gateway.
+      </div>
+
+      <div class="section-title">Incident Telemetry Snapshot</div>
+      <table class="incident-table">
+        <tr>
+          <th>Failing Route</th>
+          <td><span class="code-tag">DEL-CCU</span> (Delhi ⇄ Kolkata Trunk Corridor)</td>
+        </tr>
+        <tr>
+          <th>Failure Tiers</th>
+          <td>Tier 1 (curl-cffi) ➔ Tier 2 (Playwright Stealth) ➔ Tier 3 (External Proxy)</td>
+        </tr>
+        <tr>
+          <th>HTTP Status / Error</th>
+          <td><span class="status-tag">HTTP 403 Forbidden (Akamai Bot Manager Challenge)</span></td>
+        </tr>
+        <tr>
+          <th>Circuit Breaker State</th>
+          <td><strong>OPEN</strong> (Cooldown Active · Runner IP Protection Engaged)</td>
+        </tr>
+        <tr>
+          <th>Consecutive Failures</th>
+          <td><span class="code-tag">3 / 3 (Threshold Reached)</span></td>
+        </tr>
+        <tr>
+          <th>Cooldown Lock</th>
+          <td><strong>21,600 seconds (6 Hours)</strong> · Unlocks: 2026-09-21 00:00 UTC</td>
+        </tr>
+        <tr>
+          <th>Remaining Routes</th>
+          <td><strong style="color: #16a34a;">149 / 150 Routes Ingesting Normally (Isolated Corridor)</strong></td>
+        </tr>
+        <tr>
+          <th>Incident Timestamp</th>
+          <td>2026-09-20T18:00:00.000Z · Runner #ubuntu-latest-sih26</td>
+        </tr>
+      </table>
+
+      <div class="cooldown-box">
+        <strong>Automatic Protection Window Engaged:</strong>
+        Future scheduled cron runs will automatically bypass corridor <code>DEL-CCU</code> during this cooldown period. 
+        This guarantees that GitHub Actions runner IPs and residential proxy exit pools remain unblacklisted while the carrier challenge settles.
+      </div>
+
+      <div class="action-steps">
+        <strong style="color: #0f172a; font-size: 13.5px;">Recommended Engineering Runbook:</strong>
+        <ol>
+          <li>Inspect current browser headers and TLS JA3 fingerprints in <code>scraper/src/engines/tier1_curl.py</code>.</li>
+          <li>Verify whether carrier updated Cloudflare Turnstile or Akamai challenge scripts on the booking endpoint.</li>
+          <li>Trigger canary probing by running: <code>python scraper/run_scraper.py --routes DEL-CCU --portal multi_tier</code>.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span>APIx Tracker · Team AndroMatrix (ID: 146729) · SIH26056</span>
+      <a href="https://apix-tracker.vercel.app" target="_blank">apix-tracker.vercel.app</a>
+    </div>
+  </div>
+</body>
+</html>
