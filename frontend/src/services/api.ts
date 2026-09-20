@@ -10,6 +10,7 @@ import type {
   PipelineTelemetry,
   PaginatedResult,
   ScrapedFareRecord,
+  CpiForecastData,
 } from '../types/apix'
 
 const RENDER_BACKEND_URL = 'https://apix-tracker.onrender.com/api/v1'
@@ -604,3 +605,79 @@ export async function verifyRecordHash(
     }
   }
 }
+
+/**
+ * Fetch latest SARIMAX CPI Forecast series and evaluation metrics
+ */
+export async function fetchCpiForecast(): Promise<ApiResponse<CpiForecastData>> {
+  const fallbackData: CpiForecastData = {
+    modelName: 'SARIMAX(1, 1, 1)(1, 0, 0, 12)',
+    metrics: {
+      overallAccuracy: '95.7%',
+      meanAbsoluteError: '4.17 pts',
+      rootMeanSquareError: '7.06 pts',
+      meanAbsolutePercentageError: '4.32%',
+      lastTrainedAt: new Date().toISOString(),
+    },
+    forecasts: [
+      { step: 1, month: '2026-01', date: '2026-01-01', predictedCpi: 101.69, predictedFare: 5593, confidenceLower: 92.72, lowerBound: 5100, confidenceUpper: 110.65, upperBound: 6085, surgeRisk: 'Normal' },
+      { step: 2, month: '2026-02', date: '2026-02-01', predictedCpi: 101.64, predictedFare: 5590, confidenceLower: 92.57, lowerBound: 5091, confidenceUpper: 110.72, upperBound: 6090, surgeRisk: 'Normal' },
+      { step: 3, month: '2026-03', date: '2026-03-01', predictedCpi: 101.66, predictedFare: 5591, confidenceLower: 92.53, lowerBound: 5089, confidenceUpper: 110.78, upperBound: 6093, surgeRisk: 'Normal' },
+      { step: 4, month: '2026-04', date: '2026-04-01', predictedCpi: 101.67, predictedFare: 5592, confidenceLower: 92.55, lowerBound: 5090, confidenceUpper: 110.79, upperBound: 6093, surgeRisk: 'Normal' },
+      { step: 5, month: '2026-05', date: '2026-05-01', predictedCpi: 101.65, predictedFare: 5591, confidenceLower: 92.53, lowerBound: 5089, confidenceUpper: 110.77, upperBound: 6092, surgeRisk: 'Normal' },
+      { step: 6, month: '2026-06', date: '2026-06-01', predictedCpi: 101.68, predictedFare: 5592, confidenceLower: 92.56, lowerBound: 5091, confidenceUpper: 110.80, upperBound: 6094, surgeRisk: 'Normal' },
+    ],
+  }
+
+  try {
+    const res = await directApiFetch<any>('/forecast/cpi')
+    if (res.data && res.data.success && res.data.data) {
+      return {
+        data: {
+          modelName: res.data.modelName || fallbackData.modelName,
+          metrics: res.data.metrics || fallbackData.metrics,
+          forecasts: res.data.data || fallbackData.forecasts,
+        },
+        isLive: true,
+        dataSource: 'live',
+        isDemoData: false,
+      }
+    }
+  } catch (err) {
+    console.warn('[fetchCpiForecast] Direct fetch fallback:', err)
+  }
+
+  return {
+    data: fallbackData,
+    isLive: false,
+    dataSource: 'mock',
+    isDemoData: true,
+  }
+}
+
+/**
+ * Trigger SARIMAX Model Retraining on demand
+ */
+export async function triggerRetrainModel(): Promise<{ success: boolean; message: string; data?: any }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/forecast/train`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader(),
+      },
+    })
+    const json = await res.json()
+    return {
+      success: json.success ?? false,
+      message: json.message || 'Model retraining triggered',
+      data: json,
+    }
+  } catch (err: any) {
+    return {
+      success: false,
+      message: err?.message || 'Failed to trigger model retraining',
+    }
+  }
+}
+

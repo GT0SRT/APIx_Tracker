@@ -141,3 +141,32 @@ model User {
 
   @@index([email])
 }
+
+// 9. Historical Official MoSPI CPI Benchmark Data
+model CpiData {
+  id        Int      @id @default(autoincrement())
+  month     DateTime @unique @db.Date // e.g. "2024-01-01"
+  cpi       Float    // Official MoSPI CPI transport airfare index value
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([month])
+}
+
+// 10. SARIMAX Model 6-Month CPI Forecasts with 95% Confidence Bounds
+model CpiForecast {
+  id              Int      @id @default(autoincrement())
+  forecastMonth   DateTime @unique @db.Date // Target projection month, e.g. "2026-01-01"
+  predictedCpi    Float    // Point forecast from SARIMAX
+  confidenceLower Float    // 95% Confidence Interval Lower Bound
+  confidenceUpper Float    // 95% Confidence Interval Upper Bound
+  modelName       String   @default("SARIMAX(1,1,1)(1,0,0)[12]")
+  mae             Float?   // Mean Absolute Error from validation
+  rmse            Float?   // Root Mean Squared Error from validation
+  mape            Float?   // Mean Absolute Percentage Error (%)
+  accuracy        Float?   // Backtest Accuracy (100 - MAPE) (%)
+  generatedAt     DateTime @default(now())
+
+  @@index([forecastMonth])
+}
+

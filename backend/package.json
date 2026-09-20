@@ -13,6 +13,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
+    "prisma:seed:cpi": "node prisma/seed_cpi.js",
+    "ml:forecast": "python ml/cpi_forecaster.py",
     "seed:admin": "node scripts/seed_admin.js",
     "db:reset": "node scripts/reset_db.js"
   },
