@@ -9,7 +9,6 @@ import os
 import argparse
 import json
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 import numpy as np
 import pandas as pd
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -123,7 +122,10 @@ def train_and_forecast(df, steps=6, order=(1, 1, 1), seasonal_order=(1, 0, 0, 12
 
     forecast_rows = []
     for i in range(steps):
-        next_dt = last_dt + relativedelta(months=i + 1)
+        total_m = (last_dt.month - 1) + (i + 1)
+        next_year = last_dt.year + total_m // 12
+        next_month = total_m % 12 + 1
+        next_dt = datetime(next_year, next_month, 1)
         month_label = next_dt.strftime("%Y-%m")
         month_full_date = next_dt.strftime("%Y-%m-01")
         pred_val = float(predicted_mean[i])

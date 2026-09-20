@@ -7,7 +7,7 @@
     "build": "prisma generate",
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && (pip3 install -r ml/requirements.txt || pip install -r ml/requirements.txt || true)",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",
@@ -16,6 +16,7 @@
     "prisma:seed:cpi": "node prisma/seed_cpi.js",
     "ml:forecast": "python ml/cpi_forecaster.py",
     "seed:admin": "node scripts/seed_admin.js",
+    "cpi:import:2026": "node scripts/import_cpi_data.js --seed-2026",
     "db:reset": "node scripts/reset_db.js"
   },
   "prisma": {

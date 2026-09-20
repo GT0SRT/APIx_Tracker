@@ -169,7 +169,7 @@ export function AiHubView() {
             Automated ML Pipeline
           </span>
           <span className="text-slate-700 font-medium">
-            Trained on 24 monthly MoSPI CPI observations (2024–2025). Automated quarterly retraining scheduled via GitHub Actions.
+            Trained on {cpiForecastData?.historyCount || 33} monthly MoSPI CPI observations (2024–Present). Automated quarterly retraining scheduled via GitHub Actions.
           </span>
         </div>
         <span className="text-blue-800 font-semibold flex items-center gap-1">
@@ -199,8 +199,8 @@ export function AiHubView() {
 
         <Card className="p-4 border-l-4 border-l-amber-500">
           <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Historical Coverage</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">24 Months</p>
-          <p className="text-[11px] text-amber-700 font-medium mt-1">MoSPI Series (2024-01 to 2025-12)</p>
+          <p className="text-2xl font-black text-slate-900 mt-1">{cpiForecastData?.historyCount || 33} Months</p>
+          <p className="text-[11px] text-amber-700 font-medium mt-1">MoSPI Transport Series (2024 to Present)</p>
         </Card>
       </div>
 

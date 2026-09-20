@@ -637,6 +637,7 @@ export async function fetchCpiForecast(): Promise<ApiResponse<CpiForecastData>> 
           modelName: res.data.modelName || fallbackData.modelName,
           metrics: res.data.metrics || fallbackData.metrics,
           forecasts: res.data.data || fallbackData.forecasts,
+          historyCount: res.data.historyCount || 33,
         },
         isLive: true,
         dataSource: 'live',

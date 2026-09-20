@@ -231,6 +231,7 @@ export interface CpiForecastData {
     lastTrainedAt?: string
   }
   forecasts: CpiForecastItem[]
+  historyCount?: number
   history?: Array<{
     month: string
     cpi: number
