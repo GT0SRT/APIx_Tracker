@@ -207,3 +207,33 @@ export interface ExecutiveReportData {
 export interface ExecutiveReportModalProps extends ExecutiveReportData {
   onClose: () => void
 }
+
+export interface CpiForecastItem {
+  step: number
+  month: string
+  date: string
+  predictedCpi: number
+  predictedFare: number
+  confidenceLower: number
+  lowerBound: number
+  confidenceUpper: number
+  upperBound: number
+  surgeRisk: 'Normal' | 'Elevated' | 'High Surge' | 'Deflationary'
+}
+
+export interface CpiForecastData {
+  modelName: string
+  metrics: {
+    overallAccuracy: string
+    meanAbsoluteError: string
+    rootMeanSquareError: string
+    meanAbsolutePercentageError: string
+    lastTrainedAt?: string
+  }
+  forecasts: CpiForecastItem[]
+  history?: Array<{
+    month: string
+    cpi: number
+  }>
+}
+
