@@ -28,7 +28,7 @@ Click below to jump directly to any subsystem's dedicated technical documentatio
 
 The **AndroMatrix APIx Platform** is India's first automated, real-time Airfare Price Index engine engineered for the **Ministry of Statistics and Programme Implementation (MoSPI)** and the **Reserve Bank of India (RBI)**.
 
-Traditional airfare sampling in India's Consumer Price Index (CPI Base 2012=100 / 2024=100) relies on monthly manual visits to physical ticket offices, introducing a **45-day reporting lag**, advance-purchase blindness, and voluntary fee distortions. The APIx platform replaces this manual framework through high-frequency automated data collection, a synthetic constant-horizon booking basket ($T+1$ to $T+45$), deterministic fare decomposition, and a rigorous two-tier mathematical formulation compliant with the **IMF CPI Manual (2020)**.
+Traditional airfare sampling in India's Consumer Price Index (CPI Base 2024=100) relies on monthly manual visits to physical ticket offices, introducing a **45-day reporting lag**, advance-purchase blindness, and voluntary fee distortions. The APIx platform replaces this manual framework through high-frequency automated data collection, a synthetic constant-horizon booking basket ($T+1$ to $T+45$), deterministic fare decomposition, and a rigorous two-tier mathematical formulation compliant with the **IMF CPI Manual (2020)**.
 
 ---
 
