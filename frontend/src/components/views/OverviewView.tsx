@@ -8,9 +8,7 @@ import {
   MapPin,
   ArrowRight,
   Lock,
-  SlidersHorizontal,
   Flame,
-  CheckCircle2,
   TrendingUp,
 } from 'lucide-react'
 import {
@@ -66,23 +64,6 @@ export function OverviewView({
   const { isAuthenticated, openLoginModal } = useAuth()
   const [refreshAnimation, setRefreshAnimation] = useState(false)
 
-  // Minimalist Route Filter State
-  const [origin, setOrigin] = useState('DEL')
-  const [destination, setDestination] = useState('BOM')
-  const [startDate, setStartDate] = useState('2024-08-04')
-  const [endDate, setEndDate] = useState('2024-08-20')
-  const [airline, setAirline] = useState('All airlines')
-  const [filterActiveNotice, setFilterActiveNotice] = useState(false)
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
-
-  // Actively Applied Filter State (bound to live queries)
-  const [appliedOrigin, setAppliedOrigin] = useState('DEL')
-  const [appliedDestination, setAppliedDestination] = useState('BOM')
-  const [appliedAirline, setAppliedAirline] = useState('All airlines')
-
-  const appliedRoute = `${appliedOrigin}-${appliedDestination}`
-  const queryAirline = appliedAirline === 'All airlines' ? undefined : appliedAirline
-
   const handleProtectedNavigate = (tab: string) => {
     if (!isAuthenticated) {
       openLoginModal()
@@ -91,12 +72,12 @@ export function OverviewView({
     onNavigateToTab(tab)
   }
 
-  // TanStack React Query v5 declarative queries bound to selected filters
-  const summaryQuery = useSummaryQuery(appliedRoute, queryAirline)
+  // TanStack React Query v5 declarative queries for National Macro indicators
+  const summaryQuery = useSummaryQuery()
   const decompQuery = useFareDecompositionQuery()
   const routesQuery = useRoutesQuery()
-  const trendQuery = useTrendSeriesQuery('30d', appliedOrigin, appliedDestination)
-  const elasticityQuery = useElasticityQuery(appliedRoute)
+  const trendQuery = useTrendSeriesQuery('30d')
+  const elasticityQuery = useElasticityQuery('DEL-BOM')
 
   const summary = summaryQuery.data?.data || null
   const liveFareDecomp: FareComponent[] = decompQuery.data?.data || []
@@ -107,23 +88,14 @@ export function OverviewView({
   const triggerRefresh = () => {
     setRefreshAnimation(true)
     void Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['summary', appliedRoute] }),
-      queryClient.invalidateQueries({ queryKey: ['trendSeries', '30d', appliedOrigin, appliedDestination] }),
+      queryClient.invalidateQueries({ queryKey: ['summary'] }),
+      queryClient.invalidateQueries({ queryKey: ['trendSeries'] }),
       queryClient.invalidateQueries({ queryKey: ['routes'] }),
-      queryClient.invalidateQueries({ queryKey: ['elasticity', appliedRoute] }),
+      queryClient.invalidateQueries({ queryKey: ['elasticity'] }),
       queryClient.invalidateQueries({ queryKey: ['fareDecomposition'] }),
     ]).finally(() => {
       setTimeout(() => setRefreshAnimation(false), 600)
     })
-  }
-
-  const handleApplyFilter = () => {
-    setAppliedOrigin(origin)
-    setAppliedDestination(destination)
-    setAppliedAirline(airline)
-    setFilterActiveNotice(true)
-    triggerRefresh()
-    setTimeout(() => setFilterActiveNotice(false), 3000)
   }
 
   // National average base fare
@@ -177,31 +149,7 @@ export function OverviewView({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          {/* Elegant Collapsible Filters Toggle Button */}
-          <button
-            onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-            className={`flex items-center gap-2 rounded-lg border px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shadow-2xs active:scale-95 ${
-              isFiltersOpen
-                ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800'
-                : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
-            }`}
-            title={isFiltersOpen ? 'Collapse filter inputs' : 'Expand route and date filter inputs'}
-          >
-            <SlidersHorizontal className={`h-3.5 w-3.5 ${isFiltersOpen ? 'text-blue-300' : 'text-slate-600'}`} />
-            {/* <span>Filters</span>
-            <span
-              className={`rounded px-1.5 py-0.5 text-[10px] font-bold transition-colors ${
-                isFiltersOpen ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
-              }`}
-            >
-              {origin} ⇄ {destination}
-            </span> */}
-            {/* <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                isFiltersOpen ? 'rotate-180 text-white' : 'text-slate-400'
-              }`}
-            /> */}
-          </button>
+
 
           {/* Sector Deep-Dive Link */}
           <button
@@ -275,170 +223,7 @@ export function OverviewView({
         </div>
       </div>
 
-      {/* =========================================================
-          TOP-LEVEL CORRIDOR FILTER CHIPS
-          ========================================================= */}
-      {/* <div className="flex flex-wrap items-center gap-2 pt-0.5">
-        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mr-1 flex items-center gap-1.5">
-          <SlidersHorizontal className="h-3 w-3 text-slate-400" />
-          Sector Filters:
-        </span>
-        {[
-          { o: 'DEL', d: 'BOM', label: 'DEL ⇄ BOM' },
-          { o: 'DEL', d: 'BLR', label: 'DEL ⇄ BLR' },
-          { o: 'BOM', d: 'BLR', label: 'BOM ⇄ BLR' },
-          { o: 'DEL', d: 'CCU', label: 'DEL ⇄ CCU' },
-          { o: 'MAA', d: 'DEL', label: 'MAA ⇄ DEL' },
-        ].map((chip) => {
-          const isSelected = origin === chip.o && destination === chip.d
-          return (
-            <button
-              key={chip.label}
-              onClick={() => {
-                setOrigin(chip.o)
-                setDestination(chip.d)
-                handleApplyFilter()
-              }}
-              className={`rounded-full px-3 py-1 text-xs font-bold transition-all cursor-pointer border ${
-                isSelected
-                  ? 'bg-[#0F4C81] text-white border-[#0F4C81] shadow-2xs'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-slate-300'
-              }`}
-            >
-              {chip.label}
-            </button>
-          )
-        })}
-        <span className="h-4 w-px bg-slate-200 mx-1 hidden sm:inline-block" />
-        <span className="rounded-full bg-slate-100 text-slate-600 border border-slate-200 px-3 py-1 text-[11px] font-semibold">
-          Carrier: {airline}
-        </span>
-      </div> */}
 
-      {/* =========================================================
-          COLLAPSIBLE FILTER DRAWER
-          Smoothly expands or collapses via the elegant Filters toggle
-          ========================================================= */}
-      <div
-        className={`transition-all duration-300 ease-in-out overflow-hidden ${
-          isFiltersOpen
-            ? 'max-h-[500px] opacity-100'
-            : 'max-h-0 opacity-0 pointer-events-none'
-        }`}
-      >
-        <Card className="p-4 sm:p-5">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 flex-1">
-              {/* Origin */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Origin
-                </label>
-                <select
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
-                >
-                  <option value="DEL">DEL (New Delhi)</option>
-                  <option value="BOM">BOM (Mumbai)</option>
-                  <option value="BLR">BLR (Bengaluru)</option>
-                  <option value="CCU">CCU (Kolkata)</option>
-                  <option value="HYD">HYD (Hyderabad)</option>
-                  <option value="MAA">MAA (Chennai)</option>
-                  <option value="AMD">AMD (Ahmedabad)</option>
-                  <option value="PNQ">PNQ (Pune)</option>
-                  <option value="GOI">GOI (Goa)</option>
-                </select>
-              </div>
-
-              {/* Destination */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Destination
-                </label>
-                <select
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
-                >
-                  <option value="BOM">BOM (Mumbai)</option>
-                  <option value="DEL">DEL (New Delhi)</option>
-                  <option value="BLR">BLR (Bengaluru)</option>
-                  <option value="CCU">CCU (Kolkata)</option>
-                  <option value="HYD">HYD (Hyderabad)</option>
-                  <option value="MAA">MAA (Chennai)</option>
-                  <option value="AMD">AMD (Ahmedabad)</option>
-                  <option value="PNQ">PNQ (Pune)</option>
-                  <option value="GOI">GOI (Goa)</option>
-                </select>
-              </div>
-
-              {/* Start Date */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Start Date
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
-                />
-              </div>
-
-              {/* End Date */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  End Date
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
-                />
-              </div>
-
-              {/* Airline */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-500 block mb-1">
-                  Airline
-                </label>
-                <select
-                  value={airline}
-                  onChange={(e) => setAirline(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-100 cursor-pointer shadow-2xs"
-                >
-                  <option value="All airlines">All airlines</option>
-                  <option value="IndiGo">IndiGo</option>
-                  <option value="Air India">Air India</option>
-                  <option value="SpiceJet">SpiceJet</option>
-                  <option value="Vistara">Vistara</option>
-                  <option value="Akasa Air">Akasa Air</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Sleek Apply Filters CTA with SlidersHorizontal */}
-            <div className="flex items-end pt-1 lg:pt-0">
-              <button
-                onClick={handleApplyFilter}
-                className="w-full lg:w-auto flex items-center justify-center gap-2 rounded-lg bg-slate-900 hover:bg-slate-800 active:scale-[0.98] px-4.5 py-2 text-xs font-semibold text-white shadow-2xs hover:shadow-xs transition-all cursor-pointer"
-              >
-                <SlidersHorizontal className="h-3.5 w-3.5 text-slate-300" />
-                <span>Apply Filters</span>
-              </button>
-            </div>
-          </div>
-
-          {filterActiveNotice && (
-            <div className="mt-3 flex items-center gap-2 rounded-lg bg-slate-50 border border-slate-200/80 p-2.5 text-xs text-slate-700 font-medium">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              <span>Active Sector Filter: <strong>{origin} ⇄ {destination}</strong> · Recalculating passenger-weighted Jevons index.</span>
-            </div>
-          )}
-        </Card>
-      </div>
 
       {/* =========================================================
           CLEAN ANALYTICS CARDS (Soft Borders, Rounded-xl, Light Shadow)
@@ -503,7 +288,7 @@ export function OverviewView({
           </div>
 
           <div className="mt-4 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3">
-            <span className="font-medium text-slate-600">{appliedRoute} · Weighted</span>
+            <span className="font-medium text-slate-600">150+ Corridors · Weighted</span>
             <button
               onClick={() => handleProtectedNavigate('routes-horizons')}
               className="font-semibold text-slate-700 hover:text-slate-900 hover:underline cursor-pointer"
@@ -599,7 +384,7 @@ export function OverviewView({
                 <div className="flex items-center gap-2 flex-wrap">
                   <CardTitle>30-Day APIx Inflation Trend</CardTitle>
                   <span className="rounded-md bg-blue-50 border border-blue-200/80 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                    {appliedRoute} Corridor
+                    National Composite (150+ Corridors)
                   </span>
                 </div>
                 <CardDescription className="mt-1">
@@ -696,7 +481,7 @@ export function OverviewView({
                   </span>
                 </div>
                 <CardDescription className="mt-1">
-                  Pricing across fixed advance windows (T+1 to T+45)
+                  Pricing across fixed advance windows (T+1 to T+45) · Benchmark Corridor (DEL-BOM)
                 </CardDescription>
               </div>
 
