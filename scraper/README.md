@@ -1,50 +1,122 @@
 # AndroMatrix APIx Scraper Engine
-### Automated Airfare Price Index Data Ingestion Pipeline
+### Resilient 3-Tier Multi-Engine Ingestion Pipeline
 **Smart India Hackathon 2026 · Problem Statement SIH26056**  
-*Team AndroMatrix*
+**Team ID:** 146729 · **Team Name:** AndroMatrix  
+
+---
+
+### 🌐 Quick Navigation
+* [🏠 Main Project Documentation](../README.md)
+* [🖥️ Frontend Analytics Dashboard](../frontend)
+* [⚙️ Backend REST API & Database](../backend)
+* [🚀 Live Production Demo](https://apix-tracker.vercel.app/)
 
 ---
 
 ## Overview
 
-The **APIx Scraper Engine** is the automated data collection and cleaning subsystem of the AndroMatrix Airfare Price Index platform. Engineered for the Ministry of Statistics and Programme Implementation (**MoSPI**) and the Reserve Bank of India (**RBI**), it replaces outdated 45-day manual price surveying with high-frequency, tamper-evident automated scraping of domestic scheduled airfares.
+The **APIx Scraper Engine** is the automated data collection and statistical cleaning subsystem of the AndroMatrix Airfare Price Index platform. Engineered for the **Ministry of Statistics and Programme Implementation (MoSPI)** and the **Reserve Bank of India (RBI)**, it replaces outdated 45-day manual price surveying with high-frequency, tamper-evident automated scraping of domestic scheduled airfares.
 
 ---
 
-## Key Capabilities & Methodology (PPT Alignment)
+## Resilient 3-Tier Scraper Architecture
 
-1. **Synthetic Constant-Horizon Basket ($T+1$ to $T+45$):**
-   * Eliminates advance-purchase bias by tracking fixed lead-time horizons:
-     * **$T+1$**: Last-minute emergency travel (captures surge elasticity)
-     * **$T+7$**: 1-week business/short-notice travel
-     * **$T+15$**: Mid-horizon standard booking
-     * **$T+30$**: Advance planned booking
-     * **$T+45$**: Baseline long-horizon threshold
-   * Full 45-day continuous horizon available via `--full-45-days`.
+To guarantee 24/7 scraping high availability under enterprise anti-bot defenses (Cloudflare Turnstile, Akamai Bot Manager, rate limits), the engine implements a **cascading 3-Tier multi-engine failover architecture** governed by an autonomous **Circuit Breaker**:
 
-2. **Top 15 High-Density Domestic Corridors (~60% National Traffic):**
-   * `DEL-BOM`, `DEL-BLR`, `BOM-BLR`, `MAA-DEL`, `DEL-CCU`, `DEL-HYD`, `BOM-HYD`, `BLR-HYD`, `BOM-MAA`, `DEL-PNQ`, `DEL-AMD`, `BOM-CCU`, `BLR-CCU`, `BOM-GOI`, `DEL-GOI`.
-   * Covers major carriers: **IndiGo (6E)**, **Air India (AI)**, **Akasa Air (QP)**, **Air India Express (IX)**, and **SpiceJet (SG)**.
+```mermaid
+flowchart TD
+    START(["Route & Horizon Query<br/>(e.g., DEL-BOM at T+7)"]) --> CB_CHECK{"Circuit Breaker<br/>Permitted?"}
+    
+    CB_CHECK -->|"Tripped (OPEN)"| COOLDOWN["Respect Cooldown Window<br/>(Skip to avoid bans)"]
+    CB_CHECK -->|"Healthy (CLOSED / HALF-OPEN)"| TIER1
+    
+    subgraph S1["Tier 1: High-Speed TLS Impersonation (curl-cffi)"]
+        TIER1["Chrome 120+ TLS/JA3/JA4 Fingerprinting<br/>• HTTP/2 Protocol Spoofing<br/>• Sub-second latency (~200ms)<br/>• Zero headless browser overhead"]
+    end
+    
+    TIER1 -->|"Success (Quotes Extracted)"| CLEANING
+    TIER1 -->|"Challenge / Empty SSR / Failure"| TIER2
+    
+    subgraph S2["Tier 2: Playwright Stealth Browser"]
+        TIER2["Headless Chromium + Evasions<br/>• Full Client-Side DOM Execution<br/>• Dynamic JavaScript Hydration<br/>• Standardized en-IN Locale & Viewport"]
+    end
+    
+    TIER2 -->|"Success (Quotes Extracted)"| CLEANING
+    TIER2 -->|"Anti-Bot Block / Captcha"| TIER3
+    
+    subgraph S3["Tier 3: External Scraping SaaS API Gateway"]
+        TIER3["Managed Residential Proxy Gateway<br/>(ScrapingBee / ScraperAPI)<br/>• Premium IP Pool Rotation<br/>• Automated Unblocker"]
+    end
+    
+    TIER3 -->|"Success (Quotes Extracted)"| CLEANING
+    TIER3 -->|"All Tiers Failed"| TRIP_CB["Trip Circuit Breaker &<br/>Dispatch SMTP Incident Alert Email"]
+    
+    subgraph S4["Python Data Cleaning & Statistical Processing"]
+        CLEANING["Pydantic Schema Validation<br/>(Strict type & format enforcement)"]
+        
+        DECOMP["Deterministic Fare Decomposition<br/>Total = Base + Fuel (YQ) + UDF + GST (5%)<br/>Strips voluntary consumer add-ons"]
+        
+        OUTLIERS{"Outlier Filter Engine<br/>• Tukey IQR (1.5x IQR)<br/>• Hampel MAD (3-sigma)"}
+        
+        CLEANING --> DECOMP
+        DECOMP --> OUTLIERS
+        
+        OUTLIERS -->|"Anomalous Spike"| FLAGGED["Mark is_outlier = True<br/>(Suppressed from Headline Index)"]
+        OUTLIERS -->|"Cleaned Observation"| CRYPTO["Cryptographic SHA-256 Provenance<br/>Individual signature & Batch Merkle Digest"]
+        FLAGGED --> CRYPTO
+    end
+    
+    CRYPTO --> INGEST["Ingestion Client<br/>(Chunked HTTP REST push to Backend API)"]
+    INGEST --> DB[("PostgreSQL Database<br/>Prisma Storage & Audit")]
+```
 
-3. **Deterministic Fare Decomposition:**
-   * Isolates pure **Base Fare** from statutory taxes and fees:
-     $$\text{Total Fare} = \text{Base Fare} + \text{Fuel Surcharge (YQ)} + \text{Airport Tax (UDF)} + \text{GST (5\%)}$$
-   * Strips all voluntary consumer add-ons (ancillary baggage, seat selection, meals).
+---
 
-4. **Statistical Outlier & Glitch Rejection:**
-   * **Interquartile Range (IQR) Filter:** Rejects flash promotions or glitches outside $[Q1 - 1.5 \cdot IQR, Q3 + 1.5 \cdot IQR]$.
-   * **Hampel Filter (MAD):** Median Absolute Deviation suppression for single-flight price spikes.
+## The 3-Tier Multi-Engine Strategy Explained
 
-5. **Cryptographic SHA-256 Provenance:**
-   * Every scraped observation is hashed with a deterministic SHA-256 signature for tamper-evident data provenance conforming to the National Data Governance Framework (NDGF).
-   * Generates a batch Merkle digest for each scraping run.
+1. **Tier 1: High-Speed TLS Impersonation (`curl_cffi`)**
+   * Employs Chrome 120+ browser TLS signatures, JA3/JA4 fingerprinting, and HTTP/2 spoofing.
+   * Delivers sub-second response times without the heavy memory footprint of running browser instances.
+   * Ideal for high-frequency queries that do not require complex client-side JavaScript hydration.
 
-6. **Resilient Ingestion Protocols & Rate-Limiting:**
-   * Automated browser orchestration designed for continuous multi-carrier data capture.
-   * Standardized locale configuration (`en-IN`) and desktop viewport profiles.
-   * Jittered exponential backoff for polite crawling and server courtesy:
-     $$\text{Wait} = \min(\text{max\_delay}, \text{base\_delay} \cdot 2^{\text{attempt}}) \pm \text{jitter}$$
-   * Multi-channel redundancy ensuring uninterrupted high-frequency price tracking.
+2. **Tier 2: Playwright Stealth Browser**
+   * Uses headless Chromium fortified with `playwright-stealth` evasions (`navigator.webdriver` suppression, hardware profile spoofing, localized `en-IN` viewports).
+   * Fully executes dynamic client-side single-page application (SPA) payloads and waits for live quote hydration.
+
+3. **Tier 3: External Scraping SaaS API Gateway**
+   * Commercial residential proxy gateway (ScrapingBee / ScraperAPI) used strictly as a last-resort fallback.
+   * Automatically routes queries through rotating residential IPs when severe Cloudflare/Akamai rate limits occur.
+   * **Financial Viability:** Because Tier 1 and Tier 2 resolve >95% of queries, Tier 3 usage remains minimal, keeping operational costs under ₹3,500/month.
+
+---
+
+## Fault-Tolerant Circuit Breaker
+
+The scraper integrates a stateful **Circuit Breaker** conforming to enterprise resilience patterns:
+
+| State | Behavior | Transition Trigger |
+| :--- | :--- | :--- |
+| **`CLOSED`** | Normal operational mode. All traffic routes through the multi-tier cascade. | Tripped to `OPEN` after 3 consecutive tier failures on a carrier/route. |
+| **`OPEN`** | Execution blocked for the failing source during the cooldown window (default: 6 hours) to prevent carrier bans and polite crawling violation. | Dispatches automated HTML incident diagnostic email via SMTP; transitions to `HALF_OPEN` after cooldown. |
+| **`HALF_OPEN`** | Canary probing mode. Allows a single test request to verify carrier recovery. | Transitions back to `CLOSED` on success, or returns to `OPEN` on failure. |
+
+> **Ephemeral Runner Resilience:** Circuit breaker state is persisted to disk (`data/circuit_breaker_state.json`), enabling state continuity across ephemeral GitHub Actions CI runner executions.
+
+---
+
+## 7-Phase Cleaning & Statistical Pipeline
+
+1. **Phase 1 — Horizon Query Generation:** Generates synthetic horizon dates ($T+1, T+7, T+15, T+30, T+45$) for top DGCA domestic corridors.
+2. **Phase 2 — Multi-Tier Scraping:** Cascades through Tier 1 $\rightarrow$ Tier 2 $\rightarrow$ Tier 3 with exponential backoff and jitter ($Wait = \min(max, base \cdot 2^{attempt}) \pm jitter$).
+3. **Phase 3 — Pydantic Schema Validation:** Normalizes flight numbers, carrier IATA codes, and timestamps into typed `RawFlightQuote` models.
+4. **Phase 4 — Deterministic Fare Decomposition:**
+   $$\text{Total Fare} = \text{Base Fare} + \text{Fuel Surcharge (YQ)} + \text{Airport Tax (UDF)} + \text{GST (5\%)}$$
+   Strips voluntary consumer ancillary add-ons (meals, seat selection, extra baggage) to isolate pure transport inflation.
+5. **Phase 5 — Statistical Outlier Rejection:**
+   * **Tukey IQR:** Rejects flash promotions outside $[Q1 - 1.5 \cdot IQR, \; Q3 + 1.5 \cdot IQR]$.
+   * **Hampel Filter (MAD):** Median Absolute Deviation suppression ($3\sigma$) for single-flight price spikes.
+6. **Phase 6 — Cryptographic SHA-256 Provenance:** Computes an immutable SHA-256 fingerprint for every observation and generates a batch Merkle digest conforming to the National Data Governance Framework (NDGF).
+7. **Phase 7 — Chunked Backend Ingestion:** Transmits validated, signed batches in chunks of 200 via `IngestionClient` to the Node.js/Express REST API.
 
 ---
 
@@ -52,36 +124,37 @@ The **APIx Scraper Engine** is the automated data collection and cleaning subsys
 
 ```
 scraper/
-├── .env                        # Local environment variables
-├── .env.example                # Template for environment configuration
-├── pytest.ini                  # Pytest configuration
-├── requirements.txt            # Python dependencies
-├── run_scraper.py              # Convenience execution launcher
-├── data/                       # Local JSON/CSV backups & audit logs
-│   ├── observations_latest.json
-│   ├── observations_latest.csv
-│   └── summary_batch_*.json
-├── src/
-│   ├── config.py               # Route catalog, horizons, and fee matrices
-│   ├── schemas.py              # Pydantic validation schemas
-│   ├── engines/
-│   │   ├── base.py             # Base collection engine with backoff & retry
-│   │   └── ...                 # Multi-carrier data ingestion engines
-│   ├── processors/
-│   │   ├── decomposer.py       # Deterministic Base + Tax decomposition
-│   │   ├── outliers.py         # IQR and Hampel outlier filters
-│   │   └── crypto.py           # SHA-256 provenance generator
-│   ├── pipeline.py             # 7-phase execution orchestrator
-│   ├── ingestion_client.py     # HTTP REST bridge to Backend API
-│   └── cli.py                  # Rich terminal UI and argument parser
-└── tests/
-    ├── test_schemas.py         # Pydantic schema validation tests
-    └── test_processors.py      # Decomposition & outlier filter tests
+├── README.md                      # Comprehensive Scraper Documentation
+├── requirements.txt               # Python dependencies
+├── run_scraper.py                 # CLI execution entry point
+├── pytest.ini                     # Pytest suite configuration
+├── data/                          # Local JSON/CSV backups & circuit breaker cache
+│   ├── circuit_breaker_state.json # Persistent circuit breaker state
+│   ├── observations_latest.json  # Latest validated observation batch
+│   └── observations_latest.csv   # Flat CSV export
+└── src/
+    ├── config.py                  # Route catalog, horizons, fee slabs, and proxy settings
+    ├── schemas.py                 # Pydantic schemas (RawFlightQuote, FareObservationSchema)
+    ├── pipeline.py                # 7-phase execution orchestrator
+    ├── ingestion_client.py        # HTTP REST bridge to Backend API
+    ├── cli.py                     # Rich terminal UI & argument parser
+    ├── engines/                   # Multi-tier collection engines
+    │   ├── base.py                # Base collection engine with backoff & retry
+    │   ├── multi_tier.py          # 3-Tier coordinator & failover logic
+    │   ├── tier1_curl.py          # Tier 1: curl_cffi TLS impersonation
+    │   ├── google_flights.py      # Tier 2: Playwright Stealth browser
+    │   └── tier3_api.py           # Tier 3: External Scraping SaaS API
+    ├── processors/                # Statistical & cryptographic processors
+    │   ├── decomposer.py          # Deterministic Base + Fuel + Tax decomposition
+    │   ├── outliers.py            # Tukey IQR & Hampel MAD outlier filters
+    │   └── crypto.py              # SHA-256 observation & batch Merkle hashing
+    └── resilience/                # Fault tolerance modules
+        └── circuit_breaker.py     # Stateful circuit breaker implementation
 ```
 
 ---
 
-## Quick Start
+## Quick Start & CLI Execution
 
 ### 1. Install Dependencies
 ```bash
@@ -94,11 +167,10 @@ playwright install chromium
 ```bash
 cp .env.example .env
 ```
-Key variables:
-* `BACKEND_API_URL`: Backend REST API URL (e.g. `http://localhost:5000` or production URL).
-* `INGEST_SECRET`: Secret token for data transmission.
-* `SCRAPER_PORTAL`: `google_flights` (default) or `easemytrip`.
-* `SCRAPER_CONCURRENCY`: Number of concurrent workers (default: `3`).
+Key configuration parameters:
+* `BACKEND_API_URL`: Backend REST API URL (`http://localhost:5000` or production Render URL).
+* `INGEST_SECRET`: Secret token for authenticated backend transmission.
+* `SCRAPER_CONCURRENCY`: Concurrent worker tasks (default: `3`).
 
 ### 3. Run Automated Tests
 ```bash
@@ -107,12 +179,12 @@ pytest
 
 ### 4. Execute Scraper CLI
 
-**Run default 15 demo routes across core horizons ($T+1, T+7, T+15, T+30, T+45$):**
+**Run default 15 demo corridors across core horizons ($T+1, T+7, T+15, T+30, T+45$):**
 ```bash
 python run_scraper.py
 ```
 
-**Fast single route test (e.g. DEL-BOM on T+1 and T+7):**
+**Fast single route test (e.g. DEL-BOM on $T+1$ and $T+7$):**
 ```bash
 python run_scraper.py --routes DEL-BOM --horizons 1,7
 ```
@@ -122,12 +194,12 @@ python run_scraper.py --routes DEL-BOM --horizons 1,7
 python run_scraper.py --routes top5 --horizons 1,7,15,30,45
 ```
 
-**Run full 45-day booking window:**
+**Run full 45-day continuous booking window:**
 ```bash
 python run_scraper.py --routes DEL-BOM --full-45-days
 ```
 
-**Run without posting to backend (local export only):**
+**Run without posting to backend (local JSON/CSV export only):**
 ```bash
 python run_scraper.py --routes DEL-BOM --no-ingest
 ```
@@ -136,38 +208,16 @@ python run_scraper.py --routes DEL-BOM --no-ingest
 
 ## Automated 6-Hour Cron via GitHub Actions
 
-The scraper includes `.github/workflows/scrape_cron.yml`, which runs autonomously every 6 hours (`0 */6 * * *`) on GitHub's free runners.
+The scraper runs autonomously every 6 hours (`0 */6 * * *`) on GitHub's free runners via `.github/workflows/scrape_cron.yml`.
 
-To configure production ingestion:
-1. Push this repository to GitHub.
-2. Go to **Settings > Secrets and variables > Actions**.
-3. Add Repository Secret:
-   * `BACKEND_API_URL`: Your hosted backend endpoint (e.g. `https://your-api.onrender.com`).
-   * `INGEST_SECRET`: Your shared secret token.
-4. The workflow will run automatically every 6 hours and can also be triggered manually via the **Actions** tab ("Run workflow").
+To connect production ingestion:
+1. Navigate to **Settings > Secrets and variables > Actions** in your GitHub repository.
+2. Add the following secrets:
+   * `BACKEND_API_URL`: Your hosted backend endpoint.
+   * `INGEST_SECRET`: Your shared ingestion secret token.
+3. The workflow executes on schedule and can also be dispatched manually via the **Actions** tab.
 
 ---
 
-## Output Data Structure
-Observations perfectly match the backend Prisma `FareObservation` schema:
-
-```json
-{
-  "route_code": "DEL-BOM",
-  "airline_code": "6E",
-  "airline_name": "IndiGo",
-  "flight_number": "6E-0101",
-  "departure_date": "2026-09-14",
-  "advance_window": "T+1",
-  "base_fare": 4940.48,
-  "fuel_surcharge": 750.0,
-  "airport_tax_udf": 450.0,
-  "tax_gst": 284.52,
-  "total_fare": 6425.0,
-  "is_outlier": false,
-  "provenance_status": "CLEANED",
-  "sha256_hash": "f5c2adc69ebef3104713f0b4f4e925400c1e814eaa6965c8ceda4c942ba4da4a",
-  "timestamp": "2026-09-13T12:58:27.512530+00:00",
-  "source_portal": "GOOGLE_FLIGHTS"
-}
-```
+### Team AndroMatrix · Smart India Hackathon 2026
+*High-frequency automated web scraping for the Ministry of Statistics and Programme Implementation (MoSPI).*

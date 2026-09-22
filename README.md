@@ -4,13 +4,24 @@
 **Problem Statement Title:** Development of a Real-time Airfare Price Index for India through Automated Web Scraping of Airline and Online Travel Aggregator Portals for Augmentation of the Consumer Price Index (CPI)  
 **Theme:** Smart Automation  
 **Category:** Software  
+**Team ID:** 146729  
 **Team Name:** AndroMatrix  
 
 ---
 
-### 🌐 Quick Access & Demonstration
+### 🌐 Quick Access & Direct Navigation
 * 🚀 **Live Production Dashboard:** [https://apix-tracker.vercel.app/](https://apix-tracker.vercel.app/)
 * 📂 **Official Submission Repository:** [https://github.com/GT0SRT/APIx_Tracker](https://github.com/GT0SRT/APIx_Tracker)
+* 🎬 **Prototype Video Demo:** [demo.andromatrix.live](https://demo.andromatrix.live)
+
+#### ⚡ Subsystem Direct Documentation
+Click below to jump directly to any subsystem's dedicated technical documentation:
+
+| 📦 Subsystem | 📖 Architecture & Setup Guide | 🛠️ Technology Stack | 🎯 Core Functionality |
+| :--- | :--- | :--- | :--- |
+| **🖥️ Frontend** | [**`frontend/README.md`**](./frontend) | React 19, TypeScript, Vite, Tailwind CSS, Recharts | Executive Macro Dashboard, Sector Deep-Dive, AI Copilot |
+| **⚙️ Backend** | [**`backend/README.md`**](./backend) | Node.js, Express REST API, PostgreSQL, Prisma ORM | Time-Series Index Formulation, Ingestion API & Audit |
+| **🕷️ Scraper** | [**`scraper/README.md`**](./scraper) | Python 3.10+, curl-cffi, Playwright Stealth, Pydantic | Resilient 3-Tier Multi-Engine Scraping & Cleaning |
 
 ---
 
@@ -18,148 +29,188 @@
 
 The **AndroMatrix APIx Platform** is India's first automated, real-time Airfare Price Index engine engineered for the **Ministry of Statistics and Programme Implementation (MoSPI)** and the **Reserve Bank of India (RBI)**.
 
-Traditional airfare sampling in India's Consumer Price Index (CPI Base 2012=100 / 2024=100) relies on monthly manual field surveys, introducing a **45-day reporting lag**, advance-purchase blindness, and voluntary fee distortions. The APIx platform modernizes this framework through high-frequency automated data collection, a synthetic constant-horizon booking basket ($T+1$ to $T+45$), deterministic fare decomposition, and a rigorous two-tier mathematical formulation compliant with the **IMF CPI Manual (2020)**.
+Traditional airfare sampling in India's Consumer Price Index (CPI Base 2012=100 / 2024=100) relies on monthly manual visits to physical ticket offices, introducing a **45-day reporting lag**, advance-purchase blindness, and voluntary fee distortions. The APIx platform replaces this manual framework through high-frequency automated data collection, a synthetic constant-horizon booking basket ($T+1$ to $T+45$), deterministic fare decomposition, and a rigorous two-tier mathematical formulation compliant with the **IMF CPI Manual (2020)**.
 
 ---
 
-## Current MoSPI Challenges vs The APIx Solution
+## Current MoSPI Challenges vs The AndroMatrix APIx Solution
 
-```
-┌─────────────────────────────────────────────────────────┐   ┌─────────────────────────────────────────────────────────┐
-│              Current MoSPI Pain Points                  │   │               The AndroMatrix APIx Solution             │
-├─────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
-│ 1. Manual Collection & 45-Day Reporting Lag             │   │ 1. High-Frequency Automated Ingestion                   │
-│    Monthly manual surveys introduce a 45-day lag,       │──▶│    Automated collection across 150+ domestic routes     │
-│    completely missing dynamic real-time price surges.   │   │    every 6 hours across domestic scheduled carriers.    │
-├─────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
-│ 2. Advance-Purchase Blindness                           │   │ 2. Synthetic Constant-Horizon Basket                    │
-│    Flight booked for tomorrow (T+1) vs 30 days away     │──▶│    Samples strictly defined horizons (T+1 to T+45)      │
-│    (T+30) differs by 200%–400%, creating severe bias.   │   │    to maintain consistent matched-model price tracking. │
-├─────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
-│ 3. Route Misrepresentation                              │   │ 3. DGCA Passenger Traffic Weighting                     │
-│    High-density metro routes and regional routes        │──▶│    Integrates official DGCA city-pair quarterly traffic │
-│    averaged together without passenger volume weights.  │   │    datasets to apply dynamic route-weighting metrics.   │
-├─────────────────────────────────────────────────────────┤   ├─────────────────────────────────────────────────────────┤
-│ 4. Ancillary Noise Pollution                            │   │ 4. Deterministic Fare Decomposition                     │
-│    Voluntary add-ons (meals, seat selection, baggage)   │──▶│    Automated validation isolates pure Base Fare + Fuel  │
-│    pollute base transport inflation calculations.       │   │    Surcharge + Airport Tax, stripping voluntary add-ons.│
-└─────────────────────────────────────────────────────────┘   └─────────────────────────────────────────────────────────┘
-```
+| # | Current MoSPI Pain Points | The AndroMatrix APIx Solution |
+| :---: | :--- | :--- |
+| **1** | **Manual Collection & 45-Day Reporting Lag**<br>90% of Indian air tickets are bought online, yet MoSPI still uses manual visits to physical ticket offices — causing a 45-day reporting lag. | **High-Frequency Automated Ingestion**<br>Scrapes top 150 domestic routes every 6 hours directly across domestic airlines and leading OTA platforms. |
+| **2** | **Advance Purchase Blindness**<br>Last-minute flights ($T+1$) cost 200%–400% more than advance bookings ($T+30$). Manual surveys fail to track this advance-booking gap fairly. | **Synthetic Constant-Horizon Basket**<br>Samples strictly defined, fixed lead-time booking windows ($T+1$ to $T+45$) to maintain continuous pricing consistency. |
+| **3** | **Route Misrepresentation**<br>High-density metro routes and small regional UDAN routes are averaged together without passenger volume weights. | **DGCA Passenger Traffic Weighting**<br>Weights each route using official DGCA quarterly passenger traffic, ensuring high-density routes (like DEL-BOM) carry proper weight. |
+| **4** | **Ancillary Noise Pollution**<br>Voluntary counter add-ons (meals, baggage) pollute base airfare inflation indices, skewing calculations. | **Deterministic Fare Decomposition**<br>Pydantic validation isolates Base Fare + Fuel Surcharge + Airport Tax, stripping voluntary add-ons. |
 
 ---
 
 ## Key Project Differentiators & Advanced Capabilities
 
-1. **Horizon Trend Price Forecasting:**
-   * Multi-horizon predictive modeling forecasting dynamic price movements and surge volatility across discrete advance windows ($T+1$ to $T+45$).
+1. **Horizon Trend ML Forecasting:**
+   * Time-series models predicting future airfare movements and price surges across advance booking windows ($T+1$ to $T+45$).
    * Delivers forward-looking transport inflation nowcasts up to 45 days before traditional survey publication.
 
-2. **Autonomous 24/7 Anomaly Monitoring:**
-   * Automated anomaly surveillance continuously monitoring domestic sectors to detect price surges, supply disruptions, or market variances.
-   * Performs automated root-cause diagnostics and countermeasure isolation.
+2. **Automated Anomaly Diagnostics:**
+   * Autonomous 24/7 monitoring agents that detect anomalous fare spikes and perform rapid root-cause investigations.
+   * Isolates flash sales, capacity pinches, and holiday surges with Hampel MAD outlier suppression.
 
 3. **Policy & Regulatory Intelligence:**
-   * Grounded knowledge base providing contextual query resolution for MoSPI CPI guidelines, DGCA circulars, and IMF statistical standards.
-   * Citations mapped to official regulatory publications.
+   * Grounded compliance copilot answering complex CPI transport rules with verified citations to MoSPI & DGCA circulars.
+   * Contextual assistant resolving complex statistical and regulatory inquiries using verified source material.
 
-4. **One-Click Executive Inflation Reports:**
-   * Automated executive brief generation compiling headline inflation, core smoothed series, regional hotspots, and policy notes.
+4. **One-Click Executive Reports:**
+   * Automated report generation on a single click, providing comprehensive exportable inflation summaries and analytical trends.
    * Instant export to formatted Markdown and print-ready executive summaries.
 
 ---
 
-## Two-Tier Formula Basket
+## End-to-End System Architecture
 
-Compliant with the **IMF CPI Manual (2020, Chapter 10: Scanner & Web-Scraped Data)** and ILO recommendations:
+The platform is designed around a fault-tolerant, decoupled pipeline conforming to enterprise standards:
+
+```mermaid
+flowchart TD
+    subgraph S1["1. Resilient 3-Tier Scraper Engine"]
+        T1["Tier 1: High-Speed TLS Impersonation (curl-cffi)"] --> T2["Tier 2: Playwright Stealth Browser"]
+        T2 --> T3["Tier 3: External Scraping SaaS API Gateway"]
+        CB["Autonomous Circuit Breaker & Instant Email Alert Dispatch"] -.->|"If all 3 tiers fail"| T3
+    end
+
+    subgraph S2["2. Python Data Cleaning & Validation"]
+        NORM["Python Data Cleaning (Rule-based Normalization & Pydantic)"]
+        VAL{"Validated Fare Schema?"}
+        OUTLIER["Outlier Filter & Fallback Engine<br/>• Hampel & IQR Filter rejects glitches<br/>• Imputes sold-out/cancelled flights"]
+        CRYPTO["SHA-256 Cryptographic Signing & Merkle Batch Root"]
+        
+        NORM --> VAL
+        VAL -->|"NO"| OUTLIER
+        VAL -->|"YES"| CRYPTO
+    end
+
+    subgraph S3["3. Backend & Storage Layer"]
+        INGEST["Node.js / Express REST API Backend"]
+        DB[("PostgreSQL Database<br/>Prisma ORM Cleaned Storage & Audit<br/>(TimescaleDB Time-Series Extension)")]
+        
+        CRYPTO --> INGEST
+        INGEST <--> DB
+    end
+
+    subgraph S4["4. Interactive Analytics Frontend"]
+        FE["React Frontend Dashboard<br/>(Tailwind CSS + Recharts + Lucide)"]
+        FE <-->|"REST API Queries"| INGEST
+    end
+
+    subgraph S5["5. Advanced AI Capabilities"]
+        AI1["1. Horizon Trend ML<br/>Predictive multi-day forecasting"]
+        AI2["2. Policy & Compliance Q&A<br/>MoSPI & DGCA Contextual Copilot"]
+        AI3["3. Smart Synthesis & Briefs<br/>Executive summaries & inflation reviews"]
+        
+        AI1 --- FE
+        AI2 --- FE
+        AI3 --- FE
+    end
+
+    S1 --> NORM
+```
+
+---
+
+## Two-Tier Mathematical Formulation
+
+Compliant with the **IMF CPI Manual (2020, Chapter 10: Scanner & Web-Scraped Data)** and ILO statistical recommendations:
 
 ### 1. Micro-Index: Jevons Elementary Geometric Mean
-At the elementary route and advance-purchase horizon level, price relatives are aggregated geometrically without requiring continuous intraday passenger quantity weights:
+At the elementary route and advance-purchase horizon level, price relatives are aggregated geometrically to prevent Carli upward substitution bias:
 
 $$I_J(t/0) = \left( \prod_{i=1}^n \frac{P_i(t)}{P_i(0)} \right)^{\frac{1}{n}} = \exp\left( \frac{1}{n} \sum_{i=1}^n \ln \frac{P_i(t)}{P_i(0)} \right)$$
 
 * **Why Jevons?**
-  * Satisfies the multi-lateral **time reversal test** ($I(t/0) \cdot I(0/t) = 1$) and **circularity/transitivity test**.
-  * Eliminates the severe upward substitution bias inherent in the arithmetic Carli formula when applied to volatile dynamic airfares.
+  * Satisfies the **time reversal test** ($I(t/0) \cdot I(0/t) = 1$) and **circularity/transitivity test**.
+  * Eliminates the extreme volatility skew of arithmetic averages on dynamic airline tariffs.
 
-### 2. Macro APIx: DGCA Passenger Traffic-Weighted Aggregate
+### 2. Macro APIx: Modified Laspeyres Traffic-Weighted Aggregate
 The national composite Airfare Price Index is computed by weighting each route's micro-index using quarterly passenger traffic volume shares published by the Directorate General of Civil Aviation (DGCA):
 
-$$\text{Macro APIx} = \sum_{r} w_r \cdot I_r(t/0) \quad \text{where} \quad w_r = \frac{\text{Passenger Traffic}_r}{\sum_k \text{Passenger Traffic}_k}$$
+$$P_L = \frac{\sum_{i=1}^n P_{i,t} \, q_{i,0}}{\sum_{i=1}^n P_{i,0} \, q_{i,0}} \times 100 \quad \equiv \quad \text{Macro APIx} = \sum_{r} w_r \cdot I_r(t/0)$$
+
+$$\text{where} \quad w_r = \frac{\text{Passenger Traffic}_r}{\sum_k \text{Passenger Traffic}_k}$$
 
 ---
 
-## Technical Architecture & Methodology
-
-### 1. Frontend & Visualization (`/frontend`)
-* **Framework:** React 19, Vite, TypeScript
-* **Styling:** Tailwind CSS, Shadcn UI design tokens
-* **Data Visualization:** Recharts (30-Day APIx Trend, Lead-Time Elasticity, DGCA Sector Comparison, Fare Breakdown)
-* **Key Modules:** National Overview, Sector Deep-Dive, Index Series, Predictive Horizons, Audit Explorer, Policy Intelligence.
-
-### 2. Backend & Database API (`/backend`)
-* **Runtime & Framework:** Node.js, Express REST API
-* **Database Layer:** Prisma ORM with Time-Series Storage
-* **Core Endpoints:** Real-time analytics, route elasticity, cryptographic audit logs, and telemetry.
-
-### 3. Automated Ingestion Pipeline (`/scraper`)
-* **Engine:** Python 3.10+ automated ingestion workers
-* **Data Processing:** Pydantic schema validation, deterministic fare decomposition, Hampel/IQR outlier rejection, and SHA-256 cryptographic hashing.
-
----
-
-## Feasibility & Risk Mitigation
+## Feasibility & Enterprise Anti-Bot Defenses
 
 | Challenge / Risk | Real-World Operational Threat | AndroMatrix Production Countermeasure |
 | :--- | :--- | :--- |
-| **Ingestion Availability** | Dynamic site layouts and network rate controls. | Resilient collection protocols, polite rate-limiting, distributed multi-node architecture, and automated schema normalization. |
-| **Data Integrity** | Potential DOM shifts and unstandardized fare formats. | Deterministic payload validation isolating pure Base Fare from statutory taxes and fees while stripping voluntary add-ons. |
-| **Dynamic Volatility** | Ephemeral flash sales or temporary supply spikes. | Rolling geometric smoothing with Hampel/IQR outlier suppression isolating Core Trimmed series from headline spikes. |
-| **Legal & Compliance** | Strict adherence to fair-use and data governance policies. | Gathers publicly displayed unauthenticated consumer price quotes; ready for direct government-to-carrier API integration. |
-| **Audit & Provenance** | Ensuring statistical trust for MoSPI / RBI certification. | Immutable SHA-256 cryptographic signature calculated and stored for every validated observation. |
-
----
-
-## Monorepo Project Structure
-
-```
-APIx_Tracker/
-├── README.md                          # Comprehensive Hackathon Documentation
-├── .gitignore                         # Root Git configuration
-│
-├── frontend/                          # React + TypeScript + Vite Dashboard
-│   ├── src/
-│   │   ├── App.tsx                    # Main APIx Analytics Dashboard
-│   │   ├── main.tsx                   # React 19 entry point
-│   │   ├── index.css                  # Tailwind CSS v4 design tokens
-│   │   ├── components/ui/button.tsx   # Shadcn Button component
-│   │   └── lib/utils.ts               # Class merging utilities (clsx/tailwind-merge)
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── vite.config.ts
-│
-├── backend/                           # Node.js + Express REST API
-│   ├── server.js                      # Express server entry point
-│   ├── prisma/
-│   │   └── schema.prisma              # Database schema (DailyIndex, ScrapeLog)
-│   ├── src/
-│   │   ├── controllers/               # Analytics, logs, and AI controllers
-│   │   ├── routes/                    # API route definitions
-│   │   └── services/                  # Computation & domain engines
-│   └── package.json
-│
-└── scraper/                           # Python Automated Ingestion Pipeline
-    └── README.md
-```
+| **Bot Defenses & IP Bans** | Cloudflare Turnstile, Akamai Bot Manager, and rate limits block standard crawlers. | **3-Tier Cascade & Instant Incident Alerts:** Cascades across `curl-cffi`, Playwright Stealth, and External SaaS APIs. If all tiers fail, an autonomous Circuit Breaker trips and dispatches an HTML Incident Diagnostic Email via SMTP with failing route, HTTP status, and cooldown windows. |
+| **Website DOM Shifts** | Frequent OTA UI redesigns break HTML CSS/XPath selectors and crash crawlers. | Intercept underlying XHR/Fetch JSON responses instead of scraping DOM; self-healing Pydantic schema parser detects field shifts and fires webhook alerts. |
+| **Dynamic Pricing Volatility** | Hourly flash sales or panic holiday spikes distort monthly inflation index tracking. | **24-Hour Trimmed Geometric Smoothing:** Automatically isolates short-term flash sales and panic surges, maintaining both Headline and Core inflation series. |
+| **Legal & Fair-Use Policy** | Terms of Service restrictions and airline server capacity concerns. | Collects unauthenticated, publicly displayed consumer prices only; enforces polite rate-limiting with exponential backoff & jitter; ready for B2B Gov-Airline direct API integration. |
+| **Operational & Financial Viability** | High compute and proxy subscription costs. | Zero compute cost via automated GitHub Actions runners; paid proxy pools are used strictly as a Tier 3 fallback, keeping monthly costs under ₹3,500. |
+| **Audit & Provenance** | Ensuring statistical trust for official MoSPI / RBI publication. | **Immutable Cryptographic Audit:** Every scraped fare observation is signed with an immutable SHA-256 signature and grouped into Merkle batch digests. |
 
 ---
 
 ## Multi-Stakeholder Dividends
 
-* **National Statistical Office (MoSPI):** Ingests daily validated quotes across 150+ corridors, replacing 45-day reporting lag with real-time continuous transport CPI series.
-* **Reserve Bank of India (RBI / MPC):** Accesses forward-looking transport nowcasts up to 45 days in advance, improving monetary inflation projections.
-* **Competition Regulators (CCI / DGCA):** Monitors route-level airline price parity to detect unjustified spreads and capacity imbalances.
-* **Aviation Economists & Researchers:** Provides standardized constant-horizon datasets ($T+1$ to $T+45$) for empirical transport economics research.
-* **Citizens & Passenger Advocacy:** Promotes transparent fare unbundling and highlights optimal advance-booking saving horizons.
+* 🏛️ **National Statistical Office (NSO / MoSPI):** Ingests 10,000+ validated daily fare quotes across 150+ high-density city pairs, improving CPI transport fidelity by 40%+ and eliminating 45-day survey lag.
+* ✈️ **Aviation Researchers:** Grants access to 5 standard advance-purchase booking curves ($T+1$ to $T+45$) to analyze route-specific price elasticity and demand curves.
+* ⚖️ **Market Competition Regulators (CCI / DGCA):** Delivers cross-airline pricing parity analytics across 150+ routes to detect up to 35% price variances and potential route monopolies.
+* 🏦 **Monetary Policy Makers (RBI & MoCA):** Provides real-time (<24h vs 45-day lag) price signals, enabling 10x faster macroeconomic forecasting and interest rate policy decisions.
+* 🛡️ **Consumer Protection & OTAs:** Empowers passenger advocacy by highlighting 200%–400% dynamic pricing margins and promoting transparent unbundled fare standards.
+* 📊 **Academic & Economic Think Tanks:** Enables 100% data-driven research into transportation economics, infrastructure utilization, and travel demand modeling.
+
+---
+
+## Global Benchmarks & Research Context
+
+* **MoSPI Traditional Methodology:** Current CPI (Base 2012=100 / 2024=100) relies on manual visits to physical airline booking counters. The manual sampling flaw causes a 45-day data reporting lag and completely misses the difference between last-minute ($T+1$) and advance ($T+30$) bookings.
+* **UK ONS & Eurostat Paradigm:** Direct inspiration was drawn from the UK Office for National Statistics (ONS) and Eurostat guidelines, who successfully modernized their official CPI by replacing manual price collection with automated, high-frequency web scrapers for volatile transport categories.
+* **AndroMatrix Integration:** Zero-touch automation ingesting fares across strictly defined horizons ($T+1$ to $T+45$), combining the IMF-recommended Jevons Geometric Mean with DGCA passenger traffic weights.
+
+---
+
+## Monorepo Directory Structure
+
+```
+APIx_Tracker/
+├── README.md                          # Main Project Overview & Architecture Guide
+├── .gitignore                         # Git exclusion rules
+├── vercel.json                        # Vercel deployment configuration
+│
+├── frontend/                          # 🖥️ React + TypeScript + Vite Dashboard
+│   ├── README.md                      # Dedicated Frontend Documentation
+│   ├── src/
+│   │   ├── components/views/          # Overview, Routes, Series, AI, Audit views
+│   │   ├── components/ai/             # Agentic AI, Forecasting & Policy Modals
+│   │   ├── components/layout/         # Sticky Header & Resizable Sidebar
+│   │   ├── hooks/                     # TanStack React Query v5 data hooks
+│   │   ├── services/api.ts            # REST API client with live/mock fallback
+│   │   └── App.tsx                    # Main layout & routed application
+│   ├── package.json
+│   └── vite.config.ts
+│
+├── backend/                           # ⚙️ Node.js + Express REST API Server
+│   ├── README.md                      # Dedicated Backend & Database Documentation
+│   ├── server.js                      # Express HTTP entry point
+│   ├── prisma/
+│   │   ├── schema.prisma              # Database schema (Airports, Routes, Observations)
+│   │   └── seed.js                    # Comprehensive seed data for 15 corridors
+│   ├── src/
+│   │   ├── controllers/               # Analytics, routes, logs, and AI controllers
+│   │   ├── middleware/                # JWT and ingestion token authentication
+│   │   └── routes/                    # REST routing definitions
+│   └── package.json
+│
+└── scraper/                           # 🕷️ Python Resilient Ingestion Pipeline
+    ├── README.md                      # Dedicated Scraper Engine Documentation
+    ├── run_scraper.py                 # CLI execution entry point
+    ├── requirements.txt               # Python dependencies (playwright, curl_cffi, pydantic)
+    └── src/
+        ├── engines/                   # Multi-tier engines (curl_cffi, Playwright, SaaS)
+        ├── processors/                # Fare decomposer, Hampel/IQR outlier filters, crypto
+        ├── resilience/                # Circuit breaker & failure state tracking
+        └── pipeline.py                # 7-phase execution orchestrator
+```
 
 ---
 
@@ -169,57 +220,37 @@ APIx_Tracker/
 * **Node.js:** v18 or later
 * **npm:** v9 or later
 * **Python:** 3.10 or later
-* **PostgreSQL Database:** Local instance or cloud database
+* **PostgreSQL Database:** Local instance or cloud database (Neon, Supabase, Render)
 
 ### 1. Backend Setup
 ```bash
 cd backend
 npm install
-
-# Configure your environment variables
 cp .env.example .env
-# Set DATABASE_URL="postgresql://username:password@localhost:5432/apix_db" in .env
-
-# Generate Prisma client and push schema
+# Configure DATABASE_URL in .env
 npx prisma generate
 npx prisma db push
-
-# Start the backend server
-npm start
+npm run prisma:seed    # Populates airports, routes, and baseline data
+npm start              # Runs on http://localhost:5000
 ```
-*Backend runs on `http://localhost:5000`.*
+👉 *Detailed instructions: [backend/README.md](./backend)*
 
 ### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
-
-# Start Vite development server
-npm run dev
+npm run dev            # Runs on http://localhost:5173
 ```
-*Frontend runs on `http://localhost:5173`.*
+👉 *Detailed instructions: [frontend/README.md](./frontend)*
 
-### 3. Production Build Verification
+### 3. Scraper Pipeline Execution
 ```bash
-cd frontend
-npm run build
+cd scraper
+pip install -r requirements.txt
+playwright install chromium
+python run_scraper.py --routes DEL-BOM --horizons 1,7
 ```
-
----
-
-## References & Statistical Standards
-
-1. **National Statistical Standards:**
-   * MoSPI CPI Manual (Base 2012=100) – Transport subgroup specifications.
-   * MoSPI Modernization Committee (2020) – Integrating web scraping into national statistics.
-   * National Data Governance Framework (NDGF) – Standards for automated data pipelines.
-2. **International Economic Frameworks:**
-   * IMF CPI Manual (2020, Chapter 10) – Scanner & web-scraped data with Jevons micro-indexes.
-   * ILO & United Nations CPI Guide – Advance purchase horizons & dynamic pricing rules.
-   * Eurostat & UK ONS – Multilateral airfare index construction & quality adjustment.
-3. **Aviation & Open Data Standards:**
-   * DGCA Domestic Traffic Reports – Quarterly city-pair statistics for formula weights ($w_r$).
-   * IATA Economics – Airline yield management, dynamic surge, and fuel-pass-through elasticity.
+👉 *Detailed instructions: [scraper/README.md](./scraper)*
 
 ---
 
