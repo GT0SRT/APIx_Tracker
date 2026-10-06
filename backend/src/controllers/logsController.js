@@ -327,7 +327,7 @@ const ingestObservations = async (req, res) => {
     }
 
     // Always update in-memory buffer with freshest batch for instant frontend reactivity
-    inMemoryObservationsBuffer = [...observations, ...inMemoryObservationsBuffer].slice(0, 500);
+    inMemoryObservationsBuffer = [...observations, ...inMemoryObservationsBuffer].slice(0, 10);
 
     let dbSavedCount = 0;
     const routeHorizonGroups = {};
