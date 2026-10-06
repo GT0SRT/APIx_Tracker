@@ -108,9 +108,13 @@ const getRecentLogs = async (req, res) => {
         skip,
         take: limit,
         orderBy: { timestamp: 'desc' },
-        include: {
-          route: true,
-          airline: true,
+        select: {
+          id: true,
+          baseFare: true,
+          totalFare: true,
+          timestamp: true,
+          route: { select: { originCode: true, destinationCode: true } },
+          airline: { select: { name: true } },
         },
       });
 
