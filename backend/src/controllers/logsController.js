@@ -108,9 +108,13 @@ const getRecentLogs = async (req, res) => {
         skip,
         take: limit,
         orderBy: { timestamp: 'desc' },
-        include: {
-          route: true,
-          airline: true,
+        select: {
+          id: true,
+          baseFare: true,
+          totalFare: true,
+          timestamp: true,
+          route: { select: { originCode: true, destinationCode: true } },
+          airline: { select: { name: true } },
         },
       });
 
@@ -327,7 +331,7 @@ const ingestObservations = async (req, res) => {
     }
 
     // Always update in-memory buffer with freshest batch for instant frontend reactivity
-    inMemoryObservationsBuffer = [...observations, ...inMemoryObservationsBuffer].slice(0, 500);
+    inMemoryObservationsBuffer = [...observations, ...inMemoryObservationsBuffer].slice(0, 10);
 
     let dbSavedCount = 0;
     const routeHorizonGroups = {};
