@@ -150,7 +150,13 @@ const getRouteParity = async (req, res) => {
     if (prisma && prisma.fareObservation) {
       const observations = await prisma.fareObservation.findMany({
         where: { isOutlier: false },
-        include: { route: true, airline: true },
+        take: 500,
+        orderBy: { timestamp: 'desc' },
+        select: {
+          totalFare: true,
+          route: { select: { routeCode: true } },
+          airline: { select: { name: true } },
+        },
       });
 
       if (observations && observations.length > 0) {

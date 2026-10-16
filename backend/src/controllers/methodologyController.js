@@ -40,11 +40,16 @@ const getJevonsCarliComparison = async (req, res) => {
     ];
 
     if (prisma && prisma.fareObservation) {
-      const observations = await prisma.fareObservation.findMany({
+      let observations = await prisma.fareObservation.findMany({
         where: { isOutlier: false },
-        include: { route: true },
-        orderBy: { timestamp: 'asc' },
+        take: 300,
+        orderBy: { timestamp: 'desc' },
+        select: {
+          baseFare: true,
+          route: { select: { routeCode: true } },
+        },
       });
+      observations.reverse();
 
       if (observations && observations.length >= 10) {
         // Group observations by route
@@ -170,10 +175,16 @@ const getLaspeyresData = async (req, res) => {
     ];
 
     if (prisma && prisma.dailyRouteIndex && prisma.route) {
-      const dailyIndices = await prisma.dailyRouteIndex.findMany({
-        include: { route: true },
-        orderBy: { date: 'asc' },
+      let dailyIndices = await prisma.dailyRouteIndex.findMany({
+        take: 300,
+        orderBy: { date: 'desc' },
+        select: {
+          date: true,
+          jevonsIndexValue: true,
+          route: { select: { dgcaWeight: true } },
+        },
       });
+      dailyIndices.reverse();
 
       if (dailyIndices && dailyIndices.length > 0) {
         // Group indices by date string

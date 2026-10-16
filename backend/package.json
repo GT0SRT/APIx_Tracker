@@ -5,9 +5,9 @@
   "main": "server.js",
   "scripts": {
     "build": "prisma generate",
-    "start": "node server.js",
+    "start": "node --max-old-space-size=384 server.js",
     "dev": "nodemon server.js",
-    "postinstall": "prisma generate && (pip3 install -r ml/requirements.txt || pip install -r ml/requirements.txt || true)",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate dev",

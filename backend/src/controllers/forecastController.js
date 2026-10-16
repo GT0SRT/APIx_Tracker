@@ -53,6 +53,13 @@ async function syncMonthlyMacroToCpi() {
  */
 function runPythonForecaster(records = null) {
   return new Promise((resolve, reject) => {
+    // In production container environments (Render 512MB RAM), spawning Python with
+    // statsmodels/pandas/scikit-learn will breach memory limits.
+    // GitHub Actions handles the heavy Python training off-server.
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER || process.env.ENABLE_PYTHON_FORECASTER !== 'true') {
+      return reject(new Error('In-container Python execution bypassed to conserve memory.'));
+    }
+
     const scriptPath = path.join(__dirname, '..', '..', 'ml', 'cpi_forecaster.py');
     const pythonExe = process.platform === 'win32' ? 'python' : 'python3';
 
